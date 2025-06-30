@@ -1,0 +1,2117 @@
+{
+  "good": [
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/val/annotations/P0761_patch_000909.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/val/images/P0761_patch_000909.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the small car at the lower center of the view",
+            "the vehicle located towards the bottom middle"
+          ],
+          "original": "the small vehicle in the bottom center"
+        },
+        {
+          "enhanced": [
+            "the small car in the lower center, located uphill from a boat",
+            "the vehicle towards the bottom middle, parked above a ship"
+          ],
+          "original": "the small vehicle in the bottom center that is above a ship"
+        },
+        {
+          "enhanced": [
+            "the small car located at the bottom center, to the right side of another vehicle",
+            "the vehicle towards the bottom middle, which is on the right side of another car"
+          ],
+          "original": "the small vehicle in the bottom center that is to the right of a small vehicle"
+        },
+        {
+          "enhanced": [
+            "the small red car",
+            "the little red vehicle"
+          ],
+          "original": "the red small vehicle"
+        },
+        {
+          "enhanced": [
+            "the small red car located at the lower center",
+            "the red vehicle parked towards the bottom middle"
+          ],
+          "original": "the red small vehicle in the bottom center"
+        },
+        {
+          "enhanced": [
+            "the small red car in the lower center, parked uphill from a boat",
+            "the red vehicle towards the bottom middle, located above a ship"
+          ],
+          "original": "the red small vehicle in the bottom center that is above a ship"
+        },
+        {
+          "enhanced": [
+            "the small red car at the bottom center, on the right side of another vehicle",
+            "the red vehicle towards the bottom middle, which sits on the right side of another car"
+          ],
+          "original": "the red small vehicle in the bottom center that is to the right of a small vehicle"
+        }
+      ],
+      "description": "The target object is a small, red vehicle located in the bottom center of the image. It's parked on the side of a road, adjacent to a residential area with houses visible. The car is positioned to the right of another parked vehicle and is located uphill from a boat that is docked in the distance. The vehicle is near some trees and buildings. The fact that it's red and near another car makes it relatively unique.",
+      "unique_expressions": [
+        "the small red car parked on the side of the road in the lower center, next to a parked car",
+        "the red car towards the bottom center, beside another vehicle near the houses"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        175,
+        339,
+        194,
+        374
+      ],
+      "timestamp": "2025-05-18T19:55:51.643722"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P1352_patch_009426.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P1352_patch_009426.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the bridge located in the lower center, which is just to the bottom left of another bridge",
+            "the bridge towards the bottom middle, situated to the lower left side of another bridge"
+          ],
+          "original": "the bridge in the bottom center that is to the bottom left of a bridge"
+        },
+        {
+          "enhanced": [
+            "the darker-colored bridge in the lower center that's to the bottom-left of another bridge",
+            "the bridge with a dark shade, found in the bottom-middle area and situated to the lower-left of a second bridge"
+          ],
+          "original": "the dark bridge in the bottom center that is to the bottom left of a bridge"
+        }
+      ],
+      "description": "The target bridge is situated in the bottom-center portion of the image and is identifiable by its proximity to another bridge located towards its upper-right. The surrounding area consists primarily of waterways and what appear to be aquaculture ponds. This bridge is at the edge of a cluster of ponds, and serves as a passage over a channel between larger areas of water. Considering this context, a reference to the aquaculture ponds and the channel provides a unique way to refer to this bridge.",
+      "unique_expressions": [
+        "the bridge in the bottom center that is to the bottom left of a bridge, spanning the channel between the ponds",
+        "the dark bridge in the bottom center that is to the bottom left of a bridge, located along the edge of the aquaculture ponds"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        166,
+        408,
+        178,
+        425
+      ],
+      "timestamp": "2025-05-18T19:56:21.243973"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/val/annotations/P2758_patch_007643.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/val/images/P2758_patch_007643.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the vessel",
+            "that large boat"
+          ],
+          "original": "the ship"
+        },
+        {
+          "enhanced": [
+            "the boat located in the lower left corner",
+            "the vessel at the bottom left"
+          ],
+          "original": "the ship in the bottom left"
+        }
+      ],
+      "description": "The ship is situated in the bottom left quadrant of the image. Its position is unique within the immediate context as it is the only ship visible. The surrounding water provides a clear boundary, further isolating the ship as a distinct object. There is a buoy near the rear end of the ship. There is a shadow near it.",
+      "unique_expressions": [
+        "the ship in the bottom left with a buoy near the stern",
+        "the ship at the lower left with a large shadow"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        0,
+        249,
+        309,
+        459
+      ],
+      "timestamp": "2025-05-18T19:56:38.343238"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P2655_patch_022683.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P2655_patch_022683.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the basketball court located in the lower right corner",
+            "the basketball court at the bottom right"
+          ],
+          "original": "the basketball court in the bottom right"
+        },
+        {
+          "enhanced": [
+            "the basketball court in the lower right, situated to the right of another basketball court",
+            "the basketball court on the bottom right, which sits right of another court"
+          ],
+          "original": "the basketball court in the bottom right that is to the right of a basketball court"
+        },
+        {
+          "enhanced": [
+            "the basketball court farthest to the right",
+            "the basketball court on the extreme right"
+          ],
+          "original": "the rightmost basketball court"
+        },
+        {
+          "enhanced": [
+            "the basketball court farthest to the right, located in the lower right",
+            "the basketball court on the extreme right at the bottom right corner"
+          ],
+          "original": "the rightmost basketball court in the bottom right"
+        },
+        {
+          "enhanced": [
+            "the basketball court farthest to the right in the bottom right corner, positioned to the right of another basketball court",
+            "the basketball court on the extreme right at the bottom right, which is right of another court"
+          ],
+          "original": "the rightmost basketball court in the bottom right that is to the right of a basketball court"
+        },
+        {
+          "enhanced": [
+            "the basketball court with a darker appearance in the lower right",
+            "the dark-colored basketball court at the bottom right"
+          ],
+          "original": "the dark basketball court in the bottom right"
+        },
+        {
+          "enhanced": [
+            "the darker basketball court in the lower right, situated to the right of another basketball court",
+            "the darker colored basketball court on the bottom right, which sits right of another court"
+          ],
+          "original": "the dark basketball court in the bottom right that is to the right of a basketball court"
+        },
+        {
+          "enhanced": [
+            "the darkest basketball court on the far right",
+            "the basketball court farthest to the right with a dark hue"
+          ],
+          "original": "the dark rightmost basketball court"
+        },
+        {
+          "enhanced": [
+            "the darkest basketball court on the far right, located in the lower right",
+            "the basketball court farthest to the right with a dark hue at the bottom right corner"
+          ],
+          "original": "the dark rightmost basketball court in the bottom right"
+        },
+        {
+          "enhanced": [
+            "the darkest basketball court farthest to the right in the bottom right corner, positioned to the right of another basketball court",
+            "the darkest basketball court on the extreme right at the bottom right, which is right of another court"
+          ],
+          "original": "the dark rightmost basketball court in the bottom right that is to the right of a basketball court"
+        }
+      ],
+      "description": "The target basketball court is located in the bottom right corner of the image. It is part of a larger grid of similar basketball courts. It is situated at the extreme right of the grid. The key to uniquely identifying this court is its position at the bottom right, and its spatial relation to another adjacent court to its left. The context offers a grid layout where relative positions are crucial. Additionally, its darker tone compared to others is a distinguishing visual feature.",
+      "unique_expressions": [
+        "the basketball court at the lower right of the grid, which is the rightmost one",
+        "the dark-toned basketball court located at the bottom right corner next to another court"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        382,
+        218,
+        480,
+        443
+      ],
+      "timestamp": "2025-05-18T19:57:09.937960"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/val/annotations/P0179_patch_000370.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/val/images/P0179_patch_000370.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the court for playing tennis",
+            "the tennis court on the map"
+          ],
+          "original": "the tennis court"
+        },
+        {
+          "enhanced": [
+            "the tennis court located towards the upper middle part of the picture",
+            "the tennis court situated in the upper central area"
+          ],
+          "original": "the tennis court in the top center"
+        },
+        {
+          "enhanced": [
+            "the darkly colored tennis court",
+            "the tennis court with the dark surface"
+          ],
+          "original": "the dark tennis court"
+        },
+        {
+          "enhanced": [
+            "the tennis court with dark coloring, in the top central part",
+            "the dark-toned tennis court located near the upper middle"
+          ],
+          "original": "the dark tennis court in the top center"
+        }
+      ],
+      "description": "The tennis court is located in the top center of the image. It appears darker than the surrounding grass and is rectangular in shape. It is positioned near a road and some buildings and vegetation. The darkness of the court contrasts with the lighter surroundings, making it relatively easy to distinguish.",
+      "unique_expressions": [
+        "the tennis court in the top center, directly north of the palm trees",
+        "the dark tennis court in the top center, beside the road"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        234,
+        0,
+        322,
+        118
+      ],
+      "timestamp": "2025-05-18T19:57:34.690357"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P2553_patch_021272.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P2553_patch_021272.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the big, bright vehicle on the center left, positioned to the left of a plane",
+            "the large, pale-colored vehicle in the middle-left area, situated on the left side of a plane"
+          ],
+          "original": "the light large vehicle in the center left that is to the left of a plane"
+        }
+      ],
+      "description": "The highlighted vehicle is located in the center left of the image. It is positioned to the left of a red and white airplane and next to airport support structures. The vehicle is light in color, which contrasts slightly with the darker gray tarmac surrounding it. The grouping of service vehicles and planes near terminal buildings makes this area distinctive.",
+      "unique_expressions": [
+        "the light colored truck in the center left, just to the left of the red and white airplane",
+        "the large light vehicle on the center left next to the airport support structures that is left of a plane"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        88,
+        199,
+        104,
+        225
+      ],
+      "timestamp": "2025-05-18T19:58:10.559078"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P2700_patch_023531.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P2700_patch_023531.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the storage tank at the very bottom",
+            "the lowest storage tank visible"
+          ],
+          "original": "the bottommost storage tank"
+        },
+        {
+          "enhanced": [
+            "the storage tank at the very bottom, located in the lower center area",
+            "the lowest storage tank in the center of the bottom part of the image"
+          ],
+          "original": "the bottommost storage tank in the bottom center"
+        },
+        {
+          "enhanced": [
+            "the storage tank at the very bottom and in the lower center, which sits to the right of another storage tank",
+            "the lowest storage tank in the bottom center that is located on the right side of another storage tank"
+          ],
+          "original": "the bottommost storage tank in the bottom center that is to the right of a storage tank"
+        },
+        {
+          "enhanced": [
+            "the storage tank at the very bottom and in the lower center, situated underneath another storage tank",
+            "the lowest storage tank in the bottom center which is below another storage tank"
+          ],
+          "original": "the bottommost storage tank in the bottom center that is below a storage tank"
+        },
+        {
+          "enhanced": [
+            "the light-colored storage tank at the very bottom",
+            "the pale storage tank that's the lowest one"
+          ],
+          "original": "the light bottommost storage tank"
+        },
+        {
+          "enhanced": [
+            "the light-colored storage tank at the very bottom, located in the lower center",
+            "the pale storage tank, the lowest one, in the center of the bottom part"
+          ],
+          "original": "the light bottommost storage tank in the bottom center"
+        },
+        {
+          "enhanced": [
+            "the light-colored storage tank at the very bottom and in the lower center, which is to the right of another tank",
+            "the pale storage tank, the lowest one and in the bottom center, located on the right of another storage tank"
+          ],
+          "original": "the light bottommost storage tank in the bottom center that is to the right of a storage tank"
+        },
+        {
+          "enhanced": [
+            "the light-colored storage tank at the very bottom and in the lower center, situated underneath another storage tank",
+            "the pale storage tank, the lowest one and in the bottom center, below another storage tank"
+          ],
+          "original": "the light bottommost storage tank in the bottom center that is below a storage tank"
+        }
+      ],
+      "description": "The target object is the bottommost storage tank, positioned in the bottom-center area of the image. It is directly adjacent to a light-colored fence or containment structure. It's part of a cluster of tanks, where it's positioned to the right and slightly below another tank. The visual context includes a waterway on its right.",
+      "unique_expressions": [
+        "the bottommost light-colored storage tank, located in the lower center and next to the fence",
+        "the bottommost tank that sits to the right of and slightly below another storage tank, near the waterway"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        189,
+        431,
+        255,
+        480
+      ],
+      "timestamp": "2025-05-18T19:59:14.870243"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/val/annotations/P1410_patch_003886.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/val/images/P1410_patch_003886.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the small car on the lower left, located to the bottom-left of another small car",
+            "the vehicle at the bottom left, which sits to the left and below a small automobile"
+          ],
+          "original": "the small vehicle in the bottom left that is to the bottom left of a small vehicle"
+        },
+        {
+          "enhanced": [
+            "the small car at the bottom left, positioned to the bottom-left of what looks like a ship",
+            "the small vehicle in the lower left, situated to the left and below a ship-like structure"
+          ],
+          "original": "the small vehicle in the bottom left that is to the bottom left of a ship"
+        },
+        {
+          "enhanced": [
+            "the light-colored small vehicle on the bottom left, positioned to the bottom left of another small car",
+            "the pale-colored small car in the lower-left corner, which is located to the left and below another similar car"
+          ],
+          "original": "the light small vehicle in the bottom left that is to the bottom left of a small vehicle"
+        },
+        {
+          "enhanced": [
+            "the light-colored small car in the bottom-left corner, positioned to the bottom-left of a ship",
+            "the pale small vehicle at the lower left, which sits to the left and below a ship in the image"
+          ],
+          "original": "the light small vehicle in the bottom left that is to the bottom left of a ship"
+        }
+      ],
+      "description": "The target object is a small, light-colored vehicle located in the bottom-left corner of the image. It is situated within a residential area, near several houses. A key identifying feature is its proximity to a larger structure that resembles a ship (or boat) that is slightly to its right and behind. Also, the target is parked beside another building. The target also sits to the left of a vehicle.",
+      "unique_expressions": [
+        "the small light vehicle in the bottom-left corner next to a gray building and to the bottom-left of the vehicle beside it",
+        "the light vehicle in the bottom left, located to the bottom left of a building that appears to be a ship"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        25,
+        366,
+        44,
+        383
+      ],
+      "timestamp": "2025-05-18T19:59:55.214563"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P1414_patch_011682.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P1414_patch_011682.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the little red car in the upper left area",
+            "the small red vehicle located in the top-left corner"
+          ],
+          "original": "the red small vehicle in the top left"
+        }
+      ],
+      "description": "The target object is a small, likely red, vehicle situated in the upper left section of the parking lot. The area is filled with rows of vehicles. The target is located close to the edge of the frame.",
+      "unique_expressions": [
+        "the red vehicle on the upper left side, near the edge",
+        "the small red car at the top left, in a row of parked cars"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        29,
+        132,
+        49,
+        146
+      ],
+      "timestamp": "2025-05-18T20:01:21.891286"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P1780_patch_015578.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P1780_patch_015578.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the soccer field",
+            "the grass sports field"
+          ],
+          "original": "the soccer ball field"
+        },
+        {
+          "enhanced": [
+            "the soccer field located centrally",
+            "the sports field at the heart of the area"
+          ],
+          "original": "the soccer ball field in the center"
+        },
+        {
+          "enhanced": [
+            "the shadowy soccer field",
+            "the dimly lit sports field"
+          ],
+          "original": "the dark soccer ball field"
+        },
+        {
+          "enhanced": [
+            "the shadowy soccer field located centrally",
+            "the dimly lit sports field at the heart of the area"
+          ],
+          "original": "the dark soccer ball field in the center"
+        }
+      ],
+      "description": "The object in question is a soccer field marked by white lines. It's located near a lighter green patch. The soccer field appears darker than the other adjacent field. The white markings form a grid pattern across the darker field, distinguishing it. The overall context is a flat area with other grassy fields nearby.",
+      "unique_expressions": [
+        "the dark soccer field adjacent to the light green patch",
+        "the soccer field with the grid of white lines in the center"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        0,
+        0,
+        480,
+        448
+      ],
+      "timestamp": "2025-05-18T20:02:10.803040"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P1073_patch_006148.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P1073_patch_006148.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the big truck located in the top right, which is on the right side of another big truck",
+            "the large truck up in the top right corner, positioned to the right of another large truck"
+          ],
+          "original": "the large vehicle in the top right that is to the right of a large vehicle"
+        },
+        {
+          "enhanced": [
+            "the dark-colored, large vehicle in the upper right corner",
+            "the big, dark truck in the top right"
+          ],
+          "original": "the dark large vehicle in the top right"
+        },
+        {
+          "enhanced": [
+            "the dark-colored large vehicle located in the top right, sitting to the right of another large vehicle",
+            "that dark, big truck in the upper right corner, which is positioned on the right of a similar-sized truck"
+          ],
+          "original": "the dark large vehicle in the top right that is to the right of a large vehicle"
+        },
+        {
+          "enhanced": [
+            "the dark, large vehicle in the top right, located to the right of a smaller vehicle",
+            "that dark-colored, big truck up in the top right corner, positioned on the right side of a smaller vehicle"
+          ],
+          "original": "the dark large vehicle in the top right that is to the right of a small vehicle"
+        }
+      ],
+      "description": "The target object is a large vehicle located in the top right corner of the image. It is parked to the right of another, similarly-sized vehicle. The immediate surrounding area appears to be a parking lot or storage area. The vehicle is distinct because of its location on the edge and its relationship to the other truck next to it.",
+      "unique_expressions": [
+        "the large vehicle in the top right corner of the image, immediately to the right of the next vehicle",
+        "the dark large vehicle in the upper right part of the image, parked directly adjacent to another big vehicle"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        442,
+        27,
+        480,
+        113
+      ],
+      "timestamp": "2025-05-18T20:02:34.384844"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P2362_patch_019498.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P2362_patch_019498.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the small car on the top right which is to the lower left of another car",
+            "the little vehicle in the upper right area, situated to the bottom-left of a different small vehicle"
+          ],
+          "original": "the small vehicle in the top right that is to the bottom left of a small vehicle"
+        }
+      ],
+      "description": "The target object is a small vehicle located on a bridge in the top right quadrant of the image. Its immediate surroundings include the bridge structure, another vehicle to its upper-right, and the river beneath the bridge. It is one of the only vehicles in that immediate area of the bridge making it relatively unique in that top-right region. The other vehicle is to the right and slightly above the car in the red box.",
+      "unique_expressions": [
+        "the small vehicle on the bridge in the top right quadrant of the image that is to the bottom left of another vehicle",
+        "the car in the upper right on the bridge, positioned to the lower left of another car also on the bridge"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        346,
+        55,
+        354,
+        66
+      ],
+      "timestamp": "2025-05-18T20:02:57.119291"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P1739_patch_015110.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P1739_patch_015110.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "that ship",
+            "the vessel"
+          ],
+          "original": "the ship"
+        },
+        {
+          "enhanced": [
+            "the ship located towards the upper middle portion",
+            "the boat in the top middle area"
+          ],
+          "original": "the ship in the top center"
+        },
+        {
+          "enhanced": [
+            "the boat situated in the upper center, to the harbor's left",
+            "the ship in the upper middle area, which sits left of a harbor"
+          ],
+          "original": "the ship in the top center that is to the left of a harbor"
+        },
+        {
+          "enhanced": [
+            "the ship with the dark coloring",
+            "the darkly colored ship"
+          ],
+          "original": "the dark ship"
+        },
+        {
+          "enhanced": [
+            "the dark-colored ship located in the upper middle section",
+            "the ship in the top center, which has a dark hue"
+          ],
+          "original": "the dark ship in the top center"
+        },
+        {
+          "enhanced": [
+            "the dark vessel in the upper center, situated to the left of a harbor",
+            "the dark-colored ship in the top-middle part, which is on the left side of a harbor"
+          ],
+          "original": "the dark ship in the top center that is to the left of a harbor"
+        }
+      ],
+      "description": "The target object is a dark ship located in the top center of the image, near a harbor. Its darkness distinguishes it from other potential vessels in the vicinity. The ship is positioned to the left of what appears to be a pier or harbor extending from the coastline. The harbor provides a clear point of reference, helping to locate the ship precisely.",
+      "unique_expressions": [
+        "the dark ship closest to the left side of the pier in the upper center",
+        "the ship to the left of the bright harbor in the top center"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        132,
+        102,
+        231,
+        147
+      ],
+      "timestamp": "2025-05-18T20:03:32.768333"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P1450_patch_012326.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P1450_patch_012326.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the small car",
+            "the compact vehicle"
+          ],
+          "original": "the small vehicle"
+        },
+        {
+          "enhanced": [
+            "the small car on the lower right side",
+            "the compact vehicle at the bottom right"
+          ],
+          "original": "the small vehicle in the bottom right"
+        },
+        {
+          "enhanced": [
+            "the small blue car",
+            "the blue compact vehicle"
+          ],
+          "original": "the blue small vehicle"
+        },
+        {
+          "enhanced": [
+            "the small blue car on the lower right side",
+            "the blue compact vehicle at the bottom right"
+          ],
+          "original": "the blue small vehicle in the bottom right"
+        }
+      ],
+      "description": "The target object is a small vehicle, located in the bottom right corner of the image. It's positioned near the edge of a building and appears to be surrounded by greenery or trees. The color of the vehicle could be a distinguishing feature, and its proximity to the corner of the building makes it unique.",
+      "unique_expressions": [
+        "the small car near the bottom right corner of the building",
+        "the blue vehicle at the bottom right, next to the vegetation"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        453,
+        371,
+        476,
+        419
+      ],
+      "timestamp": "2025-05-18T20:04:10.691710"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P0947_patch_005257.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P0947_patch_005257.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "that pier",
+            "the long dock"
+          ],
+          "original": "the harbor"
+        },
+        {
+          "enhanced": [
+            "the pier located towards the upper middle part",
+            "the dock in the upper central area"
+          ],
+          "original": "the harbor in the top center"
+        },
+        {
+          "enhanced": [
+            "the bright pier",
+            "the light-colored dock"
+          ],
+          "original": "the light harbor"
+        },
+        {
+          "enhanced": [
+            "the pale pier in the upper middle area",
+            "the light-colored dock towards the upper center"
+          ],
+          "original": "the light harbor in the top center"
+        }
+      ],
+      "description": "The object is a harbor with a long pier extending into the water. It's positioned in the top center of the image. The pier appears lighter in color compared to the surrounding water. To the south of the harbor is a grassy patch with trees, visually distinguishing it from other features in the image. The pier is the only prominent structure directly extending into the water in the area.",
+      "unique_expressions": [
+        "the light pier extending from the grassy area",
+        "the harbor in the top center directly above the trees"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        151,
+        0,
+        304,
+        284
+      ],
+      "timestamp": "2025-05-18T20:05:22.770104"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P2235_patch_018781.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P2235_patch_018781.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the big vehicle located centrally, just to the left side of a smaller vehicle",
+            "the large truck in the middle that's positioned to the left of a smaller car"
+          ],
+          "original": "the large vehicle in the center that is to the left of a small vehicle"
+        },
+        {
+          "enhanced": [
+            "the big vehicle in the middle, situated to the lower right side of a different large vehicle",
+            "the large truck centrally located to the bottom right of another truck"
+          ],
+          "original": "the large vehicle in the center that is to the bottom right of a large vehicle"
+        }
+      ],
+      "description": "The target object is a large vehicle situated in the center of the image. It is positioned to the left of a smaller vehicle (likely a car) and to the bottom right of another large vehicle (possibly another truck or bus). The area appears to be a parking or staging area near a building or hangar, characterized by light-colored pavement.",
+      "unique_expressions": [
+        "the large vehicle in the center just west of the white car",
+        "the large vehicle in the center just southeast of another, similar sized truck"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        262,
+        216,
+        293,
+        245
+      ],
+      "timestamp": "2025-05-18T20:06:21.205369"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P0531_patch_003280.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P0531_patch_003280.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the harbor located towards the center right",
+            "the harbor on the right side, slightly towards the middle"
+          ],
+          "original": "the harbor in the center right"
+        },
+        {
+          "enhanced": [
+            "the harbor located in the center right, specifically to the lower right of a ship",
+            "the harbor on the right side, slightly towards the middle, and situated to the bottom right of a boat"
+          ],
+          "original": "the harbor in the center right that is to the bottom right of a ship"
+        },
+        {
+          "enhanced": [
+            "the harbor farthest to the right",
+            "the harbor on the extreme right side"
+          ],
+          "original": "the rightmost harbor"
+        },
+        {
+          "enhanced": [
+            "the harbor farthest to the right, located in the center right portion",
+            "the harbor on the extreme right side, towards the center right area"
+          ],
+          "original": "the rightmost harbor in the center right"
+        },
+        {
+          "enhanced": [
+            "the harbor farthest to the right, in the center right, and positioned to the lower right of a ship",
+            "the harbor on the extreme right side, towards the center right area, and situated at the bottom right of a boat"
+          ],
+          "original": "the rightmost harbor in the center right that is to the bottom right of a ship"
+        },
+        {
+          "enhanced": [
+            "the bright harbor located towards the center right",
+            "the harbor with light coloration on the right side, slightly towards the middle"
+          ],
+          "original": "the light harbor in the center right"
+        },
+        {
+          "enhanced": [
+            "the bright harbor located in the center right, specifically to the lower right of a ship",
+            "the harbor with light coloration on the right side, slightly towards the middle, and situated to the bottom right of a boat"
+          ],
+          "original": "the light harbor in the center right that is to the bottom right of a ship"
+        },
+        {
+          "enhanced": [
+            "the bright harbor farthest to the right",
+            "the harbor with light coloration on the extreme right side"
+          ],
+          "original": "the light rightmost harbor"
+        },
+        {
+          "enhanced": [
+            "the bright harbor farthest to the right, located in the center right portion",
+            "the harbor with light coloration on the extreme right side, towards the center right area"
+          ],
+          "original": "the light rightmost harbor in the center right"
+        },
+        {
+          "enhanced": [
+            "the bright harbor farthest to the right, in the center right, and positioned to the lower right of a ship",
+            "the harbor with light coloration on the extreme right side, towards the center right area, and situated at the bottom right of a boat"
+          ],
+          "original": "the light rightmost harbor in the center right that is to the bottom right of a ship"
+        }
+      ],
+      "description": "The target object is a small harbor or dock located on the right side of the image, slightly towards the center. It is directly adjacent to a boat. The surrounding area is water, and the harbor appears relatively light in color compared to the darker water. The immediate context includes the boat docked at the harbor. The harbor is unique due to its position on the rightmost edge of the water area in the center right quadrant of the image. It's also lighter in color and has a docked boat.",
+      "unique_expressions": [
+        "The harbor on the right in the center right quadrant with a boat docked.",
+        "The light-colored harbor on the right, slightly towards the middle, is directly connected to a boat."
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        448,
+        92,
+        480,
+        287
+      ],
+      "timestamp": "2025-05-18T20:06:45.228625"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/val/annotations/P0179_patch_000347.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/val/images/P0179_patch_000347.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the small car located in the upper right, which is situated to the upper right of another small car",
+            "the little vehicle at the top right, positioned above and to the right of a smaller vehicle"
+          ],
+          "original": "the small vehicle in the top right that is to the top right of a small vehicle"
+        },
+        {
+          "enhanced": [
+            "the small, dark-colored car in the upper right that's located to the top right of another small vehicle",
+            "the dark little vehicle at the top right, which is above and to the right of a smaller vehicle"
+          ],
+          "original": "the dark small vehicle in the top right that is to the top right of a small vehicle"
+        }
+      ],
+      "description": "The target object, a dark-colored small vehicle, is located in the top right corner of the image. It is positioned to the upper right of another, slightly lighter-colored small vehicle. This darker vehicle sits adjacent to a road and a grassy area. Its position relative to the other vehicle and its proximity to the road are key distinguishing factors.",
+      "unique_expressions": [
+        "the small dark vehicle in the top right corner, just to the right of another car near the road",
+        "the dark small vehicle in the top right, situated just above and to the right of a lighter car"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        363,
+        2,
+        401,
+        32
+      ],
+      "timestamp": "2025-05-18T20:07:30.068333"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P2131_patch_018300.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P2131_patch_018300.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the baseball field located toward the center right",
+            "the ball field on the right side, near the center"
+          ],
+          "original": "the baseball diamond in the center right"
+        },
+        {
+          "enhanced": [
+            "the biggest baseball field in the center-right area",
+            "the baseball diamond, the largest one on the right side, near the middle"
+          ],
+          "original": "the largest baseball diamond in the center right"
+        }
+      ],
+      "description": "This baseball diamond is positioned in the center-right portion of the image, near a road and some buildings. A small shed is located to the west of the baseball diamond. The diamond itself is bordered by a fence along two sides. It is noticeably larger than any other visible diamond in the vicinity.",
+      "unique_expressions": [
+        "the baseball diamond in the center right, adjacent to the road and with a small shed to its west",
+        "the largest baseball diamond in the center right, bounded by a road and a small building"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        315,
+        174,
+        435,
+        285
+      ],
+      "timestamp": "2025-05-18T20:07:58.594491"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/val/annotations/P1376_patch_003061.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/val/images/P1376_patch_003061.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the small car on the center left, which is situated at the lower right of another small car",
+            "the compact vehicle, located in the center-left area, is positioned to the bottom right of a small car"
+          ],
+          "original": "the small vehicle in the center left that is to the bottom right of a small vehicle"
+        },
+        {
+          "enhanced": [
+            "the dark-colored small car in the center-left, which is located to the bottom right of a small vehicle",
+            "the small, dark vehicle on the center left, positioned at the bottom right corner of another small car"
+          ],
+          "original": "the dark small vehicle in the center left that is to the bottom right of a small vehicle"
+        }
+      ],
+      "description": "The target object is a dark-colored small vehicle located in the center-left area of the image, specifically in a parking lot. It is situated to the bottom right of another vehicle. The vehicle's darkness contrasts with the lighter parking spot, making it visually distinct from the surrounding vehicles. It is surrounded by other parked vehicles and is near the edge of the parking lot adjacent to a building.",
+      "unique_expressions": [
+        "the small vehicle in the center left is darker than its surrounding parking spots, and located to the bottom right of another vehicle in the same parking lane",
+        "the dark small vehicle in the center left is positioned on the parking spot to the bottom right of another small car near the building"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        146,
+        247,
+        164,
+        265
+      ],
+      "timestamp": "2025-05-18T20:12:43.345184"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P0038_patch_000680.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P0038_patch_000680.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the big truck in the middle",
+            "the sizable vehicle located centrally"
+          ],
+          "original": "the large vehicle in the center"
+        },
+        {
+          "enhanced": [
+            "the big truck in the middle, on the right side of another big truck",
+            "the large vehicle in the center, situated to the right of another large vehicle"
+          ],
+          "original": "the large vehicle in the center that is to the right of a large vehicle"
+        },
+        {
+          "enhanced": [
+            "the big truck in the middle, located on the bottom left of a plane",
+            "the sizable vehicle in the center, situated to the bottom left of a plane"
+          ],
+          "original": "the large vehicle in the center that is to the bottom left of a plane"
+        },
+        {
+          "enhanced": [
+            "the large, dark-colored truck",
+            "the big, dark vehicle"
+          ],
+          "original": "the dark large vehicle"
+        },
+        {
+          "enhanced": [
+            "the big, dark truck in the middle",
+            "the centrally-located, dark, large vehicle"
+          ],
+          "original": "the dark large vehicle in the center"
+        },
+        {
+          "enhanced": [
+            "the big, dark truck in the middle, on the right side of another big truck",
+            "the centrally-located, dark, large vehicle, situated to the right of another large vehicle"
+          ],
+          "original": "the dark large vehicle in the center that is to the right of a large vehicle"
+        },
+        {
+          "enhanced": [
+            "the big, dark truck in the middle, located on the bottom left of a plane",
+            "the centrally-located, dark, large vehicle, situated to the bottom left of a plane"
+          ],
+          "original": "the dark large vehicle in the center that is to the bottom left of a plane"
+        }
+      ],
+      "description": "The target object, a large vehicle, is situated in the center of the image, surrounded by airport tarmac. It is positioned to the right of another similar-sized vehicle and to the bottom left of a plane. Its darker color distinguishes it from some of the other nearby equipment. This grouping of vehicles is near the top center of the image, close to the shadow cast by the nearby aircraft.",
+      "unique_expressions": [
+        "the dark, large vehicle in the center, close to the shadow of the airplane above",
+        "the large vehicle in the center, to the right of a similar vehicle, near the top edge of the image"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        150,
+        166,
+        212,
+        195
+      ],
+      "timestamp": "2025-05-18T20:15:54.618043"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P1649_patch_014658.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P1649_patch_014658.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the ball field",
+            "the baseball field"
+          ],
+          "original": "the baseball diamond"
+        },
+        {
+          "enhanced": [
+            "the ball field located in the upper middle part of the image",
+            "the baseball field situated in the upper center"
+          ],
+          "original": "the baseball diamond in the top center"
+        },
+        {
+          "enhanced": [
+            "the shaded baseball diamond",
+            "the baseball diamond that appears darker"
+          ],
+          "original": "the dark baseball diamond"
+        },
+        {
+          "enhanced": [
+            "the shaded baseball diamond located in the upper middle part of the image",
+            "the darker baseball field situated in the top-center area"
+          ],
+          "original": "the dark baseball diamond in the top center"
+        }
+      ],
+      "description": "The baseball diamond is located near the top center of the image in a grassy field, bordered by trees at the top and to the right. It's a darker area relative to the surrounding grass, making it somewhat distinct. The surrounding context includes residential areas and what appears to be a paved area just north of the field. To uniquely identify this field, we can emphasize its location relative to these areas and the surrounding trees.",
+      "unique_expressions": [
+        "the dark baseball diamond near the top-center, next to the trees and close to the paved area.",
+        "the shaded baseball field in the top center of the image, bordered by trees to the north and east."
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        234,
+        130,
+        268,
+        166
+      ],
+      "timestamp": "2025-05-18T20:16:39.505939"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/val/annotations/P0128_patch_000192.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/val/images/P0128_patch_000192.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the little car located in the lower left corner",
+            "the small automobile at the bottom left part of the image"
+          ],
+          "original": "the small vehicle in the bottom left"
+        },
+        {
+          "enhanced": [
+            "the furthest left small car",
+            "the little car that's most to the left side"
+          ],
+          "original": "the leftmost small vehicle"
+        },
+        {
+          "enhanced": [
+            "the smallest automobile on the leftmost side, situated in the bottom left corner",
+            "the little car at the bottom left that is the furthest to the left"
+          ],
+          "original": "the leftmost small vehicle in the bottom left"
+        },
+        {
+          "enhanced": [
+            "the biggest little car located in the bottom left section",
+            "the largest small automobile in the lower left portion"
+          ],
+          "original": "the largest small vehicle in the bottom left"
+        },
+        {
+          "enhanced": [
+            "the biggest little car on the leftmost side, located in the bottom left",
+            "the largest small automobile that is the furthest left, situated in the bottom left corner"
+          ],
+          "original": "the largest leftmost small vehicle in the bottom left"
+        }
+      ],
+      "description": "The target object is the only small vehicle in the immediate bottom left corner of the image. It is near a series of tanks and a building. It is the only red vehicle in that immediate vicinity. The original expressions can be improved by highlighting its position relative to the series of tanks.",
+      "unique_expressions": [
+        "the small vehicle in the bottom left, near the tanks",
+        "the red vehicle which is the leftmost and largest in the bottom left, next to the tanks."
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        49,
+        459,
+        75,
+        478
+      ],
+      "timestamp": "2025-05-18T21:30:46.239367"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P1571_patch_014237.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P1571_patch_014237.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the ballfield located in the lower left corner",
+            "the baseball field in the southwest section"
+          ],
+          "original": "the baseball diamond in the bottom left"
+        },
+        {
+          "enhanced": [
+            "the ballfield in the bottom left, underneath another ballfield",
+            "the baseball field in the lower left which is situated under another one"
+          ],
+          "original": "the baseball diamond in the bottom left that is below a baseball diamond"
+        },
+        {
+          "enhanced": [
+            "the ballfield in the bottom left, which is to the upper left of another ballfield",
+            "the baseball field in the lower left, located on the top left of another baseball field"
+          ],
+          "original": "the baseball diamond in the bottom left that is to the top left of a baseball diamond"
+        },
+        {
+          "enhanced": [
+            "the baseball field furthest to the left",
+            "the diamond on the extreme left side"
+          ],
+          "original": "the leftmost baseball diamond"
+        },
+        {
+          "enhanced": [
+            "the baseball field furthest to the left in the lower left portion",
+            "the leftmost diamond that's located in the southwest area"
+          ],
+          "original": "the leftmost baseball diamond in the bottom left"
+        },
+        {
+          "enhanced": [
+            "the baseball field furthest to the left in the lower left, situated underneath another baseball field",
+            "the diamond furthest left and in the bottom left, which is below another baseball field"
+          ],
+          "original": "the leftmost baseball diamond in the bottom left that is below a baseball diamond"
+        },
+        {
+          "enhanced": [
+            "the leftmost ballfield in the bottom left, located to the upper left of another ballfield",
+            "the baseball diamond on the bottom left, furthest to the left, and to the top left of another baseball diamond"
+          ],
+          "original": "the leftmost baseball diamond in the bottom left that is to the top left of a baseball diamond"
+        },
+        {
+          "enhanced": [
+            "the darker baseball field in the lower left corner",
+            "the shadowed diamond located in the southwest"
+          ],
+          "original": "the dark baseball diamond in the bottom left"
+        },
+        {
+          "enhanced": [
+            "the darker ballfield in the lower left, underneath another baseball field",
+            "the shadowed baseball field in the southwest that is located under another one"
+          ],
+          "original": "the dark baseball diamond in the bottom left that is below a baseball diamond"
+        },
+        {
+          "enhanced": [
+            "the darker baseball field in the lower left corner that is to the upper left of another baseball field",
+            "the shadowed diamond in the bottom left, situated to the top left of another diamond"
+          ],
+          "original": "the dark baseball diamond in the bottom left that is to the top left of a baseball diamond"
+        },
+        {
+          "enhanced": [
+            "the dark baseball diamond on the extreme left",
+            "the leftmost, shadowed baseball field"
+          ],
+          "original": "the dark leftmost baseball diamond"
+        },
+        {
+          "enhanced": [
+            "the dark baseball field that is furthest to the left in the lower left",
+            "the shadowed, leftmost baseball field located in the southwest corner"
+          ],
+          "original": "the dark leftmost baseball diamond in the bottom left"
+        },
+        {
+          "enhanced": [
+            "the shadowed and leftmost baseball field in the bottom left, which is below another field",
+            "the dark diamond furthest to the left in the lower left, underneath another baseball field"
+          ],
+          "original": "the dark leftmost baseball diamond in the bottom left that is below a baseball diamond"
+        },
+        {
+          "enhanced": [
+            "the darker baseball field furthest to the left and in the bottom left, that is to the upper left of another field",
+            "the shadowed diamond furthest to the left in the southwest, which is on the top left of another diamond"
+          ],
+          "original": "the dark leftmost baseball diamond in the bottom left that is to the top left of a baseball diamond"
+        }
+      ],
+      "description": "The target baseball diamond is located in the bottom left corner of the image. It is the westernmost baseball diamond and appears darker compared to the other diamonds due to shadows or lighting conditions. To the north-east of it lies another baseball diamond, making it below and to the left of the other. The presence of open areas and the relative isolation from other fields help to distinguish this diamond. The fact it is 'dark' relative to the others can be a good distinguisher.",
+      "unique_expressions": [
+        "the dark baseball diamond in the bottom left, located below and to the left of the brighter baseball diamond",
+        "the leftmost, dark baseball diamond in the bottom left corner of the image"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        24,
+        322,
+        79,
+        372
+      ],
+      "timestamp": "2025-05-18T21:44:50.852073"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P2560_patch_021472.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P2560_patch_021472.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the little car at the lower right",
+            "the small vehicle located on the bottom right side"
+          ],
+          "original": "the small vehicle in the bottom right"
+        },
+        {
+          "enhanced": [
+            "the little car on the bottom right, just underneath another small car",
+            "the small vehicle to the lower right which is under another small vehicle"
+          ],
+          "original": "the small vehicle in the bottom right that is below a small vehicle"
+        },
+        {
+          "enhanced": [
+            "the small car furthest to the right",
+            "the small vehicle on the extreme right"
+          ],
+          "original": "the rightmost small vehicle"
+        },
+        {
+          "enhanced": [
+            "the furthest right small car, located in the bottom right corner",
+            "the small vehicle in the bottom right corner that's the furthest to the right"
+          ],
+          "original": "the rightmost small vehicle in the bottom right"
+        },
+        {
+          "enhanced": [
+            "the small car on the bottom right corner, furthest to the right, sitting beneath another small car",
+            "the small vehicle to the bottom right, at the extreme right, and is located under a smaller car"
+          ],
+          "original": "the rightmost small vehicle in the bottom right that is below a small vehicle"
+        }
+      ],
+      "description": "The target small vehicle is situated in the bottom right corner of the image, specifically near the intersection of a road and what appears to be a grassy area or embankment leading to the water. It's important to note that there are other small vehicles in the image, primarily along the roads. To uniquely identify this vehicle, emphasizing its position as the rightmost and bottom-most vehicle near the corner intersection is crucial. The original expressions could be improved by highlighting its proximity to the road's intersection with the embankment.",
+      "unique_expressions": [
+        "the small vehicle on the bottom right corner near the road's intersection",
+        "the rightmost small vehicle near where the road meets the grass in the bottom right"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        449,
+        333,
+        462,
+        344
+      ],
+      "timestamp": "2025-05-18T21:54:00.493316"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P1374_patch_009978.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P1374_patch_009978.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the little car in the upper left which sits above another small car",
+            "the compact vehicle located in the top left area, positioned over a smaller vehicle"
+          ],
+          "original": "the small vehicle in the top left that is above a small vehicle"
+        },
+        {
+          "enhanced": [
+            "the darker compact car in the upper left quadrant, that's positioned above a smaller vehicle",
+            "the dark-colored small car in the top-left part of the image, located above a smaller vehicle"
+          ],
+          "original": "the dark small vehicle in the top left that is above a small vehicle"
+        }
+      ],
+      "description": "The target is a small, dark vehicle located in the top left of the image. It is positioned just above another lighter-colored small vehicle and near the edge of a green area. It's relatively isolated compared to the dense parking area to the east. The target's position relative to the green area and the vehicle below it are key identifiers.",
+      "unique_expressions": [
+        "the small, dark car in the top left, above the lighter vehicle near the green space",
+        "the dark, small vehicle in the upper left that is above another vehicle, near some greenery"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        76,
+        63,
+        90,
+        83
+      ],
+      "timestamp": "2025-05-18T22:09:30.591278"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P1990_patch_017629.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P1990_patch_017629.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the small car in the upper right, situated to the lower right of another small car",
+            "the little vehicle at the top right, found on the bottom right side of a smaller car"
+          ],
+          "original": "the small vehicle in the top right that is to the bottom right of a small vehicle"
+        },
+        {
+          "enhanced": [
+            "the small blue car",
+            "the little blue vehicle"
+          ],
+          "original": "the blue small vehicle"
+        },
+        {
+          "enhanced": [
+            "the small blue car located at the top right",
+            "the little blue vehicle situated in the upper right area"
+          ],
+          "original": "the blue small vehicle in the top right"
+        },
+        {
+          "enhanced": [
+            "the little blue car in the upper right, positioned to the lower right of another small vehicle",
+            "the blue compact vehicle at the top right, situated to the bottom right of a small vehicle"
+          ],
+          "original": "the blue small vehicle in the top right that is to the bottom right of a small vehicle"
+        },
+        {
+          "enhanced": [
+            "the blue little car in the top right, which sits on the top right of another vehicle",
+            "the small blue vehicle in the upper right, located in the upper right area of a compact vehicle"
+          ],
+          "original": "the blue small vehicle in the top right that is to the top right of a small vehicle"
+        },
+        {
+          "enhanced": [
+            "the small blue car in the upper right, which sits to the right of another small vehicle",
+            "the little blue vehicle at the top right, positioned on the right of another compact car"
+          ],
+          "original": "the blue small vehicle in the top right that is to the right of a small vehicle"
+        }
+      ],
+      "description": "The target is a blue car located in the top right quadrant of the image. It's parked near a building and is adjacent to the parking area, and is positioned near other cars.",
+      "unique_expressions": [
+        "the small blue car parked near the building in the top right corner",
+        "the little blue car near the building, in the upper right side of the image"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        402,
+        98,
+        423,
+        117
+      ],
+      "timestamp": "2025-05-18T22:10:06.701221"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P2138_patch_018326.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P2138_patch_018326.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the airplane near the center that's on the right side of a big vehicle",
+            "the aircraft in the middle which is located to the right of a large truck"
+          ],
+          "original": "the plane in the center that is to the right of a large vehicle"
+        }
+      ],
+      "description": "The target plane is located near the center of the image, specifically to the right of what appears to be a service vehicle or baggage transport. The plane itself is parked close to other planes and terminal infrastructure. Its uniqueness is derived from its specific position relative to the nearby vehicle, as other planes are positioned differently.",
+      "unique_expressions": [
+        "the plane next to the large vehicle that is facing downward in the center",
+        "the airplane parked in the center, on the right side of the vehicle and slightly below several other parked planes"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        286,
+        285,
+        323,
+        311
+      ],
+      "timestamp": "2025-05-18T22:11:08.223396"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P0260_patch_002461.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P0260_patch_002461.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the marina on the right side, near the middle",
+            "the boat basin located in the center right"
+          ],
+          "original": "the harbor in the center right"
+        },
+        {
+          "enhanced": [
+            "the biggest marina on the right, towards the middle",
+            "the most expansive boat basin in the center right area"
+          ],
+          "original": "the largest harbor in the center right"
+        },
+        {
+          "enhanced": [
+            "the darker colored marina on the center right",
+            "the harbor with the dark water in the center right"
+          ],
+          "original": "the dark harbor in the center right"
+        },
+        {
+          "enhanced": [
+            "the biggest, dark-water marina",
+            "the largest boat basin with the dark appearance"
+          ],
+          "original": "the dark largest harbor"
+        },
+        {
+          "enhanced": [
+            "the biggest, darker marina located in the center right of the view",
+            "the largest boat basin, which appears dark, situated in the center right"
+          ],
+          "original": "the dark largest harbor in the center right"
+        }
+      ],
+      "description": "The target harbor, located in the center right of the image, is the largest amongst several other similar harbors/marinas in the vicinity. It can be identified by its size relative to the others, and also by the dark shade of the water within the harbor. It's situated at the top end of the docks, closest to the top right corner. There is a large boat docked at the top of the harbor, which is a key identifier.",
+      "unique_expressions": [
+        "the largest marina with the boat docked at the top in the center right",
+        "the dark harbor in the center right with the biggest boat"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        349,
+        23,
+        480,
+        457
+      ],
+      "timestamp": "2025-05-18T22:12:08.430038"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/val/annotations/P2722_patch_007251.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/val/images/P2722_patch_007251.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the bridge located toward the center right",
+            "the bridge situated on the right side of the center"
+          ],
+          "original": "the bridge in the center right"
+        },
+        {
+          "enhanced": [
+            "the bridge furthest to the right",
+            "the bridge on the far right side"
+          ],
+          "original": "the rightmost bridge"
+        },
+        {
+          "enhanced": [
+            "the bridge that's most to the right, towards the center-right area",
+            "the bridge located on the far right, in the center-right section"
+          ],
+          "original": "the rightmost bridge in the center right"
+        },
+        {
+          "enhanced": [
+            "the tiny bridge in the center-right portion",
+            "the bridge, which is the smallest, situated in the center right"
+          ],
+          "original": "the smallest bridge in the center right"
+        },
+        {
+          "enhanced": [
+            "the tiniest bridge on the far right side within the center-right region",
+            "the bridge that's both the smallest and furthest to the right, located in the center-right"
+          ],
+          "original": "the smallest rightmost bridge in the center right"
+        },
+        {
+          "enhanced": [
+            "the bridge with a darker color",
+            "the bridge that appears dark"
+          ],
+          "original": "the dark bridge"
+        },
+        {
+          "enhanced": [
+            "the bridge that appears darker, positioned in the center right",
+            "the dark-colored bridge located on the center right"
+          ],
+          "original": "the dark bridge in the center right"
+        },
+        {
+          "enhanced": [
+            "the bridge furthest right that is dark in color",
+            "the dark bridge on the far right side"
+          ],
+          "original": "the dark rightmost bridge"
+        },
+        {
+          "enhanced": [
+            "the dark bridge on the far right, within the center right section",
+            "the dark-colored bridge that's furthest to the right in the center-right"
+          ],
+          "original": "the dark rightmost bridge in the center right"
+        },
+        {
+          "enhanced": [
+            "the smallest bridge, which is dark",
+            "the dark-colored, tiniest bridge"
+          ],
+          "original": "the dark smallest bridge"
+        },
+        {
+          "enhanced": [
+            "the smallest dark bridge located in the center right",
+            "the tiniest, dark-colored bridge situated on the center right"
+          ],
+          "original": "the dark smallest bridge in the center right"
+        },
+        {
+          "enhanced": [
+            "the darkest, smallest and rightmost bridge",
+            "the dark, tiniest bridge furthest to the right"
+          ],
+          "original": "the dark smallest rightmost bridge"
+        },
+        {
+          "enhanced": [
+            "the tiniest, darkest bridge on the far right, within the center right area",
+            "the dark-colored, smallest bridge furthest to the right, located in the center-right"
+          ],
+          "original": "the dark smallest rightmost bridge in the center right"
+        }
+      ],
+      "description": "The target bridge is located on the far right side of the image in the center-right area. It's the easternmost bridge crossing the river. It is a small, dark-colored bridge, and it is flanked by dense vegetation on either side. It is the smallest of the visible bridges. The bridge connects the industrial area on the south side of the river to the more residential area on the north side. It appears darker than the surroundings in the imagery.",
+      "unique_expressions": [
+        "the dark bridge closest to the right edge, connecting the industrial area to the residential area",
+        "the easternmost bridge, the smallest of the bridges visible and surrounded by vegetation, in the center-right of the image"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        361,
+        285,
+        389,
+        303
+      ],
+      "timestamp": "2025-05-18T22:13:49.221268"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P1939_patch_017393.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P1939_patch_017393.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the small, red car located in the upper-left corner",
+            "the red compact vehicle situated on the upper left"
+          ],
+          "original": "the red small vehicle in the top left"
+        },
+        {
+          "enhanced": [
+            "the red, small vehicle in the upper left, positioned above and to the left of another small vehicle",
+            "the small red car in the top left that's situated to the upper left of a smaller vehicle"
+          ],
+          "original": "the red small vehicle in the top left that is to the top left of a small vehicle"
+        }
+      ],
+      "description": "The target is a small red vehicle located in the top left corner of the image. It is parked in a parking lot alongside a row of other vehicles. It is positioned to the top left of another vehicle which creates a useful point of reference within the parking area.",
+      "unique_expressions": [
+        "the red small vehicle in the top left, parked at the end of the row",
+        "the red small vehicle in the top left, the leftmost car in the top row"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        1,
+        47,
+        17,
+        75
+      ],
+      "timestamp": "2025-05-18T23:40:53.442014"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P2790_patch_024984.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P2790_patch_024984.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "that airplane",
+            "the aircraft"
+          ],
+          "original": "the plane"
+        },
+        {
+          "enhanced": [
+            "the aircraft located in the upper left corner",
+            "the plane at the upper left"
+          ],
+          "original": "the plane in the top left"
+        },
+        {
+          "enhanced": [
+            "the plane in the upper left corner situated under a small vehicle",
+            "the aircraft at the top left, which is below a small vehicle"
+          ],
+          "original": "the plane in the top left that is below a small vehicle"
+        },
+        {
+          "enhanced": [
+            "the bright-colored plane",
+            "the plane painted in a light color"
+          ],
+          "original": "the light plane"
+        },
+        {
+          "enhanced": [
+            "the light-colored airplane in the upper left",
+            "the bright plane situated in the top-left area"
+          ],
+          "original": "the light plane in the top left"
+        },
+        {
+          "enhanced": [
+            "the light-colored plane in the top left, positioned under a small vehicle",
+            "the light plane at the upper left that's situated underneath a small vehicle"
+          ],
+          "original": "the light plane in the top left that is below a small vehicle"
+        }
+      ],
+      "description": "The target object is a large airplane located in the top left corner of the image. It is situated near some jet bridges or loading docks. The plane is light-colored and is below a small vehicle (likely ground support equipment). The aircraft is next to a row of baggage carriers or cargo containers.",
+      "unique_expressions": [
+        "the airplane in the top left connected to the jet bridges",
+        "the aircraft in the upper left, below a small vehicle, that is next to the baggage carriers"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        0,
+        13,
+        179,
+        300
+      ],
+      "timestamp": "2025-05-18T23:57:57.557881"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P2560_patch_021519.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P2560_patch_021519.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the airplane towards the lower center",
+            "the plane located near the bottom middle"
+          ],
+          "original": "the plane in the bottom center"
+        },
+        {
+          "enhanced": [
+            "the airplane towards the lower center, situated to the lower right of another airplane",
+            "the plane near the bottom middle, found to the bottom right of a different plane"
+          ],
+          "original": "the plane in the bottom center that is to the bottom right of a plane"
+        },
+        {
+          "enhanced": [
+            "the plane farthest down",
+            "the plane at the very bottom"
+          ],
+          "original": "the bottommost plane"
+        },
+        {
+          "enhanced": [
+            "the plane farthest down in the lower center",
+            "the plane at the very bottom near the middle"
+          ],
+          "original": "the bottommost plane in the bottom center"
+        },
+        {
+          "enhanced": [
+            "the plane farthest down in the lower center, situated to the bottom right of another airplane",
+            "the plane at the very bottom near the middle, located to the lower right of a different plane"
+          ],
+          "original": "the bottommost plane in the bottom center that is to the bottom right of a plane"
+        },
+        {
+          "enhanced": [
+            "the white airplane towards the lower center",
+            "the pale plane located near the bottom middle"
+          ],
+          "original": "the light plane in the bottom center"
+        },
+        {
+          "enhanced": [
+            "the white airplane towards the lower center, situated to the lower right of another airplane",
+            "the pale plane near the bottom middle, found to the bottom right of a different plane"
+          ],
+          "original": "the light plane in the bottom center that is to the bottom right of a plane"
+        },
+        {
+          "enhanced": [
+            "the white plane farthest down",
+            "the pale plane at the very bottom"
+          ],
+          "original": "the light bottommost plane"
+        },
+        {
+          "enhanced": [
+            "the white plane farthest down in the lower center",
+            "the pale plane at the very bottom near the middle"
+          ],
+          "original": "the light bottommost plane in the bottom center"
+        },
+        {
+          "enhanced": [
+            "the white plane farthest down in the lower center, situated to the bottom right of another airplane",
+            "the pale plane at the very bottom near the middle, located to the lower right of a different plane"
+          ],
+          "original": "the light bottommost plane in the bottom center that is to the bottom right of a plane"
+        }
+      ],
+      "description": "The target plane is located in the bottom center of the image and is the southernmost plane. It is situated to the bottom-right of another plane. The plane is light in color, likely white or a very light gray. It appears to be on a tarmac or airfield, judging by the surrounding paved surface.",
+      "unique_expressions": [
+        "The southernmost plane that is to the right of another plane and in the bottom part of the image.",
+        "The plane in the bottom center, just to the southeast of another aircraft."
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        148,
+        440,
+        208,
+        480
+      ],
+      "timestamp": "2025-05-18T23:59:14.487426"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P1431_patch_011802.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P1431_patch_011802.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the vessel",
+            "the watercraft"
+          ],
+          "original": "the ship"
+        },
+        {
+          "enhanced": [
+            "the boat located in the upper left corner",
+            "the vessel positioned at the top left"
+          ],
+          "original": "the ship in the top left"
+        },
+        {
+          "enhanced": [
+            "the bluish-green ship",
+            "the ship with the cyan color"
+          ],
+          "original": "the cyan ship"
+        },
+        {
+          "enhanced": [
+            "the bluish-green ship located in the upper left corner",
+            "the ship with the cyan color positioned at the top left"
+          ],
+          "original": "the cyan ship in the top left"
+        }
+      ],
+      "description": "The ship is located in the top left quadrant of the image. Its cyan color helps to distinguish it from the surrounding water. The ship appears to be relatively isolated, with no other visible ships or objects nearby. The ship's unique location at the top left edge of the frame makes it easy to identify.",
+      "unique_expressions": [
+        "the ship in the top left edge of the frame",
+        "the bluish-green ship in the upper left corner of the image"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        0,
+        0,
+        198,
+        220
+      ],
+      "timestamp": "2025-05-18T23:59:44.492181"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P0002_patch_000073.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P0002_patch_000073.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the bus at the very top",
+            "the biggest vehicle that's highest up"
+          ],
+          "original": "the topmost large vehicle"
+        },
+        {
+          "enhanced": [
+            "the largest vehicle at the very top right",
+            "the bus at the highest point in the upper right area"
+          ],
+          "original": "the topmost large vehicle in the top right"
+        },
+        {
+          "enhanced": [
+            "the yellow bus at the very top",
+            "the yellow, largest vehicle that's highest up"
+          ],
+          "original": "the yellow topmost large vehicle"
+        },
+        {
+          "enhanced": [
+            "the yellow bus at the very top right",
+            "the yellow, largest vehicle at the highest point in the upper right"
+          ],
+          "original": "the yellow topmost large vehicle in the top right"
+        }
+      ],
+      "description": "The target object is the northernmost vehicle in a row of buses and other large vehicles within a parking area. It is located at the top-right corner of the image. The vehicle is part of a cluster of similar yellow buses. To uniquely identify it, we can emphasize its position as the first in the line of buses and the one farthest to the right.",
+      "unique_expressions": [
+        "the yellow bus that's the northernmost in the line of buses",
+        "the topmost bus in the top right, closest to the upper edge of the image"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        361,
+        5,
+        464,
+        37
+      ],
+      "timestamp": "2025-05-19T00:00:02.160506"
+    }
+  ],
+  "bad": [
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P1464_patch_012838.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P1464_patch_012838.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the little car in the middle, situated towards the lower right of a bigger vehicle",
+            "the small auto in the central area, located to the lower right side of a larger car"
+          ],
+          "original": "the small vehicle in the center that is to the bottom right of a large vehicle"
+        },
+        {
+          "enhanced": [
+            "the bright colored small car",
+            "the small, pale-colored vehicle"
+          ],
+          "original": "the light small vehicle"
+        },
+        {
+          "enhanced": [
+            "the small, pale vehicle in the central part of the image",
+            "the light-colored compact car in the middle"
+          ],
+          "original": "the light small vehicle in the center"
+        },
+        {
+          "enhanced": [
+            "the pale-colored small car in the center, which is situated to the right of another small vehicle",
+            "the light compact car in the middle that's to the right side of a smaller auto"
+          ],
+          "original": "the light small vehicle in the center that is to the right of a small vehicle"
+        },
+        {
+          "enhanced": [
+            "the pale-colored small car in the center, towards the upper left of a larger vehicle",
+            "the light compact car in the middle which is positioned in the top left direction from a larger auto"
+          ],
+          "original": "the light small vehicle in the center that is to the top left of a large vehicle"
+        },
+        {
+          "enhanced": [
+            "the pale-colored small car in the center, situated at the lower right of a larger vehicle",
+            "the light compact car in the middle, that's located on the bottom right side of a big vehicle"
+          ],
+          "original": "the light small vehicle in the center that is to the bottom right of a large vehicle"
+        }
+      ],
+      "description": "The target vehicle is a small, light-colored car located near the center of the image at an intersection. It is positioned near a larger building complex to the northeast. The surrounding area includes roads, trees, and other buildings. The key to uniquely identifying this vehicle is its position at the intersection and its proximity to the larger structure northeast of it. The nearby car to the right can also help locate it.",
+      "unique_expressions": [
+        "the light colored car at the intersection, in the center, to the right of another similar car",
+        "the small, light vehicle in the middle of the intersection, in the general vicinity of the large building to the northeast"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        188,
+        284,
+        204,
+        307
+      ],
+      "timestamp": "2025-05-18T19:58:42.540791"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P0900_patch_004951.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P0900_patch_004951.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the boat located in the upper middle part of the picture, situated towards the bottom left of the harbor area",
+            "the vessel in the top-center, which sits on the bottom-left side relative to the harbor"
+          ],
+          "original": "the ship in the top center that is to the bottom left of a harbor"
+        },
+        {
+          "enhanced": [
+            "the bright colored boat near the top center, towards the bottom left of the harbor",
+            "the ship with a light color in the upper central area, found to the lower left side of the harbor"
+          ],
+          "original": "the light ship in the top center that is to the bottom left of a harbor"
+        }
+      ],
+      "description": "The object is a boat located in a marina, specifically in the upper center area of the image. It's situated relative to the harbor in the bottom left direction. The boat is docked between other boats, and it appears to be one of the smaller vessels present. The surrounding context includes other boats, docks, and open water within the harbor.",
+      "unique_expressions": [
+        "the ship in the top center, situated to the bottom left of the harbor, docked between two other boats",
+        "the light colored ship in the top center, positioned towards the bottom left of the harbor, next to a white boat"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        255,
+        101,
+        299,
+        117
+      ],
+      "timestamp": "2025-05-18T21:54:35.618625"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/val/annotations/P0237_patch_000421.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/val/images/P0237_patch_000421.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the small car on the center right, located towards the bottom right of another small car",
+            "the little vehicle in the center-right part of the image, situated at the bottom right of another one"
+          ],
+          "original": "the small vehicle in the center right that is to the bottom right of a small vehicle"
+        },
+        {
+          "enhanced": [
+            "the small vehicle that's furthest to the right",
+            "the small car located on the extreme right side"
+          ],
+          "original": "the rightmost small vehicle"
+        },
+        {
+          "enhanced": [
+            "the small car on the far right of the center right area",
+            "the vehicle furthest to the right, situated in the center-right portion"
+          ],
+          "original": "the rightmost small vehicle in the center right"
+        },
+        {
+          "enhanced": [
+            "the small vehicle furthest to the right in the center right, located to the lower right of another small vehicle",
+            "the rightmost car, positioned in the center-right, and also to the bottom right of another car"
+          ],
+          "original": "the rightmost small vehicle in the center right that is to the bottom right of a small vehicle"
+        },
+        {
+          "enhanced": [
+            "the bright-colored small car in the center-right which is positioned at the bottom right of another small car",
+            "the light-colored little vehicle in the center right, down and to the right of a similar vehicle"
+          ],
+          "original": "the light small vehicle in the center right that is to the bottom right of a small vehicle"
+        },
+        {
+          "enhanced": [
+            "the light-colored small vehicle furthest to the right",
+            "the small, bright car located on the extreme right"
+          ],
+          "original": "the light rightmost small vehicle"
+        },
+        {
+          "enhanced": [
+            "the bright small car on the far right side of the center right area",
+            "the light colored vehicle furthest right, in the center-right section"
+          ],
+          "original": "the light rightmost small vehicle in the center right"
+        },
+        {
+          "enhanced": [
+            "the light small vehicle furthest right in the center-right, found to the lower right of another one",
+            "the light, rightmost vehicle in the center right part of the image, positioned towards the bottom right of another vehicle"
+          ],
+          "original": "the light rightmost small vehicle in the center right that is to the bottom right of a small vehicle"
+        }
+      ],
+      "description": "The target object, a small, light-colored vehicle, is situated on the edge of a driveway/parking area adjacent to a building with a dark roof. It is positioned to the bottom right of another similar vehicle. The vehicles are next to a patch of green space, and the road curves near the tennis courts.",
+      "unique_expressions": [
+        "the light-colored small vehicle on the driveway in the center right, adjacent to the building with the dark roof",
+        "the rightmost light-colored small vehicle near the curve in the road in the center right, to the bottom right of another small vehicle"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        446,
+        219,
+        464,
+        232
+      ],
+      "timestamp": "2025-05-18T23:58:49.695518"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P0878_patch_004575.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P0878_patch_004575.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the marina in the middle",
+            "the boat dock at the center"
+          ],
+          "original": "the harbor in the center"
+        },
+        {
+          "enhanced": [
+            "the marina in the middle, situated on the left side of another marina",
+            "the boat dock in the center, located to the left of a similar boat dock"
+          ],
+          "original": "the harbor in the center that is to the left of a harbor"
+        },
+        {
+          "enhanced": [
+            "the marina in the center, located to the upper right of another marina",
+            "the boat dock in the center, which sits toward the upper right of a similar boat dock"
+          ],
+          "original": "the harbor in the center that is to the top right of a harbor"
+        },
+        {
+          "enhanced": [
+            "the bright-colored marina",
+            "the pale boat dock"
+          ],
+          "original": "the light harbor"
+        },
+        {
+          "enhanced": [
+            "the pale marina at the center",
+            "the light-colored boat dock in the middle"
+          ],
+          "original": "the light harbor in the center"
+        },
+        {
+          "enhanced": [
+            "the bright marina in the center, located to the left of a similar marina",
+            "the pale boat dock in the middle, situated to the left of another boat dock"
+          ],
+          "original": "the light harbor in the center that is to the left of a harbor"
+        },
+        {
+          "enhanced": [
+            "the bright marina in the center, situated to the top right of a similar marina",
+            "the pale boat dock in the middle, located toward the upper right of another boat dock"
+          ],
+          "original": "the light harbor in the center that is to the top right of a harbor"
+        }
+      ],
+      "description": "The target object is a small, light-colored harbor or dock located near the center of the image. It is situated among other similar docks, but is distinguishable by its relatively brighter color. The target dock has a few boats docked on it, most prominently a small white boat. It's located above and to the right of another, more established dock and is clearly newer or smaller in scale than surrounding docks. A defining feature is its proximity and spatial relationship to other docks in the area.",
+      "unique_expressions": [
+        "The light-colored marina in the center, above and to the right of the larger dock, with the white boat",
+        "The smaller boat dock in the middle, on the upper-right side of a nearby dock, featuring a bright white boat"
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        295,
+        194,
+        329,
+        396
+      ],
+      "timestamp": "2025-05-19T00:01:08.773407"
+    },
+    {
+      "xml_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches_rules_expressions_unique/train/annotations/P2769_patch_024666.xml",
+      "img_path": "/tmp/u035679/aerial_seg_datagen/dataset/patches/train/images/P2769_patch_024666.png",
+      "expressions": [
+        {
+          "enhanced": [
+            "the boat located in the center left, specifically to the lower left of another boat",
+            "the ship situated in the center-left area, positioned towards the bottom-left side of another ship"
+          ],
+          "original": "the ship in the center left that is to the bottom left of a ship"
+        },
+        {
+          "enhanced": [
+            "the ship that appears dark in the center-left, situated to the bottom left of another ship.",
+            "the darker-colored ship on the center left, which is located towards the bottom-left relative to another ship."
+          ],
+          "original": "the dark ship in the center left that is to the bottom left of a ship"
+        }
+      ],
+      "description": "The target object is a small ship docked along the pier in the center-left portion of the image. It's positioned to the bottom left of another, larger ship docked nearby. It is among several vessels docked in a row along a small canal or waterway. The surrounding area consists of a marina or harbor. The ship's darker color may help to differentiate it from other boats nearby, making it slightly more identifiable.",
+      "unique_expressions": [
+        "the ship docked in the center-left, to the bottom-left of a larger ship along the waterway.",
+        "the dark ship on the center left, along the pier, which is to the bottom left of another ship further in the dock."
+      ],
+      "model": "gemini-2.0-flash-001",
+      "bbox": [
+        56,
+        281,
+        81,
+        293
+      ],
+      "timestamp": "2025-05-19T00:04:23.875189"
+    }
+  ]
+}

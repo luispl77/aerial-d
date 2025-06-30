@@ -1,0 +1,16 @@
+gemma-3-4b-it
+gemma-3-1b-it
+gemma_pytorch
+gemma_model/
+debug_output/
+enhanced_annotations*/
+enhanced_gemma_annotations*/
+enhanced*/
+.env
+gemma-product-simple
+gemma-aerial-referring
+enhanced_gemma_annotations/
+gemma-aerial-referring-12b-lora
+gemma-aerial-referring-4b-lora
+gemma-env
+merged_model*/

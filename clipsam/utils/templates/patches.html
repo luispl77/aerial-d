@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patch Selection - {{ isaid_num }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .image-container {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .result-container {
+            min-height: 300px;
+            border: 1px solid #ddd;
+            padding: 10px;
+        }
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            padding: 10px;
+        }
+        .image-item {
+            cursor: pointer;
+            border: 1px solid #ddd;
+            padding: 5px;
+        }
+        .image-item:hover {
+            background-color: #f0f0f0;
+        }
+        .image-item img {
+            width: 100%;
+            height: auto;
+        }
+        .back-button {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="back-button">
+            <a href="/" class="btn btn-secondary">← Back to iSAID Images</a>
+        </div>
+        
+        <h1 class="mb-4">Patches for {{ isaid_num }}</h1>
+        
+        <!-- Model Selection -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Model Selection</h5>
+                        <div class="mb-3">
+                            <label for="modelType" class="form-label">Model Type</label>
+                            <select class="form-select" id="modelType">
+                                <option value="clip_sam">CLIP-SAM</option>
+                                <option value="fusion_encoder">Fusion Encoder</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="checkpoint" class="form-label">Checkpoint</label>
+                            <select class="form-select" id="checkpoint">
+                                <option value="">Select a checkpoint...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="gpuSelect" class="form-label">GPU Selection</label>
+                            <select class="form-select" id="gpuSelect">
+                                <option value="">CPU</option>
+                                <!-- GPU options will be loaded here -->
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Split Filter -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Dataset Filter</h5>
+                        <div class="mb-3">
+                            <label for="splitFilter" class="form-label">Split</label>
+                            <select class="form-select" id="splitFilter">
+                                <option value="all">All</option>
+                                <option value="train">Train</option>
+                                <option value="val">Validation</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Image Grid and Results -->
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Patches</h5>
+                        <div class="image-container">
+                            <div class="image-grid" id="imageGrid">
+                                <!-- Patches will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Results</h5>
+                        <div class="result-container" id="resultContainer">
+                            <p class="text-muted">Select a patch to see results</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let currentModelType = 'clip_sam';
+        let currentCheckpoint = '';
+        let currentGpuId = null;
+        let patches = [];
+
+        // Load available GPUs
+        async function loadGPUs() {
+            const response = await fetch('/api/gpus');
+            const gpus = await response.json();
+            
+            const gpuSelect = document.getElementById('gpuSelect');
+            gpuSelect.innerHTML = '<option value="">CPU</option>';
+            
+            gpus.forEach(gpu => {
+                const option = document.createElement('option');
+                option.value = gpu.id;
+                option.textContent = `GPU ${gpu.id}: ${gpu.name}`;
+                gpuSelect.appendChild(option);
+            });
+        }
+
+        // Load checkpoints when model type changes
+        document.getElementById('modelType').addEventListener('change', async function() {
+            currentModelType = this.value;
+            const response = await fetch(`/api/models/${currentModelType}`);
+            const checkpoints = await response.json();
+            
+            const checkpointSelect = document.getElementById('checkpoint');
+            checkpointSelect.innerHTML = '<option value="">Select a checkpoint...</option>';
+            
+            checkpoints.forEach(checkpoint => {
+                const option = document.createElement('option');
+                option.value = checkpoint.path;
+                option.textContent = checkpoint.name;
+                checkpointSelect.appendChild(option);
+            });
+        });
+
+        // Load patches
+        async function loadPatches() {
+            const response = await fetch(`/api/patches/{{ isaid_num }}`);
+            patches = await response.json();
+            updateImageGrid();
+        }
+
+        // Update image grid based on split filter
+        function updateImageGrid() {
+            const splitFilter = document.getElementById('splitFilter').value;
+            
+            const filteredPatches = patches.filter(patch => {
+                return splitFilter === 'all' || patch.split === splitFilter;
+            });
+
+            const imageGrid = document.getElementById('imageGrid');
+            imageGrid.innerHTML = '';
+
+            filteredPatches.forEach(patch => {
+                const div = document.createElement('div');
+                div.className = 'image-item';
+                div.innerHTML = `
+                    <img src="${patch.path}" alt="${patch.filename}">
+                    <div class="small text-muted">${patch.filename}</div>
+                `;
+                div.addEventListener('click', () => makePrediction(patch));
+                imageGrid.appendChild(div);
+            });
+        }
+
+        // Make prediction
+        async function makePrediction(patch) {
+            if (!currentCheckpoint) {
+                alert('Please select a checkpoint first');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model_type: currentModelType,
+                        checkpoint_path: currentCheckpoint,
+                        image_path: patch.path,
+                        gpu_id: currentGpuId
+                    })
+                });
+
+                const result = await response.json();
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+
+                // Update results container
+                const resultContainer = document.getElementById('resultContainer');
+                resultContainer.innerHTML = `
+                    <h6>Results for ${patch.filename}</h6>
+                    <img src="${result.result_path}" class="img-fluid" alt="Prediction result">
+                `;
+            } catch (error) {
+                alert('Error making prediction: ' + error.message);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('splitFilter').addEventListener('change', updateImageGrid);
+        document.getElementById('checkpoint').addEventListener('change', function() {
+            currentCheckpoint = this.value;
+        });
+        document.getElementById('gpuSelect').addEventListener('change', function() {
+            currentGpuId = this.value ? parseInt(this.value) : null;
+        });
+
+        // Initial load
+        loadGPUs();
+        loadPatches();
+    </script>
+</body>
+</html> 

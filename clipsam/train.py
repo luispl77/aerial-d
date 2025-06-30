@@ -1,0 +1,773 @@
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from model import SigLipSamSegmentator
+import os
+import json
+import shutil
+import argparse
+from pycocotools import mask as mask_utils
+from PIL import Image
+import numpy as np
+import torchvision.transforms as T
+import xml.etree.ElementTree as ET
+from torchmetrics import JaccardIndex
+import matplotlib.pyplot as plt
+from torch.cuda.amp import GradScaler
+import torch.nn.functional as F
+from datetime import datetime
+import random
+from tqdm import tqdm
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Train aerial segmentation model with SigLIP+SAM')
+    parser.add_argument('--batch_size', type=int, default=2, help='Batch size for training')
+    parser.add_argument('--epochs', type=int, default=20, help='Number of epochs to train')
+    parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate')
+    parser.add_argument('--weight_decay', type=float, default=0.01, help='Weight decay for AdamW')
+    parser.add_argument('--gpu_id', type=int, default=0, help='GPU ID to use')
+    parser.add_argument('--input_size', type=int, default=384, help='Input size for images')
+    parser.add_argument('--resume', action='store_true', help='Resume from latest checkpoint')
+    parser.add_argument('--tmp_dir', type=str, default='/tmp/u035679', help='Temporary directory for dataset')
+    parser.add_argument('--poly_power', type=float, default=0.9, help='Power factor for polynomial decay')
+    parser.add_argument('--grad_accum_steps', type=int, default=2, help='Number of steps to accumulate gradients')
+    parser.add_argument('--effective_batch_size', type=int, default=8, help='Target effective batch size (will calculate grad_accum_steps if provided)')
+    parser.add_argument('--down_spatial_times', type=int, default=2, help='Number of downsampling blocks')
+    parser.add_argument('--with_dense_feat', type=bool, default=True, help='Use dense features')
+    # Add LoRA-related arguments
+    parser.add_argument('--use_lora', action='store_true', help='Use LoRA for fine-tuning')
+    parser.add_argument('--lora_r', type=int, default=16, help='LoRA rank')
+    parser.add_argument('--lora_alpha', type=int, default=32, help='LoRA alpha scaling factor')
+    parser.add_argument('--lora_dropout', type=float, default=0.05, help='LoRA dropout rate')
+    parser.add_argument('--siglip_model', type=str, default='google/siglip2-so400m-patch14-384', help='SigLIP model name')
+    parser.add_argument('--sam_model', type=str, default='facebook/sam-vit-base', help='SAM model name')
+    parser.add_argument('--use_historic', action='store_true', help='Use historic (BW) images instead of normal color images')
+    
+    return parser.parse_args()
+
+def save_checkpoint(model, optimizer, epoch, loss, path):
+    """
+    Saves a checkpoint with:
+      - Only the trained LoRA + prompter weights (excluding big frozen base models)
+      - The optimizer state (for resuming training)
+      - The current epoch and loss (for logging / resume)
+    """
+    checkpoint = {
+        'model_state_dict': {},
+        'optimizer_state_dict': optimizer.state_dict(),
+        'epoch': epoch,
+        'loss': loss
+    }
+
+    for k, v in model.state_dict().items():
+        # If this key belongs to one of the large base modules but does not belong to LoRA, skip it.
+        # LoRA subkeys typically contain 'lora_' or 'lora_A'/'lora_B' in the name.
+        if any(x in k for x in ['clip_vision_encoder', 'clip_text_encoder', 'backbone']):
+            if 'lora_' not in k:
+                continue
+        
+        # Skip SAM prompt or mask decoder if they are frozen/untrained
+        if any(x in k for x in ['sam_prompt_encoder', 'sam_mask_decoder']):
+            continue
+
+        # Otherwise, keep this key in the checkpoint.
+        checkpoint['model_state_dict'][k] = v
+    
+    # Finally save
+    torch.save(checkpoint, path)
+
+
+def load_checkpoint(model, optimizer, path):
+    checkpoint = torch.load(path)
+    
+    # Load only trainable parameters
+    model_dict = model.state_dict()
+    pretrained_dict = {
+        k: v for k, v in checkpoint['model_state_dict'].items() 
+        if k in model_dict
+    }
+    model_dict.update(pretrained_dict)
+    model.load_state_dict(model_dict)
+    
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    return checkpoint['epoch'], checkpoint['loss']
+
+def calculate_metrics(outputs, targets):
+    # Apply sigmoid to convert logits to probabilities
+    probs = torch.sigmoid(outputs)
+    
+    # Threshold to get binary predictions
+    preds = (probs > 0.5).float()
+    
+    # Check for NaN or Inf values before IoU calculation
+    if torch.isnan(preds).any() or torch.isinf(preds).any():
+        print("Warning: NaN or Inf values in predictions")
+        # Replace NaN/Inf with zeros
+        preds = torch.nan_to_num(preds, nan=0.0, posinf=1.0, neginf=0.0)
+    
+    if torch.isnan(targets).any() or torch.isinf(targets).any():
+        print("Warning: NaN or Inf values in targets")
+        targets = torch.nan_to_num(targets, nan=0.0, posinf=1.0, neginf=0.0)
+    
+    # Ensure binary values
+    targets = (targets > 0.5).float()
+    
+    # Initialize IoU metric
+    iou = JaccardIndex(task="binary").to(preds.device)
+    
+    # Compute IoU safely with try-except
+    try:
+        iou_score = iou(preds.squeeze(1), targets.squeeze(1))
+    except Exception as e:
+        print(f"IoU calculation error: {e}")
+        print(f"Preds shape: {preds.shape}, min: {preds.min()}, max: {preds.max()}")
+        print(f"Targets shape: {targets.shape}, min: {targets.min()}, max: {targets.max()}")
+        iou_score = torch.tensor(0.0, device=preds.device)
+    
+    return {'iou': iou_score}
+
+def visualize_predictions(image, mask, pred, text, epoch, batch_idx, save_dir, sample_type=None):
+    # Create directory if it doesn't exist
+    os.makedirs(save_dir, exist_ok=True)
+    
+    # Convert tensors to numpy arrays
+    image = image.detach().cpu().permute(1, 2, 0).numpy()
+    mask_np = mask.detach().cpu().numpy()
+    
+    # Ensure pred is the right shape and format
+    if len(pred.shape) == 2:
+        pred = pred.unsqueeze(0)  # Add batch dimension if needed
+    
+    # Convert prediction logits to probability map
+    prob_map = torch.sigmoid(pred).detach().cpu().squeeze().numpy()
+    
+    # Binary prediction
+    pred_binary = (prob_map > 0.5).astype(float)
+    
+    # Normalize image for visualization
+    mean = np.array([0.485, 0.456, 0.406])
+    std = np.array([0.229, 0.224, 0.225])
+    image = image * std[None, None, :] + mean[None, None, :]
+    image = np.clip(image, 0, 1)
+    
+    # Create figure with subplots
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+    
+    # Add text as figure title with type information
+    type_info = f" [{sample_type}]" if sample_type else ""
+    fig.suptitle(f'Expression{type_info}: "{text}"', wrap=True)
+    
+    # First row: Image and Ground Truth
+    axes[0, 0].imshow(image)
+    axes[0, 0].set_title('Image')
+    axes[0, 1].imshow(mask_np, cmap='gray')
+    axes[0, 1].set_title('Ground Truth Mask')
+    
+    # Second row: Probability map and Binary prediction
+    axes[1, 0].imshow(image)
+    prob_plot = axes[1, 0].imshow(prob_map, cmap='jet', alpha=0.7, vmin=0, vmax=1)
+    axes[1, 0].set_title('Probability Map')
+    fig.colorbar(prob_plot, ax=axes[1, 0])
+    
+    axes[1, 1].imshow(image)
+    axes[1, 1].imshow(pred_binary, cmap='gray', alpha=0.7)
+    axes[1, 1].set_title('Binary Prediction')
+    
+    # Turn off axes
+    for row in axes:
+        for ax in row:
+            ax.axis('off')
+    
+    # Adjust layout
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    
+    # Save figure
+    plt.savefig(os.path.join(save_dir, f'epoch_{epoch}_batch_{batch_idx}.png'))
+    plt.close()
+
+def plot_losses(train_losses, val_losses, save_dir):
+    plt.figure(figsize=(10, 5))
+    plt.plot(train_losses, label='Training Loss')
+    plt.plot(val_losses, label='Validation Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Training and Validation Losses')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(os.path.join(save_dir, 'loss_curve.png'))
+    plt.close()
+
+def log_epoch_metrics(vis_dir, epoch, avg_train_loss, avg_train_metrics, avg_val_loss, avg_val_metrics):
+    """
+    Log epoch metrics to the run_details.txt file
+    """
+    metrics_path = os.path.join(vis_dir, 'run_details.txt')
+    
+    # If it's the first epoch, add a header
+    if epoch == 0:
+        with open(metrics_path, 'a') as f:
+            f.write("\n\n===== TRAINING PROGRESS =====\n")
+            f.write("Epoch | Train Loss | Train IoU | Val Loss | Val IoU\n")
+            f.write("-" * 60 + "\n")
+    
+    # Append the metrics for this epoch
+    with open(metrics_path, 'a') as f:
+        f.write(f"{epoch:5d} | {avg_train_loss:.6f} | {avg_train_metrics['iou']:.6f} | {avg_val_loss:.6f} | {avg_val_metrics['iou']:.6f}\n")
+
+def train(
+    model, 
+    train_loader,
+    val_loader,
+    optimizer,
+    device,
+    scaler,
+    num_epochs=20,
+    checkpoint_dir='./clip_sam/models/clip_sam',
+    vis_dir='./clip_sam/visualizations/clip_sam',
+    resume=False,
+    initial_lr=1e-4,
+    power=0.9,
+    weight_decay=0.01,
+    max_grad_norm=1.0,
+    grad_accum_steps=1
+):
+    start_epoch = 0
+    best_loss = float('inf')
+    best_iou = 0.0
+    
+    # Initialize loss history
+    train_losses = []
+    val_losses = []
+    
+    # Calculate total iterations for the polynomial decay
+    total_iters = len(train_loader) * num_epochs // grad_accum_steps  # Adjust for gradient accumulation
+    current_iter = 0
+    
+    if resume:
+        checkpoint_path = os.path.join(checkpoint_dir, 'latest.pt')
+        if os.path.exists(checkpoint_path):
+            start_epoch, best_loss = load_checkpoint(model, optimizer, checkpoint_path)
+            print(f"Resumed from epoch {start_epoch}")
+            # Adjust current_iter if resuming
+            current_iter = start_epoch * len(train_loader) // grad_accum_steps
+    
+    for epoch in range(start_epoch, num_epochs):
+        # Training
+        model.train()
+        epoch_loss = 0
+        epoch_metrics = {'iou': 0.0}
+        
+        print(f"\nStarting epoch {epoch}")
+        
+        # For gradient accumulation
+        optimizer.zero_grad(set_to_none=True)
+        accumulated_loss = 0
+        
+        for batch_idx, (images, texts, masks, sample_types) in enumerate(train_loader):
+            # Update learning rate using polynomial decay
+            if batch_idx % grad_accum_steps == 0:
+                poly_lr = initial_lr * (1 - current_iter / total_iters) ** power
+                for param_group in optimizer.param_groups:
+                    param_group['lr'] = poly_lr
+            
+            images = images.to(device, non_blocking=True)
+            masks = masks.to(device, non_blocking=True)
+            
+            with torch.amp.autocast(device_type='cuda'):
+                outputs = model(images, texts)
+                loss = model.compute_loss(outputs, masks, lambda_ce=0.9)
+                # Scale the loss by the number of accumulation steps
+                loss = loss / grad_accum_steps
+            
+            # Calculate metrics
+            batch_metrics = calculate_metrics(outputs, masks)
+            for k, v in batch_metrics.items():
+                epoch_metrics[k] = epoch_metrics.get(k, 0) + v / grad_accum_steps
+            
+            # Visualize first batch of each epoch
+            if batch_idx == 0:
+                visualize_predictions(
+                    images[0], masks[0], outputs[0], texts[0],
+                    epoch, batch_idx, vis_dir, sample_types[0]
+                )
+            
+            # Backward pass with gradient accumulation
+            scaler.scale(loss).backward()
+            accumulated_loss += loss.item()
+            
+            # Only step and update optimizer after accumulating gradients
+            if (batch_idx + 1) % grad_accum_steps == 0 or (batch_idx + 1) == len(train_loader):
+                # Apply gradient clipping
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
+                
+                # Step optimizer and update scaler
+                scaler.step(optimizer)
+                scaler.update()
+                optimizer.zero_grad(set_to_none=True)
+                
+                # Log the accumulated loss
+                epoch_loss += accumulated_loss
+                print(f"Batch {batch_idx} - Accumulated Loss: {accumulated_loss:.4f} - IoU: {batch_metrics['iou']:.4f} - LR: {poly_lr:.6f}")
+                accumulated_loss = 0
+                
+                # Increment iteration counter
+                current_iter += 1
+        
+        avg_loss = epoch_loss * grad_accum_steps / len(train_loader)
+        avg_metrics = {k: v * grad_accum_steps / len(train_loader) for k, v in epoch_metrics.items()}
+        
+        # Validation
+        model.eval()
+        val_loss = 0
+        val_metrics = {'iou': 0.0}
+        
+        print("\nValidating...")
+        with torch.no_grad():
+            for batch_idx, (images, texts, masks, sample_types) in enumerate(val_loader):
+                images = images.to(device, non_blocking=True)
+                masks = masks.to(device, non_blocking=True)
+                
+                with torch.amp.autocast(device_type='cuda'):
+                    outputs = model(images, texts)
+                    loss = model.compute_loss(outputs, masks, lambda_ce=0.9)
+                
+                val_loss += loss.item()
+                
+                # Calculate metrics
+                batch_metrics = calculate_metrics(outputs, masks)
+                for k, v in batch_metrics.items():
+                    val_metrics[k] = val_metrics.get(k, 0) + v
+                
+                # Visualize first 5 batches
+                if batch_idx == 0:  # First batch
+                    for i in range(min(5, len(images))):  # Take up to 5 images
+                        visualize_predictions(
+                            images[i], masks[i], outputs[i], texts[i],
+                            epoch, f"{batch_idx}_{i}", os.path.join(vis_dir, 'val'), sample_types[i]
+                        )
+        
+        avg_val_loss = val_loss / len(val_loader)
+        avg_val_metrics = {k: v / len(val_loader) for k, v in val_metrics.items()}
+        
+        # Store losses
+        train_losses.append(avg_loss)
+        val_losses.append(avg_val_loss)
+        
+        # Plot losses
+        plot_losses(train_losses, val_losses, vis_dir)
+        
+        print(f"\nEpoch {epoch} completed:")
+        print(f"Train - Loss: {avg_loss:.4f} - IoU: {avg_metrics['iou']:.4f}")
+        print(f"Val   - Loss: {avg_val_loss:.4f} - IoU: {avg_val_metrics['iou']:.4f}")
+        
+        # Log metrics to the run_details.txt file
+        log_epoch_metrics(vis_dir, epoch, avg_loss, avg_metrics, avg_val_loss, avg_val_metrics)
+        
+        # Save checkpoint
+        checkpoint_path = os.path.join(checkpoint_dir, 'latest.pt')
+        save_checkpoint(model, optimizer, epoch, avg_loss, checkpoint_path)
+        
+        # Save best model based on IoU
+        if avg_val_metrics['iou'] > best_iou:
+            best_iou = avg_val_metrics['iou']
+            best_checkpoint_path = os.path.join(checkpoint_dir, 'best.pt')
+            save_checkpoint(model, optimizer, epoch, avg_loss, best_checkpoint_path)
+            print(f"New best IoU: {best_iou:.4f}")
+
+            # Also log the best model in the run details
+            with open(os.path.join(vis_dir, 'run_details.txt'), 'a') as f:
+                f.write(f"\n=== NEW BEST MODEL AT EPOCH {epoch} ===\n")
+                f.write(f"IoU: {best_iou:.6f}\n")
+
+class SimpleDataset:
+    def __init__(self, dataset_root, split='train', input_size=512, use_historic=False):
+        self.dataset_root = dataset_root
+        self.split = split
+        self.input_size = input_size
+        self.use_historic = use_historic
+        
+        # Set paths based on split
+        self.ann_dir = os.path.join(dataset_root, 'patches', split, 'annotations')
+        self.image_dir = os.path.join(dataset_root, 'patches', split, 'images')
+        
+        # Add transform to match model configuration
+        self.transform = T.Compose([
+            T.Resize((input_size, input_size)),
+            T.ToTensor(),
+            T.Normalize(mean=[0.485, 0.456, 0.406], 
+                       std=[0.229, 0.224, 0.225])
+        ])
+        
+        # Get list of XML files
+        self.xml_files = [f for f in os.listdir(self.ann_dir) if f.endswith('.xml')]
+        print(f"\nFound {len(self.xml_files)} XML files in {split} split")
+        print("Loading and processing XML files...")
+        
+        # Store images and their objects separately
+        self.images = {}  # filename -> image_path
+        self.objects = []  # list of (image_filename, object_data) tuples
+        total_objects = 0
+        total_groups = 0
+        total_expressions = 0
+        total_group_expressions = 0
+        
+        # Use tqdm for progress bar
+        for xml_file in tqdm(self.xml_files, desc="Processing XML files"):
+            xml_path = os.path.join(self.ann_dir, xml_file)
+            tree = ET.parse(xml_path)
+            root = tree.getroot()
+            
+            # Get image filename
+            filename = root.find('filename').text
+            
+            # Handle historic vs normal images
+            if self.use_historic:
+                # Convert normal filename to historic filename (replace _0.png with _5.png)
+                if filename.endswith('_0.png'):
+                    historic_filename = filename.replace('_0.png', '_5.png')
+                    historic_path = os.path.join(self.image_dir, historic_filename)
+                    
+                    # Use historic image if it exists, otherwise fall back to normal image
+                    if os.path.exists(historic_path):
+                        image_path = historic_path
+                        display_filename = historic_filename
+                    else:
+                        # Fall back to normal image
+                        image_path = os.path.join(self.image_dir, filename)
+                        display_filename = filename
+                else:
+                    # For non-standard filenames, just use the original
+                    image_path = os.path.join(self.image_dir, filename)
+                    display_filename = filename
+            else:
+                image_path = os.path.join(self.image_dir, filename)
+                display_filename = filename
+            
+            # Store image path only once
+            if display_filename not in self.images:
+                self.images[display_filename] = image_path
+            
+            # Create a mapping from object ID to object data for this image
+            objects_by_id = {}
+            
+            # Get all objects with their expressions (individual objects)
+            for obj in root.findall('object'):
+                # Get object properties
+                obj_id = obj.find('id').text if obj.find('id') is not None else None
+                name = obj.find('name').text
+                bbox = obj.find('bndbox')
+                xmin = int(bbox.find('xmin').text)
+                ymin = int(bbox.find('ymin').text)
+                xmax = int(bbox.find('xmax').text)
+                ymax = int(bbox.find('ymax').text)
+                
+                # Get segmentation
+                seg = obj.find('segmentation')
+                if seg is not None and seg.text:
+                    # Parse the segmentation dictionary
+                    seg_dict = eval(seg.text)
+                    size = seg_dict['size']
+                    counts = seg_dict['counts']
+                    rle = {'size': size, 'counts': counts}
+                else:
+                    continue  # Skip objects without segmentation
+                
+                # Store object data by ID for group processing
+                if obj_id is not None:
+                    objects_by_id[obj_id] = {
+                        'bbox': [xmin, ymin, xmax, ymax],
+                        'segmentation': rle,
+                        'category': name
+                    }
+                
+                # Get expressions for individual objects
+                expressions = []
+                exp_elem = obj.find('expressions')
+                if exp_elem is not None:
+                    for exp in exp_elem.findall('expression'):
+                        expressions.append(exp.text)
+                
+                if expressions:
+                    total_objects += 1
+                    total_expressions += len(expressions)
+                    
+                    # Add a sample for each expression
+                    for expression in expressions:
+                        self.objects.append({
+                            'image_filename': display_filename,
+                            'bbox': [xmin, ymin, xmax, ymax],
+                            'segmentation': rle,
+                            'expression': expression,
+                            'category': name,
+                            'type': 'individual'
+                        })
+            
+            # Process groups
+            groups_elem = root.find('groups')
+            if groups_elem is not None:
+                for group in groups_elem.findall('group'):
+                    # Get group properties
+                    group_id = group.find('id').text
+                    instance_ids_text = group.find('instance_ids').text
+                    instance_ids = [id.strip() for id in instance_ids_text.split(',')]
+                    category = group.find('category').text
+                    
+                    # Get group expressions
+                    group_expressions = []
+                    exp_elem = group.find('expressions')
+                    if exp_elem is not None:
+                        for exp in exp_elem.findall('expression'):
+                            group_expressions.append(exp.text)
+                    
+                    if not group_expressions:
+                        continue  # Skip groups without expressions
+                    
+                    # Collect segmentations for all instances in the group
+                    group_segmentations = []
+                    group_bboxes = []
+                    
+                    for instance_id in instance_ids:
+                        if instance_id in objects_by_id:
+                            group_segmentations.append(objects_by_id[instance_id]['segmentation'])
+                            group_bboxes.append(objects_by_id[instance_id]['bbox'])
+                    
+                    if not group_segmentations:
+                        continue  # Skip groups with no valid instances
+                    
+                    total_groups += 1
+                    total_group_expressions += len(group_expressions)
+                    
+                    # Add a sample for each group expression
+                    for expression in group_expressions:
+                        self.objects.append({
+                            'image_filename': display_filename,
+                            'bbox': group_bboxes,  # List of bboxes for all instances
+                            'segmentation': group_segmentations,  # List of segmentations
+                            'expression': expression,
+                            'category': category,
+                            'type': 'group',
+                            'instance_ids': instance_ids
+                        })
+        
+        print(f"\nDataset statistics:")
+        print(f"- Total patches: {len(self.xml_files)}")
+        print(f"- Unique images: {len(self.images)}")
+        print(f"- Total individual objects with expressions: {total_objects}")
+        print(f"- Total individual expressions: {total_expressions}")
+        print(f"- Total groups with expressions: {total_groups}")
+        print(f"- Total group expressions: {total_group_expressions}")
+        print(f"- Total samples created: {len(self.objects)}")
+    
+    def __len__(self):
+        return len(self.objects)
+    
+    def __getitem__(self, idx):
+        obj = self.objects[idx]
+        
+        # Load image using stored path
+        image = Image.open(self.images[obj['image_filename']])
+        
+        # Convert to RGB (handles both color and grayscale images)
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+        
+        image = self.transform(image)
+        
+        # Handle mask creation based on type
+        if obj['type'] == 'individual':
+            # Single object mask
+            binary_mask = mask_utils.decode(obj['segmentation'])
+        else:  # group
+            # Combine multiple masks for group
+            combined_mask = None
+            for segmentation in obj['segmentation']:
+                binary_mask = mask_utils.decode(segmentation)
+                if combined_mask is None:
+                    combined_mask = binary_mask
+                else:
+                    # Union of masks (logical OR)
+                    combined_mask = np.logical_or(combined_mask, binary_mask)
+            binary_mask = combined_mask.astype(np.uint8)
+        
+        mask = torch.from_numpy(binary_mask).float()
+        mask = T.Resize((self.input_size, self.input_size), antialias=True)(mask.unsqueeze(0)).squeeze(0)
+        
+        return image, obj['expression'], mask, obj['type']
+
+def save_run_details(args, run_id, model_name, effective_batch_size, train_dataset, val_dataset, vis_dir):
+    """
+    Save details of the training run to a text file
+    """
+    os.makedirs(vis_dir, exist_ok=True)
+    details_path = os.path.join(vis_dir, 'run_details.txt')
+    
+    with open(details_path, 'w') as f:
+        f.write(f"===== TRAINING RUN DETAILS =====\n\n")
+        f.write(f"Run ID: {run_id}\n")
+        f.write(f"Date and Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+        
+        f.write(f"===== MODEL CONFIGURATION =====\n")
+        f.write(f"Model Name: {model_name}\n")
+        f.write(f"Input Size: {args.input_size}x{args.input_size}\n")
+        f.write(f"SigLIP Model: {args.siglip_model}\n")
+        f.write(f"SAM Model: {args.sam_model}\n")
+        f.write(f"Down Spatial Times: {args.down_spatial_times}\n")
+        f.write(f"With Dense Features: {args.with_dense_feat}\n")
+        
+        if args.use_lora:
+            f.write(f"Using LoRA: Yes\n")
+            f.write(f"LoRA Rank: {args.lora_r}\n")
+            f.write(f"LoRA Alpha: {args.lora_alpha}\n")
+            f.write(f"LoRA Dropout: {args.lora_dropout}\n\n")
+        else:
+            f.write(f"Using LoRA: No\n\n")
+        
+        f.write(f"===== TRAINING PARAMETERS =====\n")
+        f.write(f"Epochs: {args.epochs}\n")
+        f.write(f"Base Batch Size: {args.batch_size}\n")
+        f.write(f"Gradient Accumulation Steps: {args.grad_accum_steps}\n")
+        f.write(f"Effective Batch Size: {effective_batch_size}\n")
+        f.write(f"Learning Rate: {args.lr}\n")
+        f.write(f"Weight Decay: {args.weight_decay}\n")
+        f.write(f"Polynomial Decay Power: {args.poly_power}\n")
+        f.write(f"GPU ID: {args.gpu_id}\n\n")
+        
+        f.write(f"===== DATASET INFORMATION =====\n")
+        f.write(f"Training Samples: {len(train_dataset)}\n")
+        f.write(f"Validation Samples: {len(val_dataset)}\n")
+        f.write(f"Using Historic Images: {args.use_historic}\n")
+        f.write(f"Dataset Path: ./aeriald\n")
+        f.write(f"Images Path: ./aeriald/patches\n")
+        f.write(f"Annotations Path: ./aeriald/patches\n")
+
+def main():
+    # Parse command line arguments
+    args = parse_args()
+    
+    print("Start")
+    torch.cuda.set_device(args.gpu_id)
+    device = torch.device(f'cuda:{args.gpu_id}')
+    
+    # Set dataset path to aeriald root directory
+    dataset_path = "./aeriald"
+    
+    torch.backends.cuda.enable_mem_efficient_sdp(True)
+    
+    print(f"Using device: {device}")
+    
+    # Calculate gradient accumulation steps if effective batch size is provided
+    grad_accum_steps = args.grad_accum_steps
+    if args.effective_batch_size is not None:
+        grad_accum_steps = max(1, args.effective_batch_size // args.batch_size)
+        print(f"Using gradient accumulation with {grad_accum_steps} steps to simulate batch size of {args.batch_size * grad_accum_steps}")
+    
+    effective_batch_size = args.batch_size * grad_accum_steps
+    
+    # Generate unique run ID with timestamp
+    run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # Configure LoRA if enabled
+    lora_cfg = None
+    if args.use_lora:
+        # Define target modules for different components
+        lora_cfg = {
+            'clip_vision_encoder': {
+                'r': args.lora_r,
+                'lora_alpha': args.lora_alpha,
+                'target_modules': ['q_proj', 'v_proj'],
+                'lora_dropout': args.lora_dropout,
+                'bias': 'none'
+            },
+            'clip_text_encoder': {
+                'r': args.lora_r,
+                'lora_alpha': args.lora_alpha,
+                'target_modules': ['q_proj', 'k_proj', 'v_proj', 'o_proj'],
+                'lora_dropout': args.lora_dropout,
+                'bias': 'none'
+            }
+        }
+        print(f"Using LoRA with rank {args.lora_r}, alpha {args.lora_alpha}")
+    
+    # Initialize SigLIP+SAM model
+    model = SigLipSamSegmentator(
+        siglip_model_name=args.siglip_model,
+        sam_model_name=args.sam_model,
+        down_spatial_times=args.down_spatial_times,
+        with_dense_feat=args.with_dense_feat,
+        lora_cfg=lora_cfg,
+        device=device
+    ).to(device)
+    
+    # Get trainable parameters (those with requires_grad=True)
+    trainable_params = [p for p in model.parameters() if p.requires_grad]
+    
+    # Initialize optimizer 
+    optimizer = optim.AdamW(trainable_params, lr=args.lr, weight_decay=args.weight_decay)
+    scaler = torch.amp.GradScaler()
+    
+    # Create datasets using predefined splits
+    train_dataset = SimpleDataset(
+        dataset_root=dataset_path,
+        split='train',
+        input_size=args.input_size,
+        use_historic=args.use_historic
+    )
+    
+    val_dataset = SimpleDataset(
+        dataset_root=dataset_path,
+        split='val',
+        input_size=args.input_size,
+        use_historic=args.use_historic
+    )
+    
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset, 
+        batch_size=args.batch_size,
+        shuffle=True,
+        pin_memory=True,
+        num_workers=4
+    )
+    
+    val_loader = torch.utils.data.DataLoader(
+        val_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        pin_memory=True,
+        num_workers=4
+    )
+    
+    print(f"\nStarting training with {len(train_dataset)} train and {len(val_dataset)} val samples...")
+    print(f"Gradient accumulation steps: {grad_accum_steps} (effective batch size: {effective_batch_size})")
+    
+    # Update paths to use models and visualizations directories directly
+    model_name = f"clip_sam_{run_id}_epochs{args.epochs}_bs{args.batch_size}x{grad_accum_steps}_lr{args.lr}"
+    checkpoint_dir = os.path.join('./models', model_name)
+    vis_dir = os.path.join('./visualizations', model_name)
+    
+    # Create directories if they don't exist
+    os.makedirs(checkpoint_dir, exist_ok=True)
+    os.makedirs(vis_dir, exist_ok=True)
+    
+    # Save run details
+    save_run_details(args, run_id, model_name, effective_batch_size, train_dataset, val_dataset, vis_dir)
+    
+    train(
+        model, 
+        train_loader,
+        val_loader,
+        optimizer, 
+        device,
+        scaler,
+        num_epochs=args.epochs,
+        checkpoint_dir=checkpoint_dir,
+        vis_dir=vis_dir,
+        resume=args.resume,
+        initial_lr=args.lr,
+        power=args.poly_power,
+        weight_decay=args.weight_decay,
+        max_grad_norm=1.0,
+        grad_accum_steps=grad_accum_steps  # Pass gradient accumulation steps
+    )
+
+if __name__ == '__main__':
+    main() 

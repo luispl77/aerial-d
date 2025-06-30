@@ -1,0 +1,32 @@
+# Core ML/DL packages
+torch
+torchvision
+transformers
+peft
+torchmetrics
+
+# Data processing and image handling
+numpy
+pillow
+einops
+
+# Computer Vision and COCO utilities
+pycocotools
+
+# Progress bars and utilities
+tqdm
+
+# Plotting and visualization
+matplotlib
+
+# Web framework for inference apps
+flask
+werkzeug
+
+# Hugging Face integration
+huggingface_hub
+hf_transfer
+
+# Additional dependencies that might be needed
+datasets
+accelerate

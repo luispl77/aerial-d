@@ -1,0 +1,8 @@
+utils/static
+results
+visualizations
+models
+aeriald.zip
+aeriald
+__pycache__
+.env

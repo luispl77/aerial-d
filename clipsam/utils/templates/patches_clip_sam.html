@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patch View - {{ isaid_num }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            margin-bottom: 20px;
+        }
+        .main-image-container {
+            width: 100%;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .main-image {
+            width: 100%;
+            max-height: 600px;
+            object-fit: contain;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .controls {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .patches-scroll {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding: 10px 0;
+            margin-top: 20px;
+        }
+        .patch-thumbnail {
+            flex: 0 0 150px;
+            height: 150px;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .patch-thumbnail:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .patch-thumbnail.active {
+            border-color: #0d6efd;
+        }
+        .patch-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+        .btn-loading {
+            position: relative;
+            pointer-events: none;
+        }
+        .btn-loading .spinner-border {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .btn-loading .btn-text {
+            opacity: 0.7;
+        }
+        .error-message {
+            color: #dc3545;
+            margin-top: 10px;
+            display: none;
+        }
+        .prediction-container {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .prediction-image {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .metrics-container {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 10px;
+        }
+        .metric-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .metric-label {
+            font-weight: bold;
+            color: #495057;
+        }
+        .metric-value {
+            font-family: monospace;
+            font-size: 1.1em;
+            color: #212529;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>iSAID Image {{ isaid_num }}</h1>
+                <a href="/" class="btn btn-outline-secondary">← Back to Images</a>
+            </div>
+        </div>
+
+        <!-- Main Image -->
+        <div class="main-image-container">
+                <img id="mainImage" class="main-image" src="" alt="Main Image">
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="row">
+                <div class="col-md-8">
+                    <label for="textInput" class="form-label">Referring Expression</label>
+                    <input type="text" class="form-control" id="textInput" placeholder="Enter referring expression (e.g., 'the large ship in the harbor')">
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button class="btn btn-primary w-100" id="generateBtn" onclick="makePrediction()">
+                        <span class="btn-text">Generate Mask</span>
+                    </button>
+                </div>
+            </div>
+            <div class="error-message" id="errorMessage"></div>
+        </div>
+
+        <!-- Patches Scroll -->
+        <div class="patches-scroll" id="patchesScroll">
+            <!-- Patches will be loaded here -->
+        </div>
+
+        <div class="metrics-container mt-3" style="display: none;">
+            <h4>Prediction Metrics:</h4>
+            <div class="metrics-grid">
+                <div class="metric-item">
+                    <span class="metric-label">GPU Prediction Time:</span>
+                    <span id="predictionTime" class="metric-value">-</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Visualization Time:</span>
+                    <span id="visualizationTime" class="metric-value">-</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Total Time:</span>
+                    <span id="totalTime" class="metric-value">-</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">VRAM Used:</span>
+                    <span id="vramUsed" class="metric-value">-</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Peak VRAM:</span>
+                    <span id="peakVram" class="metric-value">-</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Model VRAM:</span>
+                    <span id="modelVram" class="metric-value">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPatch = null;
+        const generateBtn = document.getElementById('generateBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const mainImage = document.getElementById('mainImage');
+
+        // Get URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const split = urlParams.get('split') || 'train';
+
+        // Load patches when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPatches();
+        });
+
+        function loadPatches() {
+            fetch(`/api/patches/{{ isaid_num }}`)
+                .then(response => response.json())
+                .then(patches => {
+                    const scroll = document.getElementById('patchesScroll');
+                    scroll.innerHTML = '';
+                    
+                    // Filter patches based on split
+                    const filteredPatches = patches.filter(p => p.split === split);
+                    
+                    // Set main image to first patch
+                    if (filteredPatches.length > 0) {
+                        currentPatch = filteredPatches[0];
+                        mainImage.src = currentPatch.path;
+                    }
+                    
+                    filteredPatches.forEach(patch => {
+                        const div = document.createElement('div');
+                        div.className = 'patch-thumbnail';
+                        div.innerHTML = `<img src="${patch.path}" alt="${patch.filename}">`;
+                        div.onclick = () => {
+                            currentPatch = patch;
+                            mainImage.src = patch.path;
+                            // Update active state
+                            document.querySelectorAll('.patch-thumbnail').forEach(p => p.classList.remove('active'));
+                            div.classList.add('active');
+                        };
+                        scroll.appendChild(div);
+                    });
+
+                    // Set first patch as active
+                    if (scroll.firstChild) {
+                        scroll.firstChild.classList.add('active');
+                    }
+                })
+                .catch(error => console.error('Error loading patches:', error));
+        }
+
+        function setLoading(isLoading) {
+            if (isLoading) {
+                generateBtn.classList.add('btn-loading');
+                generateBtn.innerHTML = `
+                    <span class="btn-text">Generating...</span>
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                `;
+                generateBtn.disabled = true;
+            } else {
+                generateBtn.classList.remove('btn-loading');
+                generateBtn.innerHTML = `<span class="btn-text">Generate Mask</span>`;
+                generateBtn.disabled = false;
+            }
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            setTimeout(() => {
+                errorMessage.style.display = 'none';
+            }, 5000);
+        }
+
+        function makePrediction() {
+            if (!currentPatch) {
+                showError('Please select a patch first');
+                return;
+            }
+
+            const text = document.getElementById('textInput').value.trim();
+            if (!text) {
+                showError('Please enter a referring expression');
+                return;
+            }
+
+            setLoading(true);
+
+            fetch('/api/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    image_path: currentPatch.path,
+                    text: text
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                // Show prediction result in place of the original image
+                const timestamp = new Date().getTime();
+                mainImage.src = `${data.result_path}?t=${timestamp}`; // Add timestamp to prevent caching
+
+                // Show metrics
+                const metricsContainer = document.querySelector('.metrics-container');
+                metricsContainer.style.display = 'block';
+                document.getElementById('predictionTime').textContent = `${data.metrics.prediction_time_ms} ms`;
+                document.getElementById('visualizationTime').textContent = `${data.metrics.visualization_time_ms} ms`;
+                document.getElementById('totalTime').textContent = `${data.metrics.total_time_ms} ms`;
+                document.getElementById('vramUsed').textContent = `${data.metrics.vram_used_mb} MB`;
+                document.getElementById('peakVram').textContent = `${data.metrics.peak_vram_mb} MB`;
+                document.getElementById('modelVram').textContent = `${data.metrics.model_vram_mb} MB`;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError(error.message || 'An error occurred during prediction');
+            })
+            .finally(() => {
+                setLoading(false);
+            });
+        }
+    </script>
+</body>
+</html> 
