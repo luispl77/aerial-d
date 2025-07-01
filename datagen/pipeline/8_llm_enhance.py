@@ -251,7 +251,7 @@ def setup_model_and_processor(model_path):
         model_path,
         torch_dtype=torch.bfloat16,
         device_map="auto",
-        attn_implementation="eager"
+        attn_implementation="sdpa"
     )
     
     processor = AutoProcessor.from_pretrained(model_path)
