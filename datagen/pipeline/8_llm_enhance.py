@@ -19,6 +19,7 @@ from tqdm import tqdm
 import tempfile
 import shutil
 import numpy as np
+import random
 from pycocotools import mask as mask_utils
 from skimage.measure import label, regionprops
 
@@ -59,6 +60,8 @@ def parse_arguments():
     parser.add_argument('--gpu', type=int, default=0, help='GPU ID to use')
     parser.add_argument('--temp_dir', type=str, default='.',
                         help='Temporary directory for visualization images')
+    parser.add_argument('--seed', type=int, default=42,
+                        help='Random seed for deterministic file ordering (default: 42)')
     parser.add_argument('--dry_run', action='store_true',
                         help='Run without actually modifying the XML files')
     return parser.parse_args()
@@ -443,6 +446,10 @@ def process_item_with_llm(item, image_path, model, processor, temp_dir):
         enhanced_data = extract_and_parse_json(generated_content)
         if enhanced_data is None:
             print(f"  Warning: Could not parse JSON response for {item['type']} {item['id']}")
+            print(f"  Full response content:")
+            print("-" * 80)
+            print(generated_content)
+            print("-" * 80)
             return None
         
         # Clean up visualization
@@ -456,6 +463,40 @@ def process_item_with_llm(item, image_path, model, processor, temp_dir):
     except Exception as e:
         print(f"  Error processing {item['type']} {item['id']}: {e}")
         return None
+
+def is_file_already_processed(annotation_path):
+    """Check if all objects/groups in the file already have enhanced and unique expressions."""
+    try:
+        annotation_data = parse_annotations(annotation_path)
+        
+        if not annotation_data['items']:
+            return True  # No items to process, consider it processed
+        
+        for item in annotation_data['items']:
+            expressions_elem = item['element'].find('expressions')
+            if expressions_elem is None:
+                return False  # No expressions at all
+            
+            # Check for enhanced and unique expressions
+            has_enhanced = False
+            has_unique = False
+            
+            for expr in expressions_elem.findall('expression'):
+                expr_type = expr.get('type', '')
+                if expr_type == 'enhanced':
+                    has_enhanced = True
+                elif expr_type == 'unique':
+                    has_unique = True
+            
+            # If any item lacks both enhanced and unique expressions, file is not processed
+            if not (has_enhanced and has_unique):
+                return False
+        
+        return True  # All items have both enhanced and unique expressions
+        
+    except Exception as e:
+        print(f"  Error checking if file is processed: {e}")
+        return False  # Assume not processed if we can't check
 
 def add_enhanced_expressions_to_xml(item, enhanced_data):
     """Add enhanced expressions to the XML element."""
@@ -533,6 +574,10 @@ def main():
     """Main processing function."""
     args = parse_arguments()
     
+    # Set random seed for deterministic file ordering
+    random.seed(args.seed)
+    print(f"Using random seed: {args.seed}")
+    
     # Setup paths
     dataset_root = os.path.abspath(args.dataset_root)
     model_path = os.path.abspath(args.model_path)
@@ -584,21 +629,29 @@ def main():
                 print(f"Warning: Annotations directory not found: {annotations_dir}")
                 continue
             
-            # Get annotation files
+            # Get annotation files and shuffle them for random processing
             annotation_files = [f for f in os.listdir(annotations_dir) if f.endswith('.xml')]
+            random.shuffle(annotation_files)  # Randomize processing order
             
             if args.limit:
                 annotation_files = annotation_files[:args.limit]
             
-            print(f"Found {len(annotation_files)} annotation files in {split}")
+            print(f"Found {len(annotation_files)} annotation files in {split} (shuffled randomly)")
             
             # Process each annotation file
             split_files = 0
             split_items = 0
             split_enhanced = 0
+            split_skipped = 0
             
             for annotation_file in tqdm(annotation_files, desc=f"Processing {split}"):
                 annotation_path = os.path.join(annotations_dir, annotation_file)
+                
+                # Check if file is already fully processed
+                if is_file_already_processed(annotation_path):
+                    split_skipped += 1
+                    print(f"\nSkipping {annotation_file} (already processed)")
+                    continue
                 
                 print(f"\nProcessing: {annotation_file}")
                 items_processed, expressions_enhanced = process_annotation_file(
@@ -612,6 +665,7 @@ def main():
             
             print(f"\n{split.capitalize()} split summary:")
             print(f"  Files processed: {split_files}")
+            print(f"  Files skipped (already processed): {split_skipped}")
             print(f"  Items processed: {split_items}")
             print(f"  Expressions enhanced: {split_enhanced}")
             
