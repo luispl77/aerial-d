@@ -23,6 +23,7 @@ import random
 import multiprocessing as mp
 import threading
 import time
+from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pycocotools import mask as mask_utils
 from skimage.measure import label, regionprops
@@ -50,6 +51,135 @@ torch.set_float32_matmul_precision('high')
 NUM_ENHANCED = 1  # Number of enhanced expressions per original
 NUM_UNIQUE = 2    # Number of unique expressions to generate
 
+class ProgressTracker:
+    """Thread-safe progress tracker for monitoring processing across workers."""
+    
+    def __init__(self, total_files):
+        self.manager = mp.Manager()
+        self.stats = self.manager.dict({
+            'files_processed': 0,
+            'files_skipped': 0,
+            'items_processed': 0,
+            'expressions_enhanced': 0,
+            'total_retries': 0,
+            'failed_items': 0
+        })
+        self.total_files = total_files
+        self.start_time = time.time()
+        self.lock = threading.Lock()
+        self.stop_monitoring = threading.Event()
+        
+    def update_stats(self, files_processed=0, files_skipped=0, items_processed=0, 
+                    expressions_enhanced=0, total_retries=0, failed_items=0):
+        """Update progress statistics from a worker."""
+        with self.lock:
+            self.stats['files_processed'] += files_processed
+            self.stats['files_skipped'] += files_skipped
+            self.stats['items_processed'] += items_processed
+            self.stats['expressions_enhanced'] += expressions_enhanced
+            self.stats['total_retries'] += total_retries
+            self.stats['failed_items'] += failed_items
+    
+    def get_progress_report(self):
+        """Get current progress report with rates and ETA."""
+        current_time = time.time()
+        elapsed_time = current_time - self.start_time
+        elapsed_minutes = elapsed_time / 60.0
+        
+        with self.lock:
+            stats = dict(self.stats)
+        
+        files_completed = stats['files_processed'] + stats['files_skipped']
+        files_remaining = self.total_files - files_completed
+        
+        # Calculate rates - separate rates for processed files vs all files
+        if elapsed_minutes > 0:
+            # Total file processing rate (includes skipped)
+            total_files_per_min = files_completed / elapsed_minutes
+            
+            # Actual processing rate (only non-skipped files that need processing)
+            processed_files_per_min = stats['files_processed'] / elapsed_minutes if stats['files_processed'] > 0 else 0
+            items_per_min = stats['items_processed'] / elapsed_minutes
+        else:
+            total_files_per_min = 0
+            processed_files_per_min = 0
+            items_per_min = 0
+        
+        # Calculate ETA based on processed files rate and estimated remaining files to process
+        eta_minutes = 0
+        eta_str = "Calculating..."
+        
+        if files_completed > 0 and files_remaining > 0:
+            # Calculate what percentage of files need processing vs being skipped
+            processing_ratio = stats['files_processed'] / files_completed if files_completed > 0 else 0.5
+            
+            # Estimate remaining files that will need processing (not skipped)
+            estimated_remaining_to_process = files_remaining * processing_ratio
+            
+            if processed_files_per_min > 0:
+                # Estimate time based on files that will need actual processing
+                eta_minutes = estimated_remaining_to_process / processed_files_per_min
+                eta_time = datetime.now() + timedelta(minutes=eta_minutes)
+                eta_str = eta_time.strftime("%H:%M:%S")
+        elif files_remaining <= 0:
+            eta_str = "Complete!"
+        
+        # Calculate completion percentage
+        completion_pct = (files_completed / self.total_files * 100) if self.total_files > 0 else 0
+        
+        return {
+            'elapsed_minutes': elapsed_minutes,
+            'files_completed': files_completed,
+            'files_remaining': files_remaining,
+            'completion_pct': completion_pct,
+            'total_files_per_min': total_files_per_min,
+            'processed_files_per_min': processed_files_per_min,
+            'items_per_min': items_per_min,
+            'eta_minutes': eta_minutes,
+            'eta_str': eta_str,
+            'stats': stats
+        }
+    
+    def start_monitoring(self, update_interval=30):
+        """Start the monitoring thread that prints progress updates."""
+        def monitor():
+            while not self.stop_monitoring.is_set():
+                if self.stop_monitoring.wait(update_interval):
+                    break
+                    
+                report = self.get_progress_report()
+                
+                print(f"\n📊 Progress Update [{datetime.now().strftime('%H:%M:%S')}]:")
+                print(f"   Files: {report['files_completed']}/{self.total_files} "
+                      f"({report['completion_pct']:.1f}%) - {report['files_remaining']} remaining")
+                print(f"   Processed: {report['stats']['files_processed']:,} | "
+                      f"Skipped: {report['stats']['files_skipped']:,}")
+                print(f"   Items processed: {report['stats']['items_processed']:,}")
+                print(f"   Expressions enhanced: {report['stats']['expressions_enhanced']:,}")
+                print(f"   Rate: {report['total_files_per_min']:.1f} files/min total, "
+                      f"{report['processed_files_per_min']:.1f} processed files/min, "
+                      f"{report['items_per_min']:.1f} items/min")
+                print(f"   Elapsed: {report['elapsed_minutes']:.1f} min | "
+                      f"ETA: {report['eta_str']} ({report['eta_minutes']:.1f} min remaining)")
+                if report['stats']['total_retries'] > 0:
+                    success_rate = ((report['stats']['items_processed'] - report['stats']['failed_items']) / 
+                                  report['stats']['items_processed'] * 100) if report['stats']['items_processed'] > 0 else 100
+                    print(f"   Success rate: {success_rate:.1f}% | Retries: {report['stats']['total_retries']:,} | "
+                          f"Failures: {report['stats']['failed_items']:,}")
+                print("─" * 70)
+        
+        monitor_thread = threading.Thread(target=monitor, daemon=True)
+        monitor_thread.start()
+        return monitor_thread
+    
+    def stop_monitoring_thread(self):
+        """Stop the monitoring thread."""
+        self.stop_monitoring.set()
+    
+    def get_final_stats(self):
+        """Get final statistics."""
+        return dict(self.stats)
+
 def parse_arguments():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description='Enhance dataset expressions using fine-tuned Gemma 3')
@@ -68,6 +198,8 @@ def parse_arguments():
                         help='Random seed for deterministic file ordering (default: 42)')
     parser.add_argument('--workers', type=int, default=10,
                         help='Number of parallel workers (default: 6)')
+    parser.add_argument('--progress_interval', type=int, default=30,
+                        help='Progress update interval in seconds (default: 30)')
     parser.add_argument('--dry_run', action='store_true',
                         help='Run without actually modifying the XML files')
     return parser.parse_args()
@@ -462,15 +594,21 @@ def process_item_with_llm(item, image_path, model, processor, temp_dir, max_retr
         for attempt in range(max_retries + 1):  # 0, 1, 2, 3 (4 total attempts)
             try:
                 # Generate response
+                start_time = time.time()
                 with torch.no_grad():
                     # Vary temperature slightly on retries to get different outputs
                     temperature = 0.8 + (attempt * 0.1)
                     output = model.generate(**inputs, max_new_tokens=2048, do_sample=True, temperature=temperature)
+                gen_time = time.time() - start_time
                 
                 # Decode response
                 generated_content = processor.decode(output[0], skip_special_tokens=True)
                 input_length = len(processor.decode(inputs['input_ids'][0], skip_special_tokens=True))
                 generated_content = generated_content[input_length:].strip()
+                
+                # Calculate token generation speed
+                gen_tokens = len(output[0]) - len(inputs['input_ids'][0])
+                tok_per_sec = gen_tokens / gen_time if gen_time > 0 else 0
                 
                 # Parse JSON response
                 enhanced_data = extract_and_parse_json(generated_content)
@@ -484,7 +622,7 @@ def process_item_with_llm(item, image_path, model, processor, temp_dir, max_retr
                     if attempt > 0:
                         print(f"    ✓ Succeeded on retry {attempt}")
                     
-                    return enhanced_data, retry_count
+                    return enhanced_data, retry_count, gen_tokens, tok_per_sec
                 
                 # Parsing failed, increment retry count and try again
                 if attempt < max_retries:
@@ -510,11 +648,11 @@ def process_item_with_llm(item, image_path, model, processor, temp_dir, max_retr
         except:
             pass
         
-        return None, retry_count
+        return None, retry_count, 0, 0
         
     except Exception as e:
         print(f"  Error processing {item['type']} {item['id']}: {e}")
-        return None, retry_count
+        return None, retry_count, 0, 0
 
 def is_file_already_processed(annotation_path):
     """Check if all objects/groups in the file already have enhanced and unique expressions."""
@@ -601,9 +739,9 @@ def process_annotation_file(annotation_path, images_dir, model, processor, temp_
             result = process_item_with_llm(item, image_path, model, processor, temp_dir)
             
             if result is None:
-                enhanced_data, retry_count = None, 0
+                enhanced_data, retry_count, gen_tokens, tok_per_sec = None, 0, 0, 0
             else:
-                enhanced_data, retry_count = result
+                enhanced_data, retry_count, gen_tokens, tok_per_sec = result
             
             total_retries += retry_count
             
@@ -616,7 +754,7 @@ def process_annotation_file(annotation_path, images_dir, model, processor, temp_
                 num_unique = len(enhanced_data.get('unique_expressions', []))
                 enhanced_count += num_enhanced + num_unique
                 
-                print(f"    Added {num_enhanced} enhanced + {num_unique} unique expressions")
+                print(f"    Added {num_enhanced} enhanced + {num_unique} unique expressions (⚡ {tok_per_sec:.1f} tok/s, {gen_tokens} tokens)")
             else:
                 failed_items += 1
                 print(f"    ❌ Failed to process item after retries")
@@ -634,7 +772,7 @@ def process_annotation_file(annotation_path, images_dir, model, processor, temp_
         print(f"  Error processing annotation file: {e}")
         return 0, 0, 0, 0
 
-def worker_process_files(worker_id, gpu_id, model, processor, annotation_file_paths, images_dir, temp_dir, dry_run):
+def worker_process_files(worker_id, gpu_id, model, processor, annotation_file_paths, images_dir, temp_dir, dry_run, progress_tracker):
     """Worker function to process a batch of annotation files on a specific GPU."""
     try:
         print(f"Worker {worker_id} starting processing on GPU {gpu_id}")
@@ -658,6 +796,7 @@ def worker_process_files(worker_id, gpu_id, model, processor, annotation_file_pa
             # Check if file is already fully processed
             if is_file_already_processed(annotation_path):
                 worker_stats['files_skipped'] += 1
+                progress_tracker.update_stats(files_skipped=1)
                 print(f"Worker {worker_id}: Skipping {annotation_file} (already processed)")
                 continue
             
@@ -672,6 +811,15 @@ def worker_process_files(worker_id, gpu_id, model, processor, annotation_file_pa
                 worker_stats['expressions_enhanced'] += expressions_enhanced
                 worker_stats['total_retries'] += retries
                 worker_stats['failed_items'] += failed
+                
+                # Update shared progress tracker immediately after each file
+                progress_tracker.update_stats(
+                    files_processed=1,
+                    items_processed=items_processed,
+                    expressions_enhanced=expressions_enhanced,
+                    total_retries=retries,
+                    failed_items=failed
+                )
         
         # Cleanup worker temp directory
         try:
@@ -748,6 +896,37 @@ def main():
         # Determine splits to process
         splits = ['train', 'val'] if args.split == 'both' else [args.split]
         
+        # Count total annotation files (we'll track actual processed vs. skipped during execution)
+        print(f"\n🔍 Getting total annotation file count...")
+        total_files = 0
+        
+        # Reset random seed to ensure same file order
+        random.seed(args.seed)
+        
+        for split in splits:
+            annotations_dir = os.path.join(dataset_root, 'patches_rules_expressions_unique', split, 'annotations')
+            if os.path.exists(annotations_dir):
+                annotation_files = [f for f in os.listdir(annotations_dir) if f.endswith('.xml')]
+                if args.limit:
+                    annotation_files = annotation_files[:args.limit]
+                
+                total_files += len(annotation_files)
+                print(f"   {split}: {len(annotation_files)} total files")
+        
+        print(f"📋 Total annotation files: {total_files}")
+        
+        if total_files == 0:
+            print("\n🎉 No files to process!")
+            return
+        
+        # Initialize progress tracker and start monitoring
+        progress_tracker = ProgressTracker(total_files)
+        monitor_thread = progress_tracker.start_monitoring(update_interval=args.progress_interval)
+        print(f"📊 Real-time progress monitoring started (updates every {args.progress_interval} seconds)")
+        
+        # Reset random seed again for actual processing to maintain consistency
+        random.seed(args.seed)
+        
         total_files = 0
         total_items = 0
         total_enhanced = 0
@@ -811,7 +990,7 @@ def main():
                         future = executor.submit(
                             worker_process_files,
                             i, gpu_id, model, processor, worker_file_batches[i],
-                            images_dir, temp_dir, args.dry_run
+                            images_dir, temp_dir, args.dry_run, progress_tracker
                         )
                         future_to_worker[future] = i
                 
@@ -844,28 +1023,39 @@ def main():
             total_retries += split_stats['total_retries']
             total_failures += split_stats['failed_items']
         
-        print(f"\nTotal summary:")
-        print(f"  Files processed: {total_files}")
-        print(f"  Items processed: {total_items}")
-        print(f"  Expressions enhanced: {total_enhanced}")
-        print(f"  Total retries performed: {total_retries}")
-        print(f"  Failed items (after max retries): {total_failures}")
+        # Stop monitoring and get final statistics
+        progress_tracker.stop_monitoring_thread()
+        final_stats = progress_tracker.get_final_stats()
+        final_report = progress_tracker.get_progress_report()
+        
+        print(f"\n🎉 Processing Complete!")
+        print(f"📊 Final Summary:")
+        print(f"  Files processed: {final_stats['files_processed']}")
+        print(f"  Files skipped (already processed): {final_stats['files_skipped']}")
+        print(f"  Items processed: {final_stats['items_processed']}")
+        print(f"  Expressions enhanced: {final_stats['expressions_enhanced']}")
+        print(f"  Total retries performed: {final_stats['total_retries']}")
+        print(f"  Failed items (after max retries): {final_stats['failed_items']}")
+        print(f"  Total elapsed time: {final_report['elapsed_minutes']:.1f} minutes")
+        print(f"  Average rate: {final_report['total_files_per_min']:.1f} files/min total, "
+              f"{final_report['processed_files_per_min']:.1f} processed files/min, "
+              f"{final_report['items_per_min']:.1f} items/min")
         
         # Calculate success/retry statistics
-        if total_items > 0:
-            success_rate = ((total_items - total_failures) / total_items) * 100
-            retry_rate = (total_retries / total_items) * 100
-            print(f"\nRetry Statistics:")
+        if final_stats['items_processed'] > 0:
+            success_rate = ((final_stats['items_processed'] - final_stats['failed_items']) / final_stats['items_processed']) * 100
+            retry_rate = (final_stats['total_retries'] / final_stats['items_processed']) * 100
+            print(f"\n📈 Performance Statistics:")
             print(f"  Success rate: {success_rate:.1f}%")
             print(f"  Retry rate: {retry_rate:.1f}% (avg {retry_rate/100:.2f} retries per item)")
-            if total_retries > 0:
-                recovery_rate = ((total_retries - total_failures) / total_retries) * 100 if total_retries > 0 else 0
+            if final_stats['total_retries'] > 0:
+                recovery_rate = ((final_stats['total_retries'] - final_stats['failed_items']) / final_stats['total_retries']) * 100
                 print(f"  Recovery rate: {recovery_rate:.1f}% (retries that succeeded)")
         
         if args.dry_run:
-            print("\nDry run completed - no files were modified")
+            print("\n🔍 Dry run completed - no files were modified")
         else:
-            print("\nEnhancement completed successfully!")
+            print("\n✅ Enhancement completed successfully!")
     
     finally:
         # Clean up temporary directory if we created it (worker temp dirs are cleaned up individually)
