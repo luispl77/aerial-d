@@ -170,13 +170,13 @@ def parse_arguments():
                         help='Which dataset split to process')
     parser.add_argument('--limit', type=int, default=None,
                         help='Limit the number of annotation files to process (for testing)')
-    parser.add_argument('--temp_dir', type=str, default='.',
+    parser.add_argument('--temp_dir', type=str, default='./temp',
                         help='Temporary directory for visualization images')
     parser.add_argument('--seed', type=int, default=42,
                         help='Random seed for deterministic file ordering (default: 42)')
     parser.add_argument('--progress_interval', type=int, default=3,
                         help='Progress update interval in files (default: 50). Use smaller values for more frequent updates.')
-    parser.add_argument('--threads', type=int, default=2,
+    parser.add_argument('--threads', type=int, default=5,
                         help='Number of threads to use for processing items within each file (default: 2)')
     parser.add_argument('--dry_run', action='store_true',
                         help='Run without actually modifying the XML files')
