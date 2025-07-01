@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-Step 8: LLM Enhancement using Fine-tuned Gemma 3
+Step 8: LLM Enhancement using Fine-tuned Gemma 3 with vLLM
 
 This script processes the entire dataset and uses the fine-tuned Gemma 3 model
-to enhance expressions in the XML annotations directly. It modifies the XML files
-in-place by adding enhanced expressions to existing objects and groups.
+with vLLM for fast batched inference to enhance expressions in the XML annotations 
+directly. It modifies the XML files in-place by adding enhanced expressions to 
+existing objects and groups.
 """
 
 import os
@@ -20,65 +21,56 @@ import tempfile
 import shutil
 import numpy as np
 import random
-import multiprocessing as mp
-import threading
 import time
 from datetime import datetime, timedelta
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from pycocotools import mask as mask_utils
 from skimage.measure import label, regionprops
+import base64
+from io import BytesIO
+from typing import List, Dict, Any, Optional, Tuple
 
 # Add the LLM directory to Python path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'llm'))
 
 try:
-    from transformers import AutoProcessor, AutoModelForImageTextToText
+    from vllm import LLM, SamplingParams
+    from vllm.multimodal.utils import encode_image_base64
     import torch
     import time
 except ImportError as e:
-    print(f"Error importing transformers/torch: {e}")
+    print(f"Error importing vllm/torch: {e}")
     print("Please install the required packages:")
-    print("pip install torch transformers pillow matplotlib pycocotools scikit-image")
+    print("pip install vllm torch pillow matplotlib pycocotools scikit-image")
     sys.exit(1)
-
-# Disable torch compilation warnings
-os.environ["TORCH_COMPILE"] = "0"
-torch._dynamo.config.disable = True
-torch.backends.cudnn.enabled = False
-torch.set_float32_matmul_precision('high')
 
 # Enhancement constants
 NUM_ENHANCED = 1  # Number of enhanced expressions per original
 NUM_UNIQUE = 2    # Number of unique expressions to generate
 
 class ProgressTracker:
-    """Thread-safe progress tracker for monitoring processing across workers."""
+    """Simple progress tracker for monitoring processing."""
     
     def __init__(self, total_files):
-        self.manager = mp.Manager()
-        self.stats = self.manager.dict({
+        self.total_files = total_files
+        self.start_time = time.time()
+        self.stats = {
             'files_processed': 0,
             'files_skipped': 0,
             'items_processed': 0,
             'expressions_enhanced': 0,
             'total_retries': 0,
             'failed_items': 0
-        })
-        self.total_files = total_files
-        self.start_time = time.time()
-        self.lock = threading.Lock()
-        self.stop_monitoring = threading.Event()
+        }
         
     def update_stats(self, files_processed=0, files_skipped=0, items_processed=0, 
                     expressions_enhanced=0, total_retries=0, failed_items=0):
-        """Update progress statistics from a worker."""
-        with self.lock:
-            self.stats['files_processed'] += files_processed
-            self.stats['files_skipped'] += files_skipped
-            self.stats['items_processed'] += items_processed
-            self.stats['expressions_enhanced'] += expressions_enhanced
-            self.stats['total_retries'] += total_retries
-            self.stats['failed_items'] += failed_items
+        """Update progress statistics."""
+        self.stats['files_processed'] += files_processed
+        self.stats['files_skipped'] += files_skipped
+        self.stats['items_processed'] += items_processed
+        self.stats['expressions_enhanced'] += expressions_enhanced
+        self.stats['total_retries'] += total_retries
+        self.stats['failed_items'] += failed_items
     
     def get_progress_report(self):
         """Get current progress report with rates and ETA."""
@@ -86,41 +78,25 @@ class ProgressTracker:
         elapsed_time = current_time - self.start_time
         elapsed_minutes = elapsed_time / 60.0
         
-        with self.lock:
-            stats = dict(self.stats)
-        
-        files_completed = stats['files_processed'] + stats['files_skipped']
+        files_completed = self.stats['files_processed'] + self.stats['files_skipped']
         files_remaining = self.total_files - files_completed
         
-        # Calculate rates - separate rates for processed files vs all files
+        # Calculate rates
         if elapsed_minutes > 0:
-            # Total file processing rate (includes skipped)
             total_files_per_min = files_completed / elapsed_minutes
-            
-            # Actual processing rate (only non-skipped files that need processing)
-            processed_files_per_min = stats['files_processed'] / elapsed_minutes if stats['files_processed'] > 0 else 0
-            items_per_min = stats['items_processed'] / elapsed_minutes
+            items_per_min = self.stats['items_processed'] / elapsed_minutes
         else:
             total_files_per_min = 0
-            processed_files_per_min = 0
             items_per_min = 0
         
-        # Calculate ETA based on processed files rate and estimated remaining files to process
+        # Calculate ETA
         eta_minutes = 0
         eta_str = "Calculating..."
         
-        if files_completed > 0 and files_remaining > 0:
-            # Calculate what percentage of files need processing vs being skipped
-            processing_ratio = stats['files_processed'] / files_completed if files_completed > 0 else 0.5
-            
-            # Estimate remaining files that will need processing (not skipped)
-            estimated_remaining_to_process = files_remaining * processing_ratio
-            
-            if processed_files_per_min > 0:
-                # Estimate time based on files that will need actual processing
-                eta_minutes = estimated_remaining_to_process / processed_files_per_min
-                eta_time = datetime.now() + timedelta(minutes=eta_minutes)
-                eta_str = eta_time.strftime("%H:%M:%S")
+        if total_files_per_min > 0 and files_remaining > 0:
+            eta_minutes = files_remaining / total_files_per_min
+            eta_time = datetime.now() + timedelta(minutes=eta_minutes)
+            eta_str = eta_time.strftime("%H:%M:%S")
         elif files_remaining <= 0:
             eta_str = "Complete!"
         
@@ -133,56 +109,37 @@ class ProgressTracker:
             'files_remaining': files_remaining,
             'completion_pct': completion_pct,
             'total_files_per_min': total_files_per_min,
-            'processed_files_per_min': processed_files_per_min,
             'items_per_min': items_per_min,
             'eta_minutes': eta_minutes,
             'eta_str': eta_str,
-            'stats': stats
+            'stats': self.stats
         }
     
-    def start_monitoring(self, update_interval=30):
-        """Start the monitoring thread that prints progress updates."""
-        def monitor():
-            while not self.stop_monitoring.is_set():
-                if self.stop_monitoring.wait(update_interval):
-                    break
-                    
-                report = self.get_progress_report()
-                
-                print(f"\n📊 Progress Update [{datetime.now().strftime('%H:%M:%S')}]:")
-                print(f"   Files: {report['files_completed']}/{self.total_files} "
-                      f"({report['completion_pct']:.1f}%) - {report['files_remaining']} remaining")
-                print(f"   Processed: {report['stats']['files_processed']:,} | "
-                      f"Skipped: {report['stats']['files_skipped']:,}")
-                print(f"   Items processed: {report['stats']['items_processed']:,}")
-                print(f"   Expressions enhanced: {report['stats']['expressions_enhanced']:,}")
-                print(f"   Rate: {report['total_files_per_min']:.1f} files/min total, "
-                      f"{report['processed_files_per_min']:.1f} processed files/min, "
-                      f"{report['items_per_min']:.1f} items/min")
-                print(f"   Elapsed: {report['elapsed_minutes']:.1f} min | "
-                      f"ETA: {report['eta_str']} ({report['eta_minutes']:.1f} min remaining)")
-                if report['stats']['total_retries'] > 0:
-                    success_rate = ((report['stats']['items_processed'] - report['stats']['failed_items']) / 
-                                  report['stats']['items_processed'] * 100) if report['stats']['items_processed'] > 0 else 100
-                    print(f"   Success rate: {success_rate:.1f}% | Retries: {report['stats']['total_retries']:,} | "
-                          f"Failures: {report['stats']['failed_items']:,}")
-                print("─" * 70)
+    def print_progress(self):
+        """Print current progress."""
+        report = self.get_progress_report()
         
-        monitor_thread = threading.Thread(target=monitor, daemon=True)
-        monitor_thread.start()
-        return monitor_thread
-    
-    def stop_monitoring_thread(self):
-        """Stop the monitoring thread."""
-        self.stop_monitoring.set()
-    
-    def get_final_stats(self):
-        """Get final statistics."""
-        return dict(self.stats)
+        print(f"\n📊 Progress Update [{datetime.now().strftime('%H:%M:%S')}]:")
+        print(f"   Files: {report['files_completed']}/{self.total_files} "
+              f"({report['completion_pct']:.1f}%) - {report['files_remaining']} remaining")
+        print(f"   Processed: {report['stats']['files_processed']:,} | "
+              f"Skipped: {report['stats']['files_skipped']:,}")
+        print(f"   Items processed: {report['stats']['items_processed']:,}")
+        print(f"   Expressions enhanced: {report['stats']['expressions_enhanced']:,}")
+        print(f"   Rate: {report['total_files_per_min']:.1f} files/min, "
+              f"{report['items_per_min']:.1f} items/min")
+        print(f"   Elapsed: {report['elapsed_minutes']:.1f} min | "
+              f"ETA: {report['eta_str']} ({report['eta_minutes']:.1f} min remaining)")
+        if report['stats']['total_retries'] > 0:
+            success_rate = ((report['stats']['items_processed'] - report['stats']['failed_items']) / 
+                          report['stats']['items_processed'] * 100) if report['stats']['items_processed'] > 0 else 100
+            print(f"   Success rate: {success_rate:.1f}% | Retries: {report['stats']['total_retries']:,} | "
+                  f"Failures: {report['stats']['failed_items']:,}")
+        print("─" * 70)
 
 def parse_arguments():
     """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description='Enhance dataset expressions using fine-tuned Gemma 3')
+    parser = argparse.ArgumentParser(description='Enhance dataset expressions using fine-tuned Gemma 3 with vLLM')
     parser.add_argument('--dataset_root', type=str, default='./dataset',
                         help='Root path to the dataset directory')
     parser.add_argument('--model_path', type=str, default='../llm/merged_model_4b',
@@ -191,15 +148,18 @@ def parse_arguments():
                         help='Which dataset split to process')
     parser.add_argument('--limit', type=int, default=None,
                         help='Limit the number of annotation files to process (for testing)')
-    parser.add_argument('--gpu', type=int, default=0, help='GPU ID to use')
+    parser.add_argument('--gpu_memory_utilization', type=float, default=0.9,
+                        help='GPU memory utilization for vLLM (default: 0.9)')
+    parser.add_argument('--max_model_len', type=int, default=8192,
+                        help='Maximum model length for vLLM (default: 8192)')
+    parser.add_argument('--batch_size', type=int, default=8,
+                        help='Batch size for processing items (default: 8)')
     parser.add_argument('--temp_dir', type=str, default='.',
                         help='Temporary directory for visualization images')
     parser.add_argument('--seed', type=int, default=42,
                         help='Random seed for deterministic file ordering (default: 42)')
-    parser.add_argument('--workers', type=int, default=10,
-                        help='Number of parallel workers (default: 6)')
-    parser.add_argument('--progress_interval', type=int, default=30,
-                        help='Progress update interval in seconds (default: 30)')
+    parser.add_argument('--progress_interval', type=int, default=50,
+                        help='Progress update interval in files (default: 50)')
     parser.add_argument('--dry_run', action='store_true',
                         help='Run without actually modifying the XML files')
     return parser.parse_args()
@@ -384,37 +344,31 @@ def visualize_and_save_object(image_path, bboxes, output_path):
         plt.savefig(output_path, dpi=100, bbox_inches='tight')
         plt.close(fig)
 
-def get_available_gpus():
-    """Get list of available CUDA devices."""
-    if not torch.cuda.is_available():
-        return [0]  # Fallback to CPU or single device
-    
-    num_gpus = torch.cuda.device_count()
-    return list(range(num_gpus))
+def image_to_base64(image_path):
+    """Convert image to base64 string for vLLM."""
+    try:
+        with open(image_path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode('utf-8')
+    except Exception as e:
+        print(f"Error converting image to base64: {e}")
+        return None
 
-def setup_model_and_processor(model_path, gpu_id=0):
-    """Load the fine-tuned model and processor on specific GPU."""
-    print(f"Loading fine-tuned model from: {model_path} on GPU {gpu_id}")
+def setup_vllm_model(model_path, gpu_memory_utilization=0.9, max_model_len=8192):
+    """Initialize vLLM model."""
+    print(f"Loading vLLM model from: {model_path}")
+    print(f"GPU memory utilization: {gpu_memory_utilization}")
+    print(f"Max model length: {max_model_len}")
     
-    # Set the device for this process
-    device = f"cuda:{gpu_id}"
-    torch.cuda.set_device(gpu_id)
-    
-    # Load model without device_map first, then move to device
-    model = AutoModelForImageTextToText.from_pretrained(
-        model_path,
-        torch_dtype=torch.bfloat16,
-        device_map=None,  # Don't use device_map in multiprocessing
-        attn_implementation="sdpa"
+    llm = LLM(
+        model=model_path,
+        gpu_memory_utilization=gpu_memory_utilization,
+        max_model_len=max_model_len,
+        trust_remote_code=True,
+        disable_log_stats=True,
     )
     
-    # Move model to the specific device
-    model = model.to(device)
-    
-    processor = AutoProcessor.from_pretrained(model_path, use_fast=True)
-    
-    print(f"Model loaded successfully on GPU {gpu_id}")
-    return model, processor
+    print("vLLM model loaded successfully!")
+    return llm
 
 def extract_and_parse_json(content):
     """Extract JSON from content that might be wrapped in code blocks."""
@@ -545,115 +499,6 @@ def parse_annotations(annotation_path):
         'items': items_to_process
     }
 
-def process_item_with_llm(item, image_path, model, processor, temp_dir, max_retries=3):
-    """Process a single item (object or group) with the LLM, with retry logic."""
-    retry_count = 0
-    
-    try:
-        # Create temporary visualization
-        viz_filename = f"temp_viz_{item['id']}_{item['type']}.png"
-        viz_path = os.path.join(temp_dir, viz_filename)
-        
-        # Create visualization with bounding box(es)
-        if item['type'] == 'group':
-            bboxes_to_visualize = item['bboxes']
-        else:
-            bboxes_to_visualize = item['bbox']
-        
-        visualize_and_save_object(image_path, bboxes_to_visualize, viz_path)
-        
-        # Create prompt
-        system_prompt, user_prompt = create_prompt(item['category'], item['expressions'])
-        
-        # Create messages format
-        messages = [
-            {
-                "role": "system",
-                "content": [{"type": "text", "text": system_prompt}]
-            },
-            {
-                "role": "user",
-                "content": [
-                    {"type": "image", "url": viz_path},
-                    {"type": "text", "text": user_prompt}
-                ]
-            }
-        ]
-        
-        # Process inputs
-        device = next(model.parameters()).device
-        inputs = processor.apply_chat_template(
-            messages,
-            tokenize=True,
-            return_dict=True,
-            return_tensors="pt",
-            add_generation_prompt=True,
-        ).to(device)
-        
-        # Retry loop for generation and parsing
-        for attempt in range(max_retries + 1):  # 0, 1, 2, 3 (4 total attempts)
-            try:
-                # Generate response
-                start_time = time.time()
-                with torch.no_grad():
-                    # Vary temperature slightly on retries to get different outputs
-                    temperature = 0.8 + (attempt * 0.1)
-                    output = model.generate(**inputs, max_new_tokens=2048, do_sample=True, temperature=temperature)
-                gen_time = time.time() - start_time
-                
-                # Decode response
-                generated_content = processor.decode(output[0], skip_special_tokens=True)
-                input_length = len(processor.decode(inputs['input_ids'][0], skip_special_tokens=True))
-                generated_content = generated_content[input_length:].strip()
-                
-                # Calculate token generation speed
-                gen_tokens = len(output[0]) - len(inputs['input_ids'][0])
-                tok_per_sec = gen_tokens / gen_time if gen_time > 0 else 0
-                
-                # Parse JSON response
-                enhanced_data = extract_and_parse_json(generated_content)
-                if enhanced_data is not None:
-                    # Success! Clean up and return
-                    try:
-                        os.remove(viz_path)
-                    except:
-                        pass
-                    
-                    if attempt > 0:
-                        print(f"    ✓ Succeeded on retry {attempt}")
-                    
-                    return enhanced_data, retry_count, gen_tokens, tok_per_sec
-                
-                # Parsing failed, increment retry count and try again
-                if attempt < max_retries:
-                    retry_count += 1
-                    print(f"    ⚠ JSON parsing failed, retrying ({attempt + 1}/{max_retries})...")
-                else:
-                    # Final attempt failed
-                    print(f"  ❌ Failed to parse JSON after {max_retries} retries for {item['type']} {item['id']}")
-                    print(f"  Final response content:")
-                    print("-" * 80)
-                    print(generated_content)
-                    print("-" * 80)
-                    
-            except Exception as gen_e:
-                print(f"  Error during generation attempt {attempt + 1}: {gen_e}")
-                if attempt < max_retries:
-                    retry_count += 1
-                    continue
-        
-        # Clean up visualization
-        try:
-            os.remove(viz_path)
-        except:
-            pass
-        
-        return None, retry_count, 0, 0
-        
-    except Exception as e:
-        print(f"  Error processing {item['type']} {item['id']}: {e}")
-        return None, retry_count, 0, 0
-
 def is_file_already_processed(annotation_path):
     """Check if all objects/groups in the file already have enhanced and unique expressions."""
     try:
@@ -710,8 +555,168 @@ def add_enhanced_expressions_to_xml(item, enhanced_data):
                 expr_elem.text = unique_expr.strip()
                 expr_elem.set('type', 'unique')
 
-def process_annotation_file(annotation_path, images_dir, model, processor, temp_dir, dry_run=False):
-    """Process a single annotation file."""
+def prepare_batch_requests(items, image_path, temp_dir):
+    """Prepare a batch of requests for vLLM processing."""
+    batch_requests = []
+    viz_paths = []
+    
+    for item in items:
+        try:
+            # Create temporary visualization
+            viz_filename = f"temp_viz_{item['id']}_{item['type']}_{time.time()}.png"
+            viz_path = os.path.join(temp_dir, viz_filename)
+            
+            # Create visualization with bounding box(es)
+            if item['type'] == 'group':
+                bboxes_to_visualize = item['bboxes']
+            else:
+                bboxes_to_visualize = item['bbox']
+            
+            visualize_and_save_object(image_path, bboxes_to_visualize, viz_path)
+            viz_paths.append(viz_path)
+            
+            # Create prompt
+            system_prompt, user_prompt = create_prompt(item['category'], item['expressions'])
+            
+            # Convert image to base64
+            image_base64 = image_to_base64(viz_path)
+            if image_base64 is None:
+                continue
+            
+            # Format message for vLLM multimodal
+            messages = [
+                {
+                    "role": "system",
+                    "content": [{"type": "text", "text": system_prompt}]
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{image_base64}"}},
+                        {"type": "text", "text": user_prompt}
+                    ]
+                }
+            ]
+            
+            batch_requests.append({
+                'messages': messages,
+                'item': item,
+                'viz_path': viz_path
+            })
+            
+        except Exception as e:
+            print(f"    Error preparing request for {item['type']} {item['id']}: {e}")
+            continue
+    
+    return batch_requests, viz_paths
+
+def process_batch_with_vllm(llm, batch_requests, max_retries=3):
+    """Process a batch of requests with vLLM."""
+    if not batch_requests:
+        return []
+    
+    # Prepare sampling parameters
+    sampling_params = SamplingParams(
+        temperature=0.8,
+        max_tokens=2048,
+        stop=None,
+    )
+    
+    results = []
+    
+    for attempt in range(max_retries + 1):
+        try:
+            print(f"    Processing batch of {len(batch_requests)} items (attempt {attempt + 1})")
+            
+            # Prepare prompts for vLLM
+            prompts = []
+            for req in batch_requests:
+                # Format the conversation for the model
+                prompt = ""
+                for msg in req['messages']:
+                    if msg['role'] == 'system':
+                        prompt += f"<|system|>\n{msg['content'][0]['text']}\n"
+                    elif msg['role'] == 'user':
+                        prompt += f"<|user|>\n"
+                        for content in msg['content']:
+                            if content['type'] == 'text':
+                                prompt += f"{content['text']}\n"
+                            elif content['type'] == 'image_url':
+                                prompt += f"<|image|>{content['image_url']['url']}\n"
+                        prompt += "<|assistant|>\n"
+                
+                prompts.append(prompt)
+            
+            # Generate responses
+            outputs = llm.generate(prompts, sampling_params)
+            
+            # Process outputs
+            for i, output in enumerate(outputs):
+                item = batch_requests[i]['item']
+                viz_path = batch_requests[i]['viz_path']
+                
+                if output.outputs:
+                    generated_text = output.outputs[0].text.strip()
+                    
+                    # Parse JSON response
+                    enhanced_data = extract_and_parse_json(generated_text)
+                    if enhanced_data:
+                        results.append({
+                            'item': item,
+                            'enhanced_data': enhanced_data,
+                            'viz_path': viz_path,
+                            'success': True,
+                            'retries': attempt
+                        })
+                    else:
+                        results.append({
+                            'item': item,
+                            'enhanced_data': None,
+                            'viz_path': viz_path,
+                            'success': False,
+                            'retries': attempt,
+                            'error': f"Failed to parse JSON: {generated_text[:200]}..."
+                        })
+                else:
+                    results.append({
+                        'item': item,
+                        'enhanced_data': None,
+                        'viz_path': viz_path,
+                        'success': False,
+                        'retries': attempt,
+                        'error': "No output generated"
+                    })
+            
+            # If we get here, processing was successful
+            break
+            
+        except Exception as e:
+            print(f"    Error in batch processing attempt {attempt + 1}: {e}")
+            if attempt == max_retries:
+                # Final attempt failed, create failed results
+                for req in batch_requests:
+                    results.append({
+                        'item': req['item'],
+                        'enhanced_data': None,
+                        'viz_path': req['viz_path'],
+                        'success': False,
+                        'retries': attempt,
+                        'error': f"Batch processing failed: {e}"
+                    })
+    
+    return results
+
+def cleanup_viz_files(viz_paths):
+    """Clean up visualization files."""
+    for viz_path in viz_paths:
+        try:
+            if os.path.exists(viz_path):
+                os.remove(viz_path)
+        except:
+            pass
+
+def process_annotation_file(annotation_path, images_dir, llm, temp_dir, batch_size, dry_run=False):
+    """Process a single annotation file using vLLM."""
     try:
         # Parse annotations
         annotation_data = parse_annotations(annotation_path)
@@ -732,34 +737,47 @@ def process_annotation_file(annotation_path, images_dir, model, processor, temp_
         total_retries = 0
         failed_items = 0
         
-        # Process each item with expressions
-        for item in annotation_data['items']:
-            print(f"  Processing {item['type']} {item['id']} ({item['category']})")
+        # Process items in batches
+        items = annotation_data['items']
+        for i in range(0, len(items), batch_size):
+            batch_items = items[i:i + batch_size]
             
-            result = process_item_with_llm(item, image_path, model, processor, temp_dir)
+            print(f"  Processing batch {i//batch_size + 1}/{(len(items) + batch_size - 1)//batch_size} "
+                  f"({len(batch_items)} items)")
             
-            if result is None:
-                enhanced_data, retry_count, gen_tokens, tok_per_sec = None, 0, 0, 0
-            else:
-                enhanced_data, retry_count, gen_tokens, tok_per_sec = result
+            # Prepare batch requests
+            batch_requests, viz_paths = prepare_batch_requests(batch_items, image_path, temp_dir)
             
-            total_retries += retry_count
+            if not batch_requests:
+                print("    No valid requests in batch, skipping")
+                continue
             
-            if enhanced_data:
-                if not dry_run:
-                    add_enhanced_expressions_to_xml(item, enhanced_data)
+            # Process batch with vLLM
+            results = process_batch_with_vllm(llm, batch_requests)
+            
+            # Process results
+            for result in results:
+                item = result['item']
+                total_retries += result['retries']
                 
-                # Count enhancements
-                num_enhanced = len(enhanced_data.get('enhanced_expressions', []))
-                num_unique = len(enhanced_data.get('unique_expressions', []))
-                enhanced_count += num_enhanced + num_unique
+                if result['success'] and result['enhanced_data']:
+                    if not dry_run:
+                        add_enhanced_expressions_to_xml(item, result['enhanced_data'])
+                    
+                    # Count enhancements
+                    num_enhanced = len(result['enhanced_data'].get('enhanced_expressions', []))
+                    num_unique = len(result['enhanced_data'].get('unique_expressions', []))
+                    enhanced_count += num_enhanced + num_unique
+                    
+                    print(f"    ✓ {item['type']} {item['id']}: Added {num_enhanced} enhanced + {num_unique} unique expressions")
+                else:
+                    failed_items += 1
+                    print(f"    ❌ {item['type']} {item['id']}: {result.get('error', 'Unknown error')}")
                 
-                print(f"    Added {num_enhanced} enhanced + {num_unique} unique expressions (⚡ {tok_per_sec:.1f} tok/s, {gen_tokens} tokens)")
-            else:
-                failed_items += 1
-                print(f"    ❌ Failed to process item after retries")
+                processed_count += 1
             
-            processed_count += 1
+            # Cleanup visualization files
+            cleanup_viz_files(viz_paths)
         
         # Save modified XML
         if not dry_run and enhanced_count > 0:
@@ -771,68 +789,6 @@ def process_annotation_file(annotation_path, images_dir, model, processor, temp_
     except Exception as e:
         print(f"  Error processing annotation file: {e}")
         return 0, 0, 0, 0
-
-def worker_process_files(worker_id, gpu_id, model, processor, annotation_file_paths, images_dir, temp_dir, dry_run, progress_tracker):
-    """Worker function to process a batch of annotation files on a specific GPU."""
-    try:
-        print(f"Worker {worker_id} starting processing on GPU {gpu_id}")
-        
-        # Create worker-specific temp directory
-        worker_temp_dir = os.path.join(temp_dir, f"worker_{worker_id}")
-        os.makedirs(worker_temp_dir, exist_ok=True)
-        
-        worker_stats = {
-            'files_processed': 0,
-            'files_skipped': 0,
-            'items_processed': 0,
-            'expressions_enhanced': 0,
-            'total_retries': 0,
-            'failed_items': 0
-        }
-        
-        for annotation_path in annotation_file_paths:
-            annotation_file = os.path.basename(annotation_path)
-            
-            # Check if file is already fully processed
-            if is_file_already_processed(annotation_path):
-                worker_stats['files_skipped'] += 1
-                progress_tracker.update_stats(files_skipped=1)
-                print(f"Worker {worker_id}: Skipping {annotation_file} (already processed)")
-                continue
-            
-            print(f"Worker {worker_id}: Processing {annotation_file}")
-            items_processed, expressions_enhanced, retries, failed = process_annotation_file(
-                annotation_path, images_dir, model, processor, worker_temp_dir, dry_run
-            )
-            
-            if items_processed > 0:
-                worker_stats['files_processed'] += 1
-                worker_stats['items_processed'] += items_processed
-                worker_stats['expressions_enhanced'] += expressions_enhanced
-                worker_stats['total_retries'] += retries
-                worker_stats['failed_items'] += failed
-                
-                # Update shared progress tracker immediately after each file
-                progress_tracker.update_stats(
-                    files_processed=1,
-                    items_processed=items_processed,
-                    expressions_enhanced=expressions_enhanced,
-                    total_retries=retries,
-                    failed_items=failed
-                )
-        
-        # Cleanup worker temp directory
-        try:
-            shutil.rmtree(worker_temp_dir)
-        except:
-            pass
-        
-        print(f"Worker {worker_id} completed processing on GPU {gpu_id}")
-        return worker_stats
-        
-    except Exception as e:
-        print(f"Worker {worker_id} error: {e}")
-        return {'files_processed': 0, 'files_skipped': 0, 'items_processed': 0, 'expressions_enhanced': 0, 'total_retries': 0, 'failed_items': 0}
 
 def main():
     """Main processing function."""
@@ -867,41 +823,20 @@ def main():
     print(f"Using temporary directory: {temp_dir}")
     
     try:
-        # Get available GPUs and setup workers
-        available_gpus = get_available_gpus()
-        num_workers = args.workers
-        workers_per_gpu = num_workers / len(available_gpus)
-        print(f"\nAvailable GPUs: {available_gpus}")
-        print(f"Using {num_workers} workers ({workers_per_gpu:.1f} workers per GPU)")
-        
-        # Pre-load all models on their respective GPUs
-        print(f"\n🔄 Pre-loading {num_workers} model instances...")
-        worker_models = {}
-        
-        for worker_id in range(num_workers):
-            gpu_id = available_gpus[worker_id % len(available_gpus)]
-            print(f"Loading model for Worker {worker_id} on GPU {gpu_id}...")
-            model, processor = setup_model_and_processor(model_path, gpu_id)
-            worker_models[worker_id] = (model, processor)
-        
-        print(f"\n✅ All {num_workers} models loaded successfully!")
-        print(f"⏳ Waiting 10 seconds for you to check nvidia-smi...")
-        print("   You can run 'nvidia-smi' in another terminal to see GPU memory usage")
-        
-        for i in range(10, 0, -1):
-            print(f"   Starting processing in {i} seconds...", end='\r')
-            time.sleep(1)
-        print("\n🚀 Starting processing!")
+        # Setup vLLM model
+        print(f"\n🔄 Loading vLLM model...")
+        llm = setup_vllm_model(
+            model_path,
+            gpu_memory_utilization=args.gpu_memory_utilization,
+            max_model_len=args.max_model_len
+        )
         
         # Determine splits to process
         splits = ['train', 'val'] if args.split == 'both' else [args.split]
         
-        # Count total annotation files (we'll track actual processed vs. skipped during execution)
+        # Count total annotation files
         print(f"\n🔍 Getting total annotation file count...")
         total_files = 0
-        
-        # Reset random seed to ensure same file order
-        random.seed(args.seed)
         
         for split in splits:
             annotations_dir = os.path.join(dataset_root, 'patches_rules_expressions_unique', split, 'annotations')
@@ -919,19 +854,10 @@ def main():
             print("\n🎉 No files to process!")
             return
         
-        # Initialize progress tracker and start monitoring
+        # Initialize progress tracker
         progress_tracker = ProgressTracker(total_files)
-        monitor_thread = progress_tracker.start_monitoring(update_interval=args.progress_interval)
-        print(f"📊 Real-time progress monitoring started (updates every {args.progress_interval} seconds)")
         
-        # Reset random seed again for actual processing to maintain consistency
-        random.seed(args.seed)
-        
-        total_files = 0
-        total_items = 0
-        total_enhanced = 0
-        total_retries = 0
-        total_failures = 0
+        files_processed_count = 0
         
         for split in splits:
             print(f"\nProcessing {split} split...")
@@ -957,57 +883,46 @@ def main():
             
             print(f"Found {len(annotation_files)} annotation files in {split} (shuffled randomly)")
             
-            # Create full paths for annotation files
-            annotation_file_paths = [os.path.join(annotations_dir, f) for f in annotation_files]
-            
-            # Distribute files across workers
-            files_per_worker = len(annotation_file_paths) // num_workers
-            worker_file_batches = []
-            
-            for i in range(num_workers):
-                start_idx = i * files_per_worker
-                if i == num_workers - 1:  # Last worker gets remaining files
-                    end_idx = len(annotation_file_paths)
-                else:
-                    end_idx = (i + 1) * files_per_worker
-                
-                worker_file_batches.append(annotation_file_paths[start_idx:end_idx])
-            
-            print(f"Distributing files across {num_workers} workers:")
-            for i, batch in enumerate(worker_file_batches):
-                print(f"  Worker {i}: {len(batch)} files")
-            
-            # Process files in parallel using ThreadPoolExecutor
             split_stats = {'files_processed': 0, 'files_skipped': 0, 'items_processed': 0, 'expressions_enhanced': 0, 'total_retries': 0, 'failed_items': 0}
             
-            with ThreadPoolExecutor(max_workers=num_workers) as executor:
-                # Submit worker tasks
-                future_to_worker = {}
-                for i in range(num_workers):
-                    if worker_file_batches[i]:  # Only submit if worker has files to process
-                        gpu_id = available_gpus[i % len(available_gpus)]
-                        model, processor = worker_models[i]
-                        future = executor.submit(
-                            worker_process_files,
-                            i, gpu_id, model, processor, worker_file_batches[i],
-                            images_dir, temp_dir, args.dry_run, progress_tracker
-                        )
-                        future_to_worker[future] = i
+            # Process files sequentially
+            for i, annotation_file in enumerate(annotation_files):
+                annotation_path = os.path.join(annotations_dir, annotation_file)
                 
-                # Collect results
-                for future in as_completed(future_to_worker):
-                    worker_id = future_to_worker[future]
-                    try:
-                        worker_stats = future.result()
-                        split_stats['files_processed'] += worker_stats['files_processed']
-                        split_stats['files_skipped'] += worker_stats['files_skipped']
-                        split_stats['items_processed'] += worker_stats['items_processed']
-                        split_stats['expressions_enhanced'] += worker_stats['expressions_enhanced']
-                        split_stats['total_retries'] += worker_stats['total_retries']
-                        split_stats['failed_items'] += worker_stats['failed_items']
-                        print(f"Worker {worker_id} completed: {worker_stats}")
-                    except Exception as e:
-                        print(f"Worker {worker_id} failed: {e}")
+                # Check if file is already fully processed
+                if is_file_already_processed(annotation_path):
+                    split_stats['files_skipped'] += 1
+                    progress_tracker.update_stats(files_skipped=1)
+                    print(f"Skipping {annotation_file} (already processed)")
+                    continue
+                
+                print(f"Processing {annotation_file} ({i+1}/{len(annotation_files)})")
+                
+                items_processed, expressions_enhanced, retries, failed = process_annotation_file(
+                    annotation_path, images_dir, llm, temp_dir, args.batch_size, args.dry_run
+                )
+                
+                if items_processed > 0:
+                    split_stats['files_processed'] += 1
+                    split_stats['items_processed'] += items_processed
+                    split_stats['expressions_enhanced'] += expressions_enhanced
+                    split_stats['total_retries'] += retries
+                    split_stats['failed_items'] += failed
+                    
+                    # Update progress tracker
+                    progress_tracker.update_stats(
+                        files_processed=1,
+                        items_processed=items_processed,
+                        expressions_enhanced=expressions_enhanced,
+                        total_retries=retries,
+                        failed_items=failed
+                    )
+                
+                files_processed_count += 1
+                
+                # Print progress periodically
+                if files_processed_count % args.progress_interval == 0:
+                    progress_tracker.print_progress()
             
             print(f"\n{split.capitalize()} split summary:")
             print(f"  Files processed: {split_stats['files_processed']}")
@@ -1016,40 +931,31 @@ def main():
             print(f"  Expressions enhanced: {split_stats['expressions_enhanced']}")
             print(f"  Total retries: {split_stats['total_retries']}")
             print(f"  Failed items (after retries): {split_stats['failed_items']}")
-            
-            total_files += split_stats['files_processed']
-            total_items += split_stats['items_processed']
-            total_enhanced += split_stats['expressions_enhanced']
-            total_retries += split_stats['total_retries']
-            total_failures += split_stats['failed_items']
         
-        # Stop monitoring and get final statistics
-        progress_tracker.stop_monitoring_thread()
-        final_stats = progress_tracker.get_final_stats()
+        # Final statistics
         final_report = progress_tracker.get_progress_report()
         
         print(f"\n🎉 Processing Complete!")
         print(f"📊 Final Summary:")
-        print(f"  Files processed: {final_stats['files_processed']}")
-        print(f"  Files skipped (already processed): {final_stats['files_skipped']}")
-        print(f"  Items processed: {final_stats['items_processed']}")
-        print(f"  Expressions enhanced: {final_stats['expressions_enhanced']}")
-        print(f"  Total retries performed: {final_stats['total_retries']}")
-        print(f"  Failed items (after max retries): {final_stats['failed_items']}")
+        print(f"  Files processed: {progress_tracker.stats['files_processed']}")
+        print(f"  Files skipped (already processed): {progress_tracker.stats['files_skipped']}")
+        print(f"  Items processed: {progress_tracker.stats['items_processed']}")
+        print(f"  Expressions enhanced: {progress_tracker.stats['expressions_enhanced']}")
+        print(f"  Total retries performed: {progress_tracker.stats['total_retries']}")
+        print(f"  Failed items (after max retries): {progress_tracker.stats['failed_items']}")
         print(f"  Total elapsed time: {final_report['elapsed_minutes']:.1f} minutes")
-        print(f"  Average rate: {final_report['total_files_per_min']:.1f} files/min total, "
-              f"{final_report['processed_files_per_min']:.1f} processed files/min, "
+        print(f"  Average rate: {final_report['total_files_per_min']:.1f} files/min, "
               f"{final_report['items_per_min']:.1f} items/min")
         
         # Calculate success/retry statistics
-        if final_stats['items_processed'] > 0:
-            success_rate = ((final_stats['items_processed'] - final_stats['failed_items']) / final_stats['items_processed']) * 100
-            retry_rate = (final_stats['total_retries'] / final_stats['items_processed']) * 100
+        if progress_tracker.stats['items_processed'] > 0:
+            success_rate = ((progress_tracker.stats['items_processed'] - progress_tracker.stats['failed_items']) / progress_tracker.stats['items_processed']) * 100
+            retry_rate = (progress_tracker.stats['total_retries'] / progress_tracker.stats['items_processed']) * 100
             print(f"\n📈 Performance Statistics:")
             print(f"  Success rate: {success_rate:.1f}%")
             print(f"  Retry rate: {retry_rate:.1f}% (avg {retry_rate/100:.2f} retries per item)")
-            if final_stats['total_retries'] > 0:
-                recovery_rate = ((final_stats['total_retries'] - final_stats['failed_items']) / final_stats['total_retries']) * 100
+            if progress_tracker.stats['total_retries'] > 0:
+                recovery_rate = ((progress_tracker.stats['total_retries'] - progress_tracker.stats['failed_items']) / progress_tracker.stats['total_retries']) * 100
                 print(f"  Recovery rate: {recovery_rate:.1f}% (retries that succeeded)")
         
         if args.dry_run:
@@ -1058,7 +964,7 @@ def main():
             print("\n✅ Enhancement completed successfully!")
     
     finally:
-        # Clean up temporary directory if we created it (worker temp dirs are cleaned up individually)
+        # Clean up temporary directory if we created it
         pass
 
 if __name__ == "__main__":
