@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Step 8: LLM Enhancement using Fine-tuned Gemma 3 with vLLM
+Step 8: LLM Enhancement using Fine-tuned Gemma 3 with vLLM Server
 
 This script processes the entire dataset and uses the fine-tuned Gemma 3 model
-with vLLM for fast batched inference to enhance expressions in the XML annotations 
+via OpenAI-compatible vLLM server for fast inference to enhance expressions in the XML annotations 
 directly. It modifies the XML files in-place by adding enhanced expressions to 
 existing objects and groups.
 """
@@ -33,14 +33,13 @@ from typing import List, Dict, Any, Optional, Tuple
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'llm'))
 
 try:
-    from vllm import LLM, SamplingParams
-    from vllm.multimodal.utils import encode_image_base64
-    import torch
+    from openai import OpenAI
+    import requests
     import time
 except ImportError as e:
-    print(f"Error importing vllm/torch: {e}")
+    print(f"Error importing required packages: {e}")
     print("Please install the required packages:")
-    print("pip install vllm torch pillow matplotlib pycocotools scikit-image")
+    print("pip install openai requests pillow matplotlib pycocotools scikit-image")
     sys.exit(1)
 
 # Enhancement constants
@@ -139,21 +138,17 @@ class ProgressTracker:
 
 def parse_arguments():
     """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description='Enhance dataset expressions using fine-tuned Gemma 3 with vLLM')
+    parser = argparse.ArgumentParser(description='Enhance dataset expressions using fine-tuned Gemma 3 with vLLM Server')
     parser.add_argument('--dataset_root', type=str, default='./dataset',
                         help='Root path to the dataset directory')
-    parser.add_argument('--model_path', type=str, default='../llm/merged_model_4b',
-                        help='Path to the fine-tuned Gemma 3 model')
+    parser.add_argument('--server_url', type=str, default='http://localhost:8000/v1',
+                        help='URL of the vLLM server (default: http://localhost:8000/v1)')
+    parser.add_argument('--model_name', type=str, default='../llm/merged_model_4b/',
+                        help='Model name to use with the server')
     parser.add_argument('--split', type=str, choices=['train', 'val', 'both'], default='both',
                         help='Which dataset split to process')
     parser.add_argument('--limit', type=int, default=None,
                         help='Limit the number of annotation files to process (for testing)')
-    parser.add_argument('--gpu_memory_utilization', type=float, default=0.9,
-                        help='GPU memory utilization for vLLM (default: 0.9)')
-    parser.add_argument('--max_model_len', type=int, default=8192,
-                        help='Maximum model length for vLLM (default: 8192)')
-    parser.add_argument('--batch_size', type=int, default=8,
-                        help='Batch size for processing items (default: 8)')
     parser.add_argument('--temp_dir', type=str, default='.',
                         help='Temporary directory for visualization images')
     parser.add_argument('--seed', type=int, default=42,
@@ -344,31 +339,28 @@ def visualize_and_save_object(image_path, bboxes, output_path):
         plt.savefig(output_path, dpi=100, bbox_inches='tight')
         plt.close(fig)
 
-def image_to_base64(image_path):
-    """Convert image to base64 string for vLLM."""
+
+
+def setup_openai_client(server_url):
+    """Initialize OpenAI client for vLLM server."""
+    print(f"Setting up OpenAI client for server: {server_url}")
+    
+    client = OpenAI(
+        base_url=server_url,
+        api_key="token-abc123",  # vLLM server doesn't require a real API key
+    )
+    
+    print("OpenAI client setup successfully!")
+    return client
+
+def encode_base64_content_from_file(image_path):
+    """Encode image file to base64 string."""
     try:
         with open(image_path, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode('utf-8')
     except Exception as e:
-        print(f"Error converting image to base64: {e}")
+        print(f"Error encoding image to base64: {e}")
         return None
-
-def setup_vllm_model(model_path, gpu_memory_utilization=0.9, max_model_len=8192):
-    """Initialize vLLM model."""
-    print(f"Loading vLLM model from: {model_path}")
-    print(f"GPU memory utilization: {gpu_memory_utilization}")
-    print(f"Max model length: {max_model_len}")
-    
-    llm = LLM(
-        model=model_path,
-        gpu_memory_utilization=gpu_memory_utilization,
-        max_model_len=max_model_len,
-        trust_remote_code=True,
-        disable_log_stats=True,
-    )
-    
-    print("vLLM model loaded successfully!")
-    return llm
 
 def extract_and_parse_json(content):
     """Extract JSON from content that might be wrapped in code blocks."""
@@ -555,12 +547,11 @@ def add_enhanced_expressions_to_xml(item, enhanced_data):
                 expr_elem.text = unique_expr.strip()
                 expr_elem.set('type', 'unique')
 
-def prepare_batch_requests(items, image_path, temp_dir):
-    """Prepare a batch of requests for vLLM processing."""
-    batch_requests = []
-    viz_paths = []
+def process_single_item(client, item, image_path, temp_dir, model_name, max_retries=3):
+    """Process a single item with OpenAI client."""
+    viz_path = None
     
-    for item in items:
+    for attempt in range(max_retries + 1):
         try:
             # Create temporary visualization
             viz_filename = f"temp_viz_{item['id']}_{item['type']}_{time.time()}.png"
@@ -573,150 +564,86 @@ def prepare_batch_requests(items, image_path, temp_dir):
                 bboxes_to_visualize = item['bbox']
             
             visualize_and_save_object(image_path, bboxes_to_visualize, viz_path)
-            viz_paths.append(viz_path)
             
             # Create prompt
             system_prompt, user_prompt = create_prompt(item['category'], item['expressions'])
             
             # Convert image to base64
-            image_base64 = image_to_base64(viz_path)
+            image_base64 = encode_base64_content_from_file(viz_path)
             if image_base64 is None:
-                continue
+                raise Exception("Failed to encode image to base64")
             
-            # Format message for vLLM multimodal
+            # Format messages for OpenAI API
             messages = [
                 {
                     "role": "system",
-                    "content": [{"type": "text", "text": system_prompt}]
+                    "content": system_prompt
                 },
                 {
                     "role": "user",
                     "content": [
-                        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{image_base64}"}},
-                        {"type": "text", "text": user_prompt}
-                    ]
+                        {"type": "text", "text": user_prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:image/png;base64,{image_base64}"},
+                        },
+                    ],
                 }
             ]
             
-            batch_requests.append({
-                'messages': messages,
-                'item': item,
-                'viz_path': viz_path
-            })
+            # Make API call
+            chat_completion = client.chat.completions.create(
+                messages=messages,
+                model=model_name,
+                max_tokens=2048,
+                temperature=0.8,
+            )
+            
+            generated_text = chat_completion.choices[0].message.content.strip()
+            
+            # Parse JSON response
+            enhanced_data = extract_and_parse_json(generated_text)
+            if enhanced_data:
+                # Success - clean up and return
+                if viz_path and os.path.exists(viz_path):
+                    os.remove(viz_path)
+                return {
+                    'item': item,
+                    'enhanced_data': enhanced_data,
+                    'success': True,
+                    'retries': attempt
+                }
+            else:
+                raise Exception(f"Failed to parse JSON: {generated_text[:200]}...")
             
         except Exception as e:
-            print(f"    Error preparing request for {item['type']} {item['id']}: {e}")
-            continue
-    
-    return batch_requests, viz_paths
-
-def process_batch_with_vllm(llm, batch_requests, max_retries=3):
-    """Process a batch of requests with vLLM."""
-    if not batch_requests:
-        return []
-    
-    # Prepare sampling parameters
-    sampling_params = SamplingParams(
-        temperature=0.8,
-        max_tokens=2048,
-        stop=None,
-    )
-    
-    results = []
-    
-    for attempt in range(max_retries + 1):
-        try:
-            print(f"    Processing batch of {len(batch_requests)} items (attempt {attempt + 1})")
-            
-            # Prepare prompts for vLLM
-            prompts = []
-            for req in batch_requests:
-                # Format the conversation for the model
-                prompt = ""
-                for msg in req['messages']:
-                    if msg['role'] == 'system':
-                        prompt += f"<|system|>\n{msg['content'][0]['text']}\n"
-                    elif msg['role'] == 'user':
-                        prompt += f"<|user|>\n"
-                        for content in msg['content']:
-                            if content['type'] == 'text':
-                                prompt += f"{content['text']}\n"
-                            elif content['type'] == 'image_url':
-                                prompt += f"<|image|>{content['image_url']['url']}\n"
-                        prompt += "<|assistant|>\n"
-                
-                prompts.append(prompt)
-            
-            # Generate responses
-            outputs = llm.generate(prompts, sampling_params)
-            
-            # Process outputs
-            for i, output in enumerate(outputs):
-                item = batch_requests[i]['item']
-                viz_path = batch_requests[i]['viz_path']
-                
-                if output.outputs:
-                    generated_text = output.outputs[0].text.strip()
-                    
-                    # Parse JSON response
-                    enhanced_data = extract_and_parse_json(generated_text)
-                    if enhanced_data:
-                        results.append({
-                            'item': item,
-                            'enhanced_data': enhanced_data,
-                            'viz_path': viz_path,
-                            'success': True,
-                            'retries': attempt
-                        })
-                    else:
-                        results.append({
-                            'item': item,
-                            'enhanced_data': None,
-                            'viz_path': viz_path,
-                            'success': False,
-                            'retries': attempt,
-                            'error': f"Failed to parse JSON: {generated_text[:200]}..."
-                        })
-                else:
-                    results.append({
-                        'item': item,
-                        'enhanced_data': None,
-                        'viz_path': viz_path,
-                        'success': False,
-                        'retries': attempt,
-                        'error': "No output generated"
-                    })
-            
-            # If we get here, processing was successful
-            break
-            
-        except Exception as e:
-            print(f"    Error in batch processing attempt {attempt + 1}: {e}")
+            print(f"    Error processing {item['type']} {item['id']} (attempt {attempt + 1}): {e}")
             if attempt == max_retries:
-                # Final attempt failed, create failed results
-                for req in batch_requests:
-                    results.append({
-                        'item': req['item'],
-                        'enhanced_data': None,
-                        'viz_path': req['viz_path'],
-                        'success': False,
-                        'retries': attempt,
-                        'error': f"Batch processing failed: {e}"
-                    })
+                # Final attempt failed
+                if viz_path and os.path.exists(viz_path):
+                    os.remove(viz_path)
+                return {
+                    'item': item,
+                    'enhanced_data': None,
+                    'success': False,
+                    'retries': attempt,
+                    'error': str(e)
+                }
+            time.sleep(1)  # Brief delay before retry
     
-    return results
+    # Should never reach here, but just in case
+    if viz_path and os.path.exists(viz_path):
+        os.remove(viz_path)
+    return {
+        'item': item,
+        'enhanced_data': None,
+        'success': False,
+        'retries': max_retries,
+        'error': "Max retries exceeded"
+    }
 
-def cleanup_viz_files(viz_paths):
-    """Clean up visualization files."""
-    for viz_path in viz_paths:
-        try:
-            if os.path.exists(viz_path):
-                os.remove(viz_path)
-        except:
-            pass
-
-def process_annotation_file(annotation_path, images_dir, llm, temp_dir, batch_size, dry_run=False):
-    """Process a single annotation file using vLLM."""
+def process_annotation_file(annotation_path, images_dir, client, model_name, temp_dir, dry_run=False):
+    """Process a single annotation file using OpenAI client."""
     try:
         # Parse annotations
         annotation_data = parse_annotations(annotation_path)
@@ -737,47 +664,34 @@ def process_annotation_file(annotation_path, images_dir, llm, temp_dir, batch_si
         total_retries = 0
         failed_items = 0
         
-        # Process items in batches
+        # Process items one by one
         items = annotation_data['items']
-        for i in range(0, len(items), batch_size):
-            batch_items = items[i:i + batch_size]
+        
+        print(f"  Processing {len(items)} items sequentially")
+        
+        for i, item in enumerate(items):
+            print(f"    Processing {item['type']} {item['id']} ({i+1}/{len(items)})")
             
-            print(f"  Processing batch {i//batch_size + 1}/{(len(items) + batch_size - 1)//batch_size} "
-                  f"({len(batch_items)} items)")
+            # Process single item
+            result = process_single_item(client, item, image_path, temp_dir, model_name)
             
-            # Prepare batch requests
-            batch_requests, viz_paths = prepare_batch_requests(batch_items, image_path, temp_dir)
+            total_retries += result['retries']
             
-            if not batch_requests:
-                print("    No valid requests in batch, skipping")
-                continue
-            
-            # Process batch with vLLM
-            results = process_batch_with_vllm(llm, batch_requests)
-            
-            # Process results
-            for result in results:
-                item = result['item']
-                total_retries += result['retries']
+            if result['success'] and result['enhanced_data']:
+                if not dry_run:
+                    add_enhanced_expressions_to_xml(item, result['enhanced_data'])
                 
-                if result['success'] and result['enhanced_data']:
-                    if not dry_run:
-                        add_enhanced_expressions_to_xml(item, result['enhanced_data'])
-                    
-                    # Count enhancements
-                    num_enhanced = len(result['enhanced_data'].get('enhanced_expressions', []))
-                    num_unique = len(result['enhanced_data'].get('unique_expressions', []))
-                    enhanced_count += num_enhanced + num_unique
-                    
-                    print(f"    ✓ {item['type']} {item['id']}: Added {num_enhanced} enhanced + {num_unique} unique expressions")
-                else:
-                    failed_items += 1
-                    print(f"    ❌ {item['type']} {item['id']}: {result.get('error', 'Unknown error')}")
+                # Count enhancements
+                num_enhanced = len(result['enhanced_data'].get('enhanced_expressions', []))
+                num_unique = len(result['enhanced_data'].get('unique_expressions', []))
+                enhanced_count += num_enhanced + num_unique
                 
-                processed_count += 1
+                print(f"    ✓ {item['type']} {item['id']}: Added {num_enhanced} enhanced + {num_unique} unique expressions")
+            else:
+                failed_items += 1
+                print(f"    ❌ {item['type']} {item['id']}: {result.get('error', 'Unknown error')}")
             
-            # Cleanup visualization files
-            cleanup_viz_files(viz_paths)
+            processed_count += 1
         
         # Save modified XML
         if not dry_run and enhanced_count > 0:
@@ -800,17 +714,15 @@ def main():
     
     # Setup paths
     dataset_root = os.path.abspath(args.dataset_root)
-    model_path = os.path.abspath(args.model_path)
+    server_url = args.server_url
+    model_name = args.model_name
     
     print(f"Dataset root: {dataset_root}")
-    print(f"Model path: {model_path}")
+    print(f"Server URL: {server_url}")
+    print(f"Model name: {model_name}")
     
     if not os.path.exists(dataset_root):
         print(f"Error: Dataset root not found: {dataset_root}")
-        return
-    
-    if not os.path.exists(model_path):
-        print(f"Error: Model path not found: {model_path}")
         return
     
     # Setup temporary directory
@@ -823,13 +735,9 @@ def main():
     print(f"Using temporary directory: {temp_dir}")
     
     try:
-        # Setup vLLM model
-        print(f"\n🔄 Loading vLLM model...")
-        llm = setup_vllm_model(
-            model_path,
-            gpu_memory_utilization=args.gpu_memory_utilization,
-            max_model_len=args.max_model_len
-        )
+        # Setup OpenAI client
+        print(f"\n🔄 Setting up OpenAI client...")
+        client = setup_openai_client(server_url)
         
         # Determine splits to process
         splits = ['train', 'val'] if args.split == 'both' else [args.split]
@@ -899,7 +807,7 @@ def main():
                 print(f"Processing {annotation_file} ({i+1}/{len(annotation_files)})")
                 
                 items_processed, expressions_enhanced, retries, failed = process_annotation_file(
-                    annotation_path, images_dir, llm, temp_dir, args.batch_size, args.dry_run
+                    annotation_path, images_dir, client, model_name, temp_dir, args.dry_run
                 )
                 
                 if items_processed > 0:
