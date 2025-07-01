@@ -20,6 +20,10 @@ import tempfile
 import shutil
 import numpy as np
 import random
+import multiprocessing as mp
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pycocotools import mask as mask_utils
 from skimage.measure import label, regionprops
 
@@ -62,6 +66,8 @@ def parse_arguments():
                         help='Temporary directory for visualization images')
     parser.add_argument('--seed', type=int, default=42,
                         help='Random seed for deterministic file ordering (default: 42)')
+    parser.add_argument('--workers', type=int, default=10,
+                        help='Number of parallel workers (default: 6)')
     parser.add_argument('--dry_run', action='store_true',
                         help='Run without actually modifying the XML files')
     return parser.parse_args()
@@ -246,20 +252,36 @@ def visualize_and_save_object(image_path, bboxes, output_path):
         plt.savefig(output_path, dpi=100, bbox_inches='tight')
         plt.close(fig)
 
-def setup_model_and_processor(model_path):
-    """Load the fine-tuned model and processor."""
-    print(f"Loading fine-tuned model from: {model_path}")
+def get_available_gpus():
+    """Get list of available CUDA devices."""
+    if not torch.cuda.is_available():
+        return [0]  # Fallback to CPU or single device
     
+    num_gpus = torch.cuda.device_count()
+    return list(range(num_gpus))
+
+def setup_model_and_processor(model_path, gpu_id=0):
+    """Load the fine-tuned model and processor on specific GPU."""
+    print(f"Loading fine-tuned model from: {model_path} on GPU {gpu_id}")
+    
+    # Set the device for this process
+    device = f"cuda:{gpu_id}"
+    torch.cuda.set_device(gpu_id)
+    
+    # Load model without device_map first, then move to device
     model = AutoModelForImageTextToText.from_pretrained(
         model_path,
         torch_dtype=torch.bfloat16,
-        device_map="auto",
+        device_map=None,  # Don't use device_map in multiprocessing
         attn_implementation="sdpa"
     )
     
+    # Move model to the specific device
+    model = model.to(device)
+    
     processor = AutoProcessor.from_pretrained(model_path)
     
-    print("Model loaded successfully")
+    print(f"Model loaded successfully on GPU {gpu_id}")
     return model, processor
 
 def extract_and_parse_json(content):
@@ -391,8 +413,10 @@ def parse_annotations(annotation_path):
         'items': items_to_process
     }
 
-def process_item_with_llm(item, image_path, model, processor, temp_dir):
-    """Process a single item (object or group) with the LLM."""
+def process_item_with_llm(item, image_path, model, processor, temp_dir, max_retries=3):
+    """Process a single item (object or group) with the LLM, with retry logic."""
+    retry_count = 0
+    
     try:
         # Create temporary visualization
         viz_filename = f"temp_viz_{item['id']}_{item['type']}.png"
@@ -425,32 +449,60 @@ def process_item_with_llm(item, image_path, model, processor, temp_dir):
         ]
         
         # Process inputs
+        device = next(model.parameters()).device
         inputs = processor.apply_chat_template(
             messages,
             tokenize=True,
             return_dict=True,
             return_tensors="pt",
             add_generation_prompt=True,
-        ).to("cuda")
+        ).to(device)
         
-        # Generate response
-        with torch.no_grad():
-            output = model.generate(**inputs, max_new_tokens=1024, do_sample=True, temperature=0.8)
-        
-        # Decode response
-        generated_content = processor.decode(output[0], skip_special_tokens=True)
-        input_length = len(processor.decode(inputs['input_ids'][0], skip_special_tokens=True))
-        generated_content = generated_content[input_length:].strip()
-        
-        # Parse JSON response
-        enhanced_data = extract_and_parse_json(generated_content)
-        if enhanced_data is None:
-            print(f"  Warning: Could not parse JSON response for {item['type']} {item['id']}")
-            print(f"  Full response content:")
-            print("-" * 80)
-            print(generated_content)
-            print("-" * 80)
-            return None
+        # Retry loop for generation and parsing
+        for attempt in range(max_retries + 1):  # 0, 1, 2, 3 (4 total attempts)
+            try:
+                # Generate response
+                with torch.no_grad():
+                    # Vary temperature slightly on retries to get different outputs
+                    temperature = 0.8 + (attempt * 0.1)
+                    output = model.generate(**inputs, max_new_tokens=2048, do_sample=True, temperature=temperature)
+                
+                # Decode response
+                generated_content = processor.decode(output[0], skip_special_tokens=True)
+                input_length = len(processor.decode(inputs['input_ids'][0], skip_special_tokens=True))
+                generated_content = generated_content[input_length:].strip()
+                
+                # Parse JSON response
+                enhanced_data = extract_and_parse_json(generated_content)
+                if enhanced_data is not None:
+                    # Success! Clean up and return
+                    try:
+                        os.remove(viz_path)
+                    except:
+                        pass
+                    
+                    if attempt > 0:
+                        print(f"    ✓ Succeeded on retry {attempt}")
+                    
+                    return enhanced_data, retry_count
+                
+                # Parsing failed, increment retry count and try again
+                if attempt < max_retries:
+                    retry_count += 1
+                    print(f"    ⚠ JSON parsing failed, retrying ({attempt + 1}/{max_retries})...")
+                else:
+                    # Final attempt failed
+                    print(f"  ❌ Failed to parse JSON after {max_retries} retries for {item['type']} {item['id']}")
+                    print(f"  Final response content:")
+                    print("-" * 80)
+                    print(generated_content)
+                    print("-" * 80)
+                    
+            except Exception as gen_e:
+                print(f"  Error during generation attempt {attempt + 1}: {gen_e}")
+                if attempt < max_retries:
+                    retry_count += 1
+                    continue
         
         # Clean up visualization
         try:
@@ -458,11 +510,11 @@ def process_item_with_llm(item, image_path, model, processor, temp_dir):
         except:
             pass
         
-        return enhanced_data
+        return None, retry_count
         
     except Exception as e:
         print(f"  Error processing {item['type']} {item['id']}: {e}")
-        return None
+        return None, retry_count
 
 def is_file_already_processed(annotation_path):
     """Check if all objects/groups in the file already have enhanced and unique expressions."""
@@ -527,7 +579,7 @@ def process_annotation_file(annotation_path, images_dir, model, processor, temp_
         annotation_data = parse_annotations(annotation_path)
         
         if not annotation_data['items']:
-            return 0, 0  # No items to process
+            return 0, 0, 0, 0  # No items to process
         
         # Get corresponding image
         image_filename = annotation_data['filename']
@@ -535,16 +587,25 @@ def process_annotation_file(annotation_path, images_dir, model, processor, temp_
         
         if not os.path.exists(image_path):
             print(f"  Warning: Image not found: {image_path}")
-            return 0, 0
+            return 0, 0, 0, 0
         
         processed_count = 0
         enhanced_count = 0
+        total_retries = 0
+        failed_items = 0
         
         # Process each item with expressions
         for item in annotation_data['items']:
             print(f"  Processing {item['type']} {item['id']} ({item['category']})")
             
-            enhanced_data = process_item_with_llm(item, image_path, model, processor, temp_dir)
+            result = process_item_with_llm(item, image_path, model, processor, temp_dir)
+            
+            if result is None:
+                enhanced_data, retry_count = None, 0
+            else:
+                enhanced_data, retry_count = result
+            
+            total_retries += retry_count
             
             if enhanced_data:
                 if not dry_run:
@@ -556,6 +617,9 @@ def process_annotation_file(annotation_path, images_dir, model, processor, temp_
                 enhanced_count += num_enhanced + num_unique
                 
                 print(f"    Added {num_enhanced} enhanced + {num_unique} unique expressions")
+            else:
+                failed_items += 1
+                print(f"    ❌ Failed to process item after retries")
             
             processed_count += 1
         
@@ -564,11 +628,63 @@ def process_annotation_file(annotation_path, images_dir, model, processor, temp_
             annotation_data['tree'].write(annotation_path, encoding='utf-8', xml_declaration=True)
             print(f"  Updated XML file with {enhanced_count} new expressions")
         
-        return processed_count, enhanced_count
+        return processed_count, enhanced_count, total_retries, failed_items
         
     except Exception as e:
         print(f"  Error processing annotation file: {e}")
-        return 0, 0
+        return 0, 0, 0, 0
+
+def worker_process_files(worker_id, gpu_id, model, processor, annotation_file_paths, images_dir, temp_dir, dry_run):
+    """Worker function to process a batch of annotation files on a specific GPU."""
+    try:
+        print(f"Worker {worker_id} starting processing on GPU {gpu_id}")
+        
+        # Create worker-specific temp directory
+        worker_temp_dir = os.path.join(temp_dir, f"worker_{worker_id}")
+        os.makedirs(worker_temp_dir, exist_ok=True)
+        
+        worker_stats = {
+            'files_processed': 0,
+            'files_skipped': 0,
+            'items_processed': 0,
+            'expressions_enhanced': 0,
+            'total_retries': 0,
+            'failed_items': 0
+        }
+        
+        for annotation_path in annotation_file_paths:
+            annotation_file = os.path.basename(annotation_path)
+            
+            # Check if file is already fully processed
+            if is_file_already_processed(annotation_path):
+                worker_stats['files_skipped'] += 1
+                print(f"Worker {worker_id}: Skipping {annotation_file} (already processed)")
+                continue
+            
+            print(f"Worker {worker_id}: Processing {annotation_file}")
+            items_processed, expressions_enhanced, retries, failed = process_annotation_file(
+                annotation_path, images_dir, model, processor, worker_temp_dir, dry_run
+            )
+            
+            if items_processed > 0:
+                worker_stats['files_processed'] += 1
+                worker_stats['items_processed'] += items_processed
+                worker_stats['expressions_enhanced'] += expressions_enhanced
+                worker_stats['total_retries'] += retries
+                worker_stats['failed_items'] += failed
+        
+        # Cleanup worker temp directory
+        try:
+            shutil.rmtree(worker_temp_dir)
+        except:
+            pass
+        
+        print(f"Worker {worker_id} completed processing on GPU {gpu_id}")
+        return worker_stats
+        
+    except Exception as e:
+        print(f"Worker {worker_id} error: {e}")
+        return {'files_processed': 0, 'files_skipped': 0, 'items_processed': 0, 'expressions_enhanced': 0, 'total_retries': 0, 'failed_items': 0}
 
 def main():
     """Main processing function."""
@@ -603,9 +719,31 @@ def main():
     print(f"Using temporary directory: {temp_dir}")
     
     try:
-        # Load model
-        print("\nLoading model...")
-        model, processor = setup_model_and_processor(model_path)
+        # Get available GPUs and setup workers
+        available_gpus = get_available_gpus()
+        num_workers = args.workers
+        workers_per_gpu = num_workers / len(available_gpus)
+        print(f"\nAvailable GPUs: {available_gpus}")
+        print(f"Using {num_workers} workers ({workers_per_gpu:.1f} workers per GPU)")
+        
+        # Pre-load all models on their respective GPUs
+        print(f"\n🔄 Pre-loading {num_workers} model instances...")
+        worker_models = {}
+        
+        for worker_id in range(num_workers):
+            gpu_id = available_gpus[worker_id % len(available_gpus)]
+            print(f"Loading model for Worker {worker_id} on GPU {gpu_id}...")
+            model, processor = setup_model_and_processor(model_path, gpu_id)
+            worker_models[worker_id] = (model, processor)
+        
+        print(f"\n✅ All {num_workers} models loaded successfully!")
+        print(f"⏳ Waiting 10 seconds for you to check nvidia-smi...")
+        print("   You can run 'nvidia-smi' in another terminal to see GPU memory usage")
+        
+        for i in range(10, 0, -1):
+            print(f"   Starting processing in {i} seconds...", end='\r')
+            time.sleep(1)
+        print("\n🚀 Starting processing!")
         
         # Determine splits to process
         splits = ['train', 'val'] if args.split == 'both' else [args.split]
@@ -613,6 +751,8 @@ def main():
         total_files = 0
         total_items = 0
         total_enhanced = 0
+        total_retries = 0
+        total_failures = 0
         
         for split in splits:
             print(f"\nProcessing {split} split...")
@@ -638,45 +778,89 @@ def main():
             
             print(f"Found {len(annotation_files)} annotation files in {split} (shuffled randomly)")
             
-            # Process each annotation file
-            split_files = 0
-            split_items = 0
-            split_enhanced = 0
-            split_skipped = 0
+            # Create full paths for annotation files
+            annotation_file_paths = [os.path.join(annotations_dir, f) for f in annotation_files]
             
-            for annotation_file in tqdm(annotation_files, desc=f"Processing {split}"):
-                annotation_path = os.path.join(annotations_dir, annotation_file)
+            # Distribute files across workers
+            files_per_worker = len(annotation_file_paths) // num_workers
+            worker_file_batches = []
+            
+            for i in range(num_workers):
+                start_idx = i * files_per_worker
+                if i == num_workers - 1:  # Last worker gets remaining files
+                    end_idx = len(annotation_file_paths)
+                else:
+                    end_idx = (i + 1) * files_per_worker
                 
-                # Check if file is already fully processed
-                if is_file_already_processed(annotation_path):
-                    split_skipped += 1
-                    print(f"\nSkipping {annotation_file} (already processed)")
-                    continue
+                worker_file_batches.append(annotation_file_paths[start_idx:end_idx])
+            
+            print(f"Distributing files across {num_workers} workers:")
+            for i, batch in enumerate(worker_file_batches):
+                print(f"  Worker {i}: {len(batch)} files")
+            
+            # Process files in parallel using ThreadPoolExecutor
+            split_stats = {'files_processed': 0, 'files_skipped': 0, 'items_processed': 0, 'expressions_enhanced': 0, 'total_retries': 0, 'failed_items': 0}
+            
+            with ThreadPoolExecutor(max_workers=num_workers) as executor:
+                # Submit worker tasks
+                future_to_worker = {}
+                for i in range(num_workers):
+                    if worker_file_batches[i]:  # Only submit if worker has files to process
+                        gpu_id = available_gpus[i % len(available_gpus)]
+                        model, processor = worker_models[i]
+                        future = executor.submit(
+                            worker_process_files,
+                            i, gpu_id, model, processor, worker_file_batches[i],
+                            images_dir, temp_dir, args.dry_run
+                        )
+                        future_to_worker[future] = i
                 
-                print(f"\nProcessing: {annotation_file}")
-                items_processed, expressions_enhanced = process_annotation_file(
-                    annotation_path, images_dir, model, processor, temp_dir, args.dry_run
-                )
-                
-                if items_processed > 0:
-                    split_files += 1
-                    split_items += items_processed
-                    split_enhanced += expressions_enhanced
+                # Collect results
+                for future in as_completed(future_to_worker):
+                    worker_id = future_to_worker[future]
+                    try:
+                        worker_stats = future.result()
+                        split_stats['files_processed'] += worker_stats['files_processed']
+                        split_stats['files_skipped'] += worker_stats['files_skipped']
+                        split_stats['items_processed'] += worker_stats['items_processed']
+                        split_stats['expressions_enhanced'] += worker_stats['expressions_enhanced']
+                        split_stats['total_retries'] += worker_stats['total_retries']
+                        split_stats['failed_items'] += worker_stats['failed_items']
+                        print(f"Worker {worker_id} completed: {worker_stats}")
+                    except Exception as e:
+                        print(f"Worker {worker_id} failed: {e}")
             
             print(f"\n{split.capitalize()} split summary:")
-            print(f"  Files processed: {split_files}")
-            print(f"  Files skipped (already processed): {split_skipped}")
-            print(f"  Items processed: {split_items}")
-            print(f"  Expressions enhanced: {split_enhanced}")
+            print(f"  Files processed: {split_stats['files_processed']}")
+            print(f"  Files skipped (already processed): {split_stats['files_skipped']}")
+            print(f"  Items processed: {split_stats['items_processed']}")
+            print(f"  Expressions enhanced: {split_stats['expressions_enhanced']}")
+            print(f"  Total retries: {split_stats['total_retries']}")
+            print(f"  Failed items (after retries): {split_stats['failed_items']}")
             
-            total_files += split_files
-            total_items += split_items
-            total_enhanced += split_enhanced
+            total_files += split_stats['files_processed']
+            total_items += split_stats['items_processed']
+            total_enhanced += split_stats['expressions_enhanced']
+            total_retries += split_stats['total_retries']
+            total_failures += split_stats['failed_items']
         
         print(f"\nTotal summary:")
         print(f"  Files processed: {total_files}")
         print(f"  Items processed: {total_items}")
         print(f"  Expressions enhanced: {total_enhanced}")
+        print(f"  Total retries performed: {total_retries}")
+        print(f"  Failed items (after max retries): {total_failures}")
+        
+        # Calculate success/retry statistics
+        if total_items > 0:
+            success_rate = ((total_items - total_failures) / total_items) * 100
+            retry_rate = (total_retries / total_items) * 100
+            print(f"\nRetry Statistics:")
+            print(f"  Success rate: {success_rate:.1f}%")
+            print(f"  Retry rate: {retry_rate:.1f}% (avg {retry_rate/100:.2f} retries per item)")
+            if total_retries > 0:
+                recovery_rate = ((total_retries - total_failures) / total_retries) * 100 if total_retries > 0 else 0
+                print(f"  Recovery rate: {recovery_rate:.1f}% (retries that succeeded)")
         
         if args.dry_run:
             print("\nDry run completed - no files were modified")
@@ -684,12 +868,8 @@ def main():
             print("\nEnhancement completed successfully!")
     
     finally:
-        # Clean up temporary directory if we created it
-        if not args.temp_dir:
-            try:
-                shutil.rmtree(temp_dir)
-            except:
-                pass
+        # Clean up temporary directory if we created it (worker temp dirs are cleaned up individually)
+        pass
 
 if __name__ == "__main__":
     main() 
