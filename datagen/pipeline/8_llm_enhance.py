@@ -57,7 +57,7 @@ def parse_arguments():
     parser.add_argument('--limit', type=int, default=None,
                         help='Limit the number of annotation files to process (for testing)')
     parser.add_argument('--gpu', type=int, default=0, help='GPU ID to use')
-    parser.add_argument('--temp_dir', type=str, default=None,
+    parser.add_argument('--temp_dir', type=str, default='.',
                         help='Temporary directory for visualization images')
     parser.add_argument('--dry_run', action='store_true',
                         help='Run without actually modifying the XML files')
@@ -222,7 +222,7 @@ def visualize_and_save_object(image_path, bboxes, output_path):
             width, height = x2 - x1, y2 - y1
             
             rect = patches.Rectangle((x1, y1), width, height, 
-                                   linewidth=3, edgecolor='red', facecolor='none')
+                                   linewidth=1, edgecolor='red', facecolor='none')
             ax.add_patch(rect)
         
         ax.set_xlim(0, image.width)
