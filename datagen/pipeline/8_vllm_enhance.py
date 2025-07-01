@@ -28,6 +28,8 @@ from skimage.measure import label, regionprops
 import base64
 from io import BytesIO
 from typing import List, Dict, Any, Optional, Tuple
+import concurrent.futures
+import threading
 
 # Add the LLM directory to Python path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'llm'))
@@ -45,6 +47,14 @@ except ImportError as e:
 # Enhancement constants
 NUM_ENHANCED = 1  # Number of enhanced expressions per original
 NUM_UNIQUE = 2    # Number of unique expressions to generate
+
+# Thread-safe print lock
+print_lock = threading.Lock()
+
+def thread_safe_print(*args, **kwargs):
+    """Thread-safe print function."""
+    with print_lock:
+        print(*args, **kwargs)
 
 class ProgressTracker:
     """Simple progress tracker for monitoring processing."""
@@ -166,6 +176,8 @@ def parse_arguments():
                         help='Random seed for deterministic file ordering (default: 42)')
     parser.add_argument('--progress_interval', type=int, default=3,
                         help='Progress update interval in files (default: 50). Use smaller values for more frequent updates.')
+    parser.add_argument('--threads', type=int, default=2,
+                        help='Number of threads to use for processing items within each file (default: 2)')
     parser.add_argument('--dry_run', action='store_true',
                         help='Run without actually modifying the XML files')
     return parser.parse_args()
@@ -628,7 +640,7 @@ def process_single_item(client, item, image_path, temp_dir, model_name, max_retr
                     raise Exception(f"Failed to parse JSON: {generated_text[:200]}...")
                 
             except Exception as e:
-                print(f"    Error processing {item['type']} {item['id']} (attempt {attempt + 1}): {e}")
+                thread_safe_print(f"    Error processing {item['type']} {item['id']} (attempt {attempt + 1}): {e}")
                 if attempt == max_retries:
                     # Final attempt failed
                     return {
@@ -641,7 +653,7 @@ def process_single_item(client, item, image_path, temp_dir, model_name, max_retr
                 time.sleep(1)  # Brief delay before retry
     
     except Exception as e:
-        print(f"    Error setting up processing for {item['type']} {item['id']}: {e}")
+        thread_safe_print(f"    Error setting up processing for {item['type']} {item['id']}: {e}")
         return {
             'item': item,
             'enhanced_data': None,
@@ -658,8 +670,8 @@ def process_single_item(client, item, image_path, temp_dir, model_name, max_retr
             except:
                 pass  # Ignore cleanup errors
 
-def process_annotation_file(annotation_path, images_dir, client, model_name, temp_dir, dry_run=False):
-    """Process a single annotation file using OpenAI client."""
+def process_annotation_file(annotation_path, images_dir, client, model_name, temp_dir, num_threads=2, dry_run=False):
+    """Process a single annotation file using OpenAI client with threading."""
     try:
         # Parse annotations
         annotation_data = parse_annotations(annotation_path)
@@ -680,34 +692,48 @@ def process_annotation_file(annotation_path, images_dir, client, model_name, tem
         total_retries = 0
         failed_items = 0
         
-        # Process items one by one
+        # Process items using ThreadPoolExecutor
         items = annotation_data['items']
         
-        print(f"  Processing {len(items)} items sequentially")
+        print(f"  Processing {len(items)} items with {num_threads} threads")
         
-        for i, item in enumerate(items):
-            print(f"    Processing {item['type']} {item['id']} ({i+1}/{len(items)})")
+        # Use ThreadPoolExecutor to process items concurrently
+        with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
+            # Submit all tasks
+            future_to_item = {
+                executor.submit(process_single_item, client, item, image_path, temp_dir, model_name): item 
+                for item in items
+            }
             
-            # Process single item
-            result = process_single_item(client, item, image_path, temp_dir, model_name)
-            
-            total_retries += result['retries']
-            
-            if result['success'] and result['enhanced_data']:
-                if not dry_run:
-                    add_enhanced_expressions_to_xml(item, result['enhanced_data'])
+            # Process completed tasks as they finish
+            for i, future in enumerate(concurrent.futures.as_completed(future_to_item)):
+                item = future_to_item[future]
                 
-                # Count enhancements
-                num_enhanced = len(result['enhanced_data'].get('enhanced_expressions', []))
-                num_unique = len(result['enhanced_data'].get('unique_expressions', []))
-                enhanced_count += num_enhanced + num_unique
-                
-                print(f"    ✓ {item['type']} {item['id']}: Added {num_enhanced} enhanced + {num_unique} unique expressions")
-            else:
-                failed_items += 1
-                print(f"    ❌ {item['type']} {item['id']}: {result.get('error', 'Unknown error')}")
-            
-            processed_count += 1
+                try:
+                    result = future.result()
+                    
+                    total_retries += result['retries']
+                    
+                    if result['success'] and result['enhanced_data']:
+                        if not dry_run:
+                            add_enhanced_expressions_to_xml(item, result['enhanced_data'])
+                        
+                        # Count enhancements
+                        num_enhanced = len(result['enhanced_data'].get('enhanced_expressions', []))
+                        num_unique = len(result['enhanced_data'].get('unique_expressions', []))
+                        enhanced_count += num_enhanced + num_unique
+                        
+                        thread_safe_print(f"    ✓ {item['type']} {item['id']}: Added {num_enhanced} enhanced + {num_unique} unique expressions")
+                    else:
+                        failed_items += 1
+                        thread_safe_print(f"    ❌ {item['type']} {item['id']}: {result.get('error', 'Unknown error')}")
+                    
+                    processed_count += 1
+                    
+                except Exception as e:
+                    failed_items += 1
+                    thread_safe_print(f"    ❌ {item['type']} {item['id']}: Thread execution error: {e}")
+                    processed_count += 1
         
         # Save modified XML
         if not dry_run and enhanced_count > 0:
@@ -736,6 +762,7 @@ def main():
     print(f"Dataset root: {dataset_root}")
     print(f"Server URL: {server_url}")
     print(f"Model name: {model_name}")
+    print(f"Threads per file: {args.threads}")
     
     if not os.path.exists(dataset_root):
         print(f"Error: Dataset root not found: {dataset_root}")
@@ -783,6 +810,7 @@ def main():
         
         print(f"\n🚀 Starting enhancement process...")
         print(f"   Progress updates every {args.progress_interval} files")
+        print(f"   Using {args.threads} threads per file (items within each file processed concurrently)")
         print(f"   ETA will be calculated after processing the first few files")
         print("─" * 70)
         
@@ -832,7 +860,7 @@ def main():
                 print(f"Processing {annotation_file} ({i+1}/{len(annotation_files)})")
                 
                 items_processed, expressions_enhanced, retries, failed = process_annotation_file(
-                    annotation_path, images_dir, client, model_name, temp_dir, args.dry_run
+                    annotation_path, images_dir, client, model_name, temp_dir, args.threads, args.dry_run
                 )
                 
                 if items_processed > 0:
