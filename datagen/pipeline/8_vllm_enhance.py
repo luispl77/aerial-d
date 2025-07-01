@@ -80,24 +80,32 @@ class ProgressTracker:
         files_completed = self.stats['files_processed'] + self.stats['files_skipped']
         files_remaining = self.total_files - files_completed
         
-        # Calculate rates
+        # Calculate rates (only based on actually processed files, not skipped)
         if elapsed_minutes > 0:
-            total_files_per_min = files_completed / elapsed_minutes
+            processed_files_per_min = self.stats['files_processed'] / elapsed_minutes
             items_per_min = self.stats['items_processed'] / elapsed_minutes
         else:
-            total_files_per_min = 0
+            processed_files_per_min = 0
             items_per_min = 0
         
-        # Calculate ETA
+        # Calculate ETA based on actual processing rate
         eta_minutes = 0
         eta_str = "Calculating..."
         
-        if total_files_per_min > 0 and files_remaining > 0:
-            eta_minutes = files_remaining / total_files_per_min
+        # All remaining files need processing (skipped files were already processed in previous runs)
+        if processed_files_per_min > 0 and files_remaining > 0:
+            eta_minutes = files_remaining / processed_files_per_min
             eta_time = datetime.now() + timedelta(minutes=eta_minutes)
             eta_str = eta_time.strftime("%H:%M:%S")
         elif files_remaining <= 0:
             eta_str = "Complete!"
+        
+        # Calculate skip ratio just for informational purposes (about past work)
+        total_checked = self.stats['files_processed'] + self.stats['files_skipped']
+        if total_checked > 0:
+            skip_ratio = self.stats['files_skipped'] / total_checked
+        else:
+            skip_ratio = 0.0
         
         # Calculate completion percentage
         completion_pct = (files_completed / self.total_files * 100) if self.total_files > 0 else 0
@@ -107,10 +115,11 @@ class ProgressTracker:
             'files_completed': files_completed,
             'files_remaining': files_remaining,
             'completion_pct': completion_pct,
-            'total_files_per_min': total_files_per_min,
+            'processed_files_per_min': processed_files_per_min,
             'items_per_min': items_per_min,
             'eta_minutes': eta_minutes,
             'eta_str': eta_str,
+            'skip_ratio': skip_ratio,
             'stats': self.stats
         }
     
@@ -125,10 +134,12 @@ class ProgressTracker:
               f"Skipped: {report['stats']['files_skipped']:,}")
         print(f"   Items processed: {report['stats']['items_processed']:,}")
         print(f"   Expressions enhanced: {report['stats']['expressions_enhanced']:,}")
-        print(f"   Rate: {report['total_files_per_min']:.1f} files/min, "
+        print(f"   Processing rate: {report['processed_files_per_min']:.1f} files/min, "
               f"{report['items_per_min']:.1f} items/min")
         print(f"   Elapsed: {report['elapsed_minutes']:.1f} min | "
               f"ETA: {report['eta_str']} ({report['eta_minutes']:.1f} min remaining)")
+        if report['skip_ratio'] > 0:
+            print(f"   Already processed: {report['skip_ratio']*100:.1f}% of files checked so far")
         if report['stats']['total_retries'] > 0:
             success_rate = ((report['stats']['items_processed'] - report['stats']['failed_items']) / 
                           report['stats']['items_processed'] * 100) if report['stats']['items_processed'] > 0 else 100
@@ -153,8 +164,8 @@ def parse_arguments():
                         help='Temporary directory for visualization images')
     parser.add_argument('--seed', type=int, default=42,
                         help='Random seed for deterministic file ordering (default: 42)')
-    parser.add_argument('--progress_interval', type=int, default=50,
-                        help='Progress update interval in files (default: 50)')
+    parser.add_argument('--progress_interval', type=int, default=3,
+                        help='Progress update interval in files (default: 50). Use smaller values for more frequent updates.')
     parser.add_argument('--dry_run', action='store_true',
                         help='Run without actually modifying the XML files')
     return parser.parse_args()
@@ -770,6 +781,11 @@ def main():
         # Initialize progress tracker
         progress_tracker = ProgressTracker(total_files)
         
+        print(f"\n🚀 Starting enhancement process...")
+        print(f"   Progress updates every {args.progress_interval} files")
+        print(f"   ETA will be calculated after processing the first few files")
+        print("─" * 70)
+        
         files_processed_count = 0
         
         for split in splits:
@@ -801,6 +817,10 @@ def main():
             # Process files sequentially
             for i, annotation_file in enumerate(annotation_files):
                 annotation_path = os.path.join(annotations_dir, annotation_file)
+                
+                # Print immediate progress for first file
+                if files_processed_count == 0:
+                    print(f"\n🔄 Starting file processing...")
                 
                 # Check if file is already fully processed
                 if is_file_already_processed(annotation_path):
@@ -836,6 +856,10 @@ def main():
                 # Print progress periodically
                 if files_processed_count % args.progress_interval == 0:
                     progress_tracker.print_progress()
+                
+                # Also print progress for the first few files to give immediate feedback
+                elif files_processed_count <= 3:
+                    progress_tracker.print_progress()
             
             print(f"\n{split.capitalize()} split summary:")
             print(f"  Files processed: {split_stats['files_processed']}")
@@ -845,20 +869,28 @@ def main():
             print(f"  Total retries: {split_stats['total_retries']}")
             print(f"  Failed items (after retries): {split_stats['failed_items']}")
         
+        # Print final progress update
+        print(f"\n📊 Final Progress Update:")
+        progress_tracker.print_progress()
+        
         # Final statistics
         final_report = progress_tracker.get_progress_report()
         
         print(f"\n🎉 Processing Complete!")
         print(f"📊 Final Summary:")
-        print(f"  Files processed: {progress_tracker.stats['files_processed']}")
-        print(f"  Files skipped (already processed): {progress_tracker.stats['files_skipped']}")
-        print(f"  Items processed: {progress_tracker.stats['items_processed']}")
-        print(f"  Expressions enhanced: {progress_tracker.stats['expressions_enhanced']}")
-        print(f"  Total retries performed: {progress_tracker.stats['total_retries']}")
-        print(f"  Failed items (after max retries): {progress_tracker.stats['failed_items']}")
-        print(f"  Total elapsed time: {final_report['elapsed_minutes']:.1f} minutes")
-        print(f"  Average rate: {final_report['total_files_per_min']:.1f} files/min, "
-              f"{final_report['items_per_min']:.1f} items/min")
+        print(f"  Files processed: {progress_tracker.stats['files_processed']:,}")
+        print(f"  Files skipped (already processed): {progress_tracker.stats['files_skipped']:,}")
+        print(f"  Items processed: {progress_tracker.stats['items_processed']:,}")
+        print(f"  Expressions enhanced: {progress_tracker.stats['expressions_enhanced']:,}")
+        print(f"  Total retries performed: {progress_tracker.stats['total_retries']:,}")
+        print(f"  Failed items (after max retries): {progress_tracker.stats['failed_items']:,}")
+        print()
+        print(f"⏱️  Timing & Performance:")
+        print(f"  Total elapsed time: {final_report['elapsed_minutes']:.1f} minutes ({final_report['elapsed_minutes']/60:.1f} hours)")
+        print(f"  Average processing rate: {final_report['processed_files_per_min']:.1f} files/min (actual work)")
+        print(f"  Average item processing rate: {final_report['items_per_min']:.1f} items/min")
+        if final_report['skip_ratio'] > 0:
+            print(f"  Files already processed: {final_report['skip_ratio']*100:.1f}% of files checked were already done")
         
         # Calculate success/retry statistics
         if progress_tracker.stats['items_processed'] > 0:
