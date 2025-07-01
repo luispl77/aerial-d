@@ -551,96 +551,101 @@ def process_single_item(client, item, image_path, temp_dir, model_name, max_retr
     """Process a single item with OpenAI client."""
     viz_path = None
     
-    for attempt in range(max_retries + 1):
-        try:
-            # Create temporary visualization
-            viz_filename = f"temp_viz_{item['id']}_{item['type']}_{time.time()}.png"
-            viz_path = os.path.join(temp_dir, viz_filename)
-            
-            # Create visualization with bounding box(es)
-            if item['type'] == 'group':
-                bboxes_to_visualize = item['bboxes']
-            else:
-                bboxes_to_visualize = item['bbox']
-            
-            visualize_and_save_object(image_path, bboxes_to_visualize, viz_path)
-            
-            # Create prompt
-            system_prompt, user_prompt = create_prompt(item['category'], item['expressions'])
-            
-            # Convert image to base64
-            image_base64 = encode_base64_content_from_file(viz_path)
-            if image_base64 is None:
-                raise Exception("Failed to encode image to base64")
-            
-            # Format messages for OpenAI API
-            messages = [
-                {
-                    "role": "system",
-                    "content": system_prompt
-                },
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": user_prompt},
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": f"data:image/png;base64,{image_base64}"},
-                        },
-                    ],
-                }
-            ]
-            
-            # Make API call
-            chat_completion = client.chat.completions.create(
-                messages=messages,
-                model=model_name,
-                max_tokens=2048,
-                temperature=0.8,
-            )
-            
-            generated_text = chat_completion.choices[0].message.content.strip()
-            
-            # Parse JSON response
-            enhanced_data = extract_and_parse_json(generated_text)
-            if enhanced_data:
-                # Success - clean up and return
-                if viz_path and os.path.exists(viz_path):
-                    os.remove(viz_path)
-                return {
-                    'item': item,
-                    'enhanced_data': enhanced_data,
-                    'success': True,
-                    'retries': attempt
-                }
-            else:
-                raise Exception(f"Failed to parse JSON: {generated_text[:200]}...")
-            
-        except Exception as e:
-            print(f"    Error processing {item['type']} {item['id']} (attempt {attempt + 1}): {e}")
-            if attempt == max_retries:
-                # Final attempt failed
-                if viz_path and os.path.exists(viz_path):
-                    os.remove(viz_path)
-                return {
-                    'item': item,
-                    'enhanced_data': None,
-                    'success': False,
-                    'retries': attempt,
-                    'error': str(e)
-                }
-            time.sleep(1)  # Brief delay before retry
+    try:
+        # Create temporary visualization
+        viz_filename = f"temp_viz_{item['id']}_{item['type']}_{time.time()}.png"
+        viz_path = os.path.join(temp_dir, viz_filename)
+        
+        # Create visualization with bounding box(es)
+        if item['type'] == 'group':
+            bboxes_to_visualize = item['bboxes']
+        else:
+            bboxes_to_visualize = item['bbox']
+        
+        visualize_and_save_object(image_path, bboxes_to_visualize, viz_path)
+        
+        # Create prompt
+        system_prompt, user_prompt = create_prompt(item['category'], item['expressions'])
+        
+        # Convert image to base64
+        image_base64 = encode_base64_content_from_file(viz_path)
+        if image_base64 is None:
+            raise Exception("Failed to encode image to base64")
+        
+        # Process with retries
+        for attempt in range(max_retries + 1):
+            try:
+                # Format messages for OpenAI API
+                messages = [
+                    {
+                        "role": "system",
+                        "content": system_prompt
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": user_prompt},
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:image/png;base64,{image_base64}"},
+                            },
+                        ],
+                    }
+                ]
+                
+                # Make API call
+                chat_completion = client.chat.completions.create(
+                    messages=messages,
+                    model=model_name,
+                    max_tokens=2048,
+                    temperature=0.8,
+                )
+                
+                generated_text = chat_completion.choices[0].message.content.strip()
+                
+                # Parse JSON response
+                enhanced_data = extract_and_parse_json(generated_text)
+                if enhanced_data:
+                    # Success
+                    return {
+                        'item': item,
+                        'enhanced_data': enhanced_data,
+                        'success': True,
+                        'retries': attempt
+                    }
+                else:
+                    raise Exception(f"Failed to parse JSON: {generated_text[:200]}...")
+                
+            except Exception as e:
+                print(f"    Error processing {item['type']} {item['id']} (attempt {attempt + 1}): {e}")
+                if attempt == max_retries:
+                    # Final attempt failed
+                    return {
+                        'item': item,
+                        'enhanced_data': None,
+                        'success': False,
+                        'retries': attempt,
+                        'error': str(e)
+                    }
+                time.sleep(1)  # Brief delay before retry
     
-    # Should never reach here, but just in case
-    if viz_path and os.path.exists(viz_path):
-        os.remove(viz_path)
-    return {
-        'item': item,
-        'enhanced_data': None,
-        'success': False,
-        'retries': max_retries,
-        'error': "Max retries exceeded"
-    }
+    except Exception as e:
+        print(f"    Error setting up processing for {item['type']} {item['id']}: {e}")
+        return {
+            'item': item,
+            'enhanced_data': None,
+            'success': False,
+            'retries': 0,
+            'error': str(e)
+        }
+    
+    finally:
+        # Always clean up the temporary visualization file
+        if viz_path and os.path.exists(viz_path):
+            try:
+                os.remove(viz_path)
+            except:
+                pass  # Ignore cleanup errors
 
 def process_annotation_file(annotation_path, images_dir, client, model_name, temp_dir, dry_run=False):
     """Process a single annotation file using OpenAI client."""
