@@ -61,6 +61,27 @@ def decode_rle_and_get_bbox(segmentation_str):
         print(f"Error decoding RLE segmentation: {e}")
         return None
 
+def decode_rle_and_get_mask(segmentation_str):
+    """Decode RLE segmentation and return the binary mask."""
+    try:
+        # Parse the segmentation string (it's a dict-like string)
+        seg_dict = eval(segmentation_str)
+        
+        # Create RLE dict in the format expected by pycocotools
+        rle = {
+            'size': seg_dict['size'],
+            'counts': seg_dict['counts'].encode('utf-8')
+        }
+        
+        # Decode RLE to binary mask
+        mask = mask_utils.decode(rle)
+        
+        return mask
+        
+    except Exception as e:
+        print(f"Error decoding RLE segmentation for mask: {e}")
+        return None
+
 def decode_rle_and_get_individual_bboxes(segmentation_str, min_area=10):
     """Decode RLE segmentation and compute individual bounding boxes for each connected component."""
     try:
@@ -165,7 +186,7 @@ ENHANCEMENT_RESPONSE_SCHEMA = {
 def parse_arguments():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description='Enhance aerial image annotations using OpenAI O3 API')
-    parser.add_argument('--dataset_path', type=str, default='/cfs/home/u035679/datasets/aeriald/train',
+    parser.add_argument('--dataset_path', type=str, default='/cfs/home/u035679/datasets/old/aeriald_old2/train',
                         help='Path to the dataset directory')
     parser.add_argument('--output_dir', type=str, default='./enhanced_annotations_o3_dual',
                         help='Directory to save enhanced annotations')
@@ -372,8 +393,10 @@ def parse_annotations(annotation_path):
             
             # Get segmentation and compute individual bounding boxes from RLE mask
             bboxes = []
+            segmentation_str = None
             segmentation_elem = group.find('segmentation')
             if segmentation_elem is not None and segmentation_elem.text:
+                segmentation_str = segmentation_elem.text  # Store the original RLE string
                 individual_bboxes = decode_rle_and_get_individual_bboxes(segmentation_elem.text)
                 if individual_bboxes:
                     bboxes = individual_bboxes
@@ -399,6 +422,7 @@ def parse_annotations(annotation_path):
                     'size': size,
                     'centroid': centroid,
                     'bboxes': bboxes,  # List of individual bboxes computed from RLE segmentation mask
+                    'segmentation': segmentation_str,  # Store original RLE segmentation string
                     'expressions': expressions,
                     'type': 'group'
                 }
@@ -498,12 +522,72 @@ def create_focused_crop(image_path, bboxes, crop_size=384, image_fraction=0.5):
     
     return result
 
-def create_prompt(object_name, original_expressions, dual_image=False):
+def create_mask_overlay(image_path, segmentation_str, output_path, mask_color=(255, 0, 0), mask_alpha=0.3):
+    """Create an image with red mask overlay from RLE segmentation data.
+    
+    Args:
+        image_path: Path to the original image
+        segmentation_str: RLE segmentation string
+        output_path: Where to save the overlay image
+        mask_color: RGB color for the mask (default: red)
+        mask_alpha: Transparency of the mask overlay (0-1)
+    """
+    # Load the original image
+    img = Image.open(image_path).convert('RGB')
+    img_width, img_height = img.size
+    
+    # Decode the RLE mask
+    mask = decode_rle_and_get_mask(segmentation_str)
+    if mask is None:
+        print(f"Error: Could not decode segmentation mask for {image_path}")
+        # Fallback: save original image
+        img.save(output_path)
+        return
+    
+    # Convert mask to numpy array and ensure it's binary
+    mask_array = np.array(mask, dtype=bool)
+    
+    # Create a colored mask overlay
+    mask_overlay = np.zeros((img_height, img_width, 3), dtype=np.uint8)
+    mask_overlay[mask_array] = mask_color
+    
+    # Convert images to numpy arrays
+    img_array = np.array(img)
+    
+    # Blend the original image with the mask overlay
+    # Only apply overlay where mask is True
+    blended = img_array.copy()
+    for c in range(3):  # RGB channels
+        blended[mask_array, c] = (
+            (1 - mask_alpha) * img_array[mask_array, c] + 
+            mask_alpha * mask_overlay[mask_array, c]
+        ).astype(np.uint8)
+    
+    # Convert back to PIL Image and save
+    result_img = Image.fromarray(blended)
+    result_img.save(output_path)
+
+def create_prompt(object_name, original_expressions, image_mode="single"):
     """Create the detailed prompt for O3."""
     formatted_expressions = "\n".join([f"- {expr}" for expr in original_expressions])
     
-    # Different intro text based on single or dual image mode
-    if dual_image:
+    # Different intro text based on image mode
+    if image_mode == "mask_dual":
+        intro_text = (
+            "You are an expert at creating natural language descriptions for objects and groups in aerial imagery. "
+            "Your task is to help create diverse and precise referring expressions for the target. "
+            "The target is a group/collection of multiple objects with semantic segmentation.\n\n"
+            
+            "I am providing you with TWO images:\n"
+            "1. MASK IMAGE: Full aerial scene with the target region highlighted by a red mask overlay\n"
+            "2. CLEAN IMAGE: The same full aerial scene without any highlighting\n\n"
+            
+            "IMPORTANT: The red highlighting in the first image indicates the target area, but does NOT mean the objects are actually red in color. "
+            "Look at the clean image (second image) to understand the true appearance and colors of the target objects.\n\n"
+            
+            "Use BOTH images to understand the target and its context better.\n\n"
+        )
+    elif image_mode == "bbox_dual":
         intro_text = (
             "You are an expert at creating natural language descriptions for objects and groups in aerial imagery. "
             "Your task is to help create diverse and precise referring expressions for the target. "
@@ -529,7 +613,7 @@ def create_prompt(object_name, original_expressions, dual_image=False):
         "- If working with a group, use plural forms and consider the spatial distribution of the entire collection\n"
         "- If working with a single object, focus on that specific instance\n"
         "- Always preserve the scope and meaning of the original expressions\n"
-        "- NEVER reference red boxes or markings in your expressions\n\n"
+        "- NEVER reference red boxes, masks, or markings in your expressions\n\n"
         
         "You have three tasks:\n\n"
         
@@ -584,7 +668,14 @@ def create_prompt(object_name, original_expressions, dual_image=False):
         "Write all the expressions using lowercase letters and no punctuation."
     )
     
-    if dual_image:
+    if image_mode == "triple":
+        user_prompt = (
+            f"Create language variations of the provided expressions while preserving spatial information, "
+            f"analyze the spatial context for uniqueness factors, and generate new unique expressions for the target. "
+            f"Use the mask image to understand the target location, the clean image to see true colors and appearance, "
+            f"and the focused crop for detailed analysis."
+        )
+    elif image_mode == "dual":
         user_prompt = (
             f"Create language variations of the provided expressions while preserving spatial information, "
             f"analyze the spatial context for uniqueness factors, and generate new unique expressions for the target. "
@@ -631,6 +722,27 @@ def visualize_and_save_object(image_path, bboxes, output_path):
     plt.savefig(output_path, bbox_inches='tight', pad_inches=0)
     plt.close()
 
+def get_processing_mode(image_name, item_type):
+    """Determine the processing mode based on dataset and item type.
+    
+    Returns:
+        tuple: (mode, description)
+            mode: 'mask_dual' for mask overlay + clean image
+                 'bbox_dual' for bbox + focused crop
+            description: string explaining the mode
+    """
+    if image_name.startswith('D'):  # DeepGlobe - only has groups
+        return ('mask_dual', 'DeepGlobe group with mask overlay')
+    elif image_name.startswith('L'):  # LoveDA
+        if item_type == 'group':
+            return ('mask_dual', 'LoveDA group with mask overlay')
+        else:
+            return ('bbox_dual', 'LoveDA instance with bbox and focused crop')
+    elif image_name.startswith('P'):  # iSAID
+        return ('bbox_dual', 'iSAID with bbox and focused crop')
+    else:
+        return ('bbox_dual', 'Unknown dataset - using bbox and focused crop')
+
 def process_single_object(object_info, client, args):
     """Process a single object or group and return results."""
     image_path = object_info['image_path']
@@ -639,42 +751,68 @@ def process_single_object(object_info, client, args):
     image_name = os.path.basename(image_path).split('.')[0]
     item_type = obj.get('type', 'object')
     
-    # Check if this is an iSAID image (starts with 'P')
-    is_isaid = image_name.startswith('P')
+    # Determine processing mode based on dataset and item type
+    mode, mode_desc = get_processing_mode(image_name, item_type)
     
     if item_type == 'group':
         print(f"\nProcessing group {obj['id']} (size: {obj['size']}) from image: {image_name}")
         output_dir = os.path.join(args.output_dir, f"{image_name}_group_{obj['id']}")
-        viz_path = os.path.join(output_dir, f"{image_name}_group_{obj['id']}.png")
-        if is_isaid:
-            focused_path = os.path.join(output_dir, f"{image_name}_group_{obj['id']}_focused.png")
     else:
         print(f"\nProcessing object {obj['id']} from image: {image_name}")
         output_dir = os.path.join(args.output_dir, f"{image_name}_obj_{obj['id']}")
-        viz_path = os.path.join(output_dir, f"{image_name}_obj_{obj['id']}.png")
-        if is_isaid:
-            focused_path = os.path.join(output_dir, f"{image_name}_obj_{obj['id']}_focused.png")
     
     os.makedirs(output_dir, exist_ok=True)
+    print(f"  Using {mode_desc}")
     
-    # Create visualization with bounding box(es)
-    if item_type == 'group':
-        bboxes_to_visualize = obj['bboxes']
-        print(f"  Drawing {len(bboxes_to_visualize)} individual bounding boxes for group")
-    else:
-        bboxes_to_visualize = obj['bbox']
-    
-    visualize_and_save_object(image_path, bboxes_to_visualize, viz_path)
-    
-    # For iSAID images, also create focused crop
-    if is_isaid:
-        print(f"  Creating focused crop for iSAID image (fraction: {args.crop_fraction})...")
+    # Set up paths for images
+    if mode == 'mask_dual':
+        # For mask overlay mode (DeepGlobe and LoveDA groups)
+        mask_path = os.path.join(output_dir, f"{image_name}_mask.png")
+        clean_path = os.path.join(output_dir, f"{image_name}_clean.png")
+        
+        # Create mask overlay
+        if 'segmentation' not in obj:
+            print("Error: No segmentation data found for mask overlay mode")
+            return None
+        
+        # Save clean image first (just a copy)
+        shutil.copy2(image_path, clean_path)
+        
+        # Create and save mask overlay
+        create_mask_overlay(image_path, obj['segmentation'], mask_path)
+        print("  Created mask overlay and clean images")
+        
+        viz_path = mask_path  # First image will be the mask overlay
+        focused_path = clean_path  # Second image will be the clean version
+        
+    else:  # bbox_dual mode
+        # For bbox mode (iSAID and LoveDA instances)
+        viz_path = os.path.join(output_dir, f"{image_name}_bbox.png")
+        focused_path = os.path.join(output_dir, f"{image_name}_focused.png")
+        
+        # Create visualization with bounding box(es)
+        if item_type == 'group':
+            bboxes_to_visualize = obj['bboxes']
+            print(f"  Drawing {len(bboxes_to_visualize)} individual bounding boxes for group")
+        else:
+            bboxes_to_visualize = obj['bbox']
+        
+        visualize_and_save_object(image_path, bboxes_to_visualize, viz_path)
+        
+        # Create focused crop
+        print(f"  Creating focused crop (fraction: {args.crop_fraction})...")
         focused_crop = create_focused_crop(image_path, bboxes_to_visualize, image_fraction=args.crop_fraction)
         focused_crop.save(focused_path)
         print(f"  Focused crop saved to: {focused_path}")
     
     try:
-        system_prompt, user_prompt = create_prompt(obj['category'], obj['expressions'], dual_image=is_isaid)
+        # Always use dual image mode now, but with different descriptions based on mode
+        if mode == 'mask_dual':
+            prompt_mode = "mask_dual"  # New mode for mask overlay + clean image
+        else:
+            prompt_mode = "bbox_dual"  # Original mode for bbox + focused crop
+        
+        system_prompt, user_prompt = create_prompt(obj['category'], obj['expressions'], image_mode=prompt_mode)
         
         # Prepare content for the API call
         user_content = []
@@ -696,20 +834,23 @@ def process_single_object(object_info, client, args):
                 }
             })
         
-        # For iSAID images, also include the focused crop
-        if is_isaid:
-            with PILImage.open(focused_path) as focused_img:
-                # Convert focused image to bytes (already 384x384)
-                focused_buffer = io.BytesIO()
-                focused_img.save(focused_buffer, format='PNG')
-                focused_data = base64.b64encode(focused_buffer.getvalue()).decode('utf-8')
-                
-                user_content.append({
-                    "type": "image_url",
-                    "image_url": {
-                        "url": f"data:image/png;base64,{focused_data}"
-                    }
-                })
+        # Always include second image (either clean image or focused crop)
+        with PILImage.open(focused_path) as focused_img:
+            # Resize to 384x384 if not already that size
+            if focused_img.size != (384, 384):
+                focused_img = focused_img.resize((384, 384), PILImage.Resampling.LANCZOS)
+            
+            # Convert focused image to bytes
+            focused_buffer = io.BytesIO()
+            focused_img.save(focused_buffer, format='PNG')
+            focused_data = base64.b64encode(focused_buffer.getvalue()).decode('utf-8')
+            
+            user_content.append({
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/png;base64,{focused_data}"
+                }
+            })
         
         # Add text prompt
         user_content.append({
@@ -760,7 +901,7 @@ def process_single_object(object_info, client, args):
             print(f"Successfully enhanced group {obj['id']} ({obj['category']}, size: {obj['size']})")
         else:
             print(f"Successfully enhanced object {obj['id']} ({obj['category']})")
-        print(f"Used {'dual image' if is_isaid else 'single image'} mode")
+        print(f"Used {mode} mode ({mode_desc})")
         print(f"Generated {len(enhanced_data.enhanced_expressions)} enhanced expression groups")
         print(f"Generated {len(enhanced_data.unique_expressions)} unique expressions")
             
@@ -779,8 +920,8 @@ def process_single_object(object_info, client, args):
         "category": obj['category'],
         "original_expressions": obj['expressions'],
         "enhanced_data": enhanced_data.model_dump() if hasattr(enhanced_data, 'model_dump') else enhanced_data.__dict__,
-        "processing_mode": "dual_image" if is_isaid else "single_image",
-        "is_isaid": is_isaid
+        "processing_mode": mode,
+        "processing_description": mode_desc
     }
     
     # Add type-specific information
@@ -874,8 +1015,12 @@ def main():
         return
     
     print(f"Processing {len(objects_to_process)} object(s)...")
-    print(f"Note: iSAID images (P* prefix) will use dual image mode with focused crops")
-    print(f"Crop fraction for focused images: {args.crop_fraction} ({args.crop_fraction*100:.0f}% of original image)")
+    print("Processing modes:")
+    print("  - DeepGlobe (D*): Mask overlay + clean image")
+    print("  - LoveDA groups (L*): Mask overlay + clean image")
+    print("  - LoveDA instances (L*): Bounding box + focused crop")
+    print("  - iSAID (P*): Bounding box + focused crop")
+    print(f"Crop fraction for focused images (when applicable): {args.crop_fraction} ({args.crop_fraction*100:.0f}% of original image)")
     
     successful_processes = 0
     for i, object_info in enumerate(objects_to_process, 1):
