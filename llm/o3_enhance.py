@@ -177,6 +177,8 @@ def parse_arguments():
                         help='Number of random objects to process (ignored if specific_file is provided)')
     parser.add_argument('--clean', action='store_true',
                         help='Clear the output directory before processing')
+    parser.add_argument('--dataset_filter', type=str, choices=['deepglobe', 'isaid', 'loveda'], default=None,
+                        help='Filter samples by source dataset: deepglobe (D*), isaid (P*), loveda (L*)')
     return parser.parse_args()
 
 def get_random_files(args, max_files=100):
@@ -188,6 +190,30 @@ def get_random_files(args, max_files=100):
     
     images_dir = os.path.join(args.dataset_path, 'images')
     image_files = [f for f in os.listdir(images_dir) if f.endswith('.png')]
+    
+    # Apply dataset filter if specified
+    if args.dataset_filter:
+        if args.dataset_filter == 'deepglobe':
+            prefix = 'D'
+            dataset_name = 'DeepGlobe'
+        elif args.dataset_filter == 'isaid':
+            prefix = 'P'
+            dataset_name = 'iSAID'
+        elif args.dataset_filter == 'loveda':
+            prefix = 'L'
+            dataset_name = 'LoveDA'
+        
+        # Filter files based on prefix
+        filtered_files = [f for f in image_files if f.startswith(prefix)]
+        print(f"Dataset filter applied: {dataset_name} ({prefix}*)")
+        print(f"Files before filtering: {len(image_files)}")
+        print(f"Files after filtering: {len(filtered_files)}")
+        
+        if not filtered_files:
+            print(f"Warning: No files found with prefix '{prefix}' for dataset {dataset_name}")
+            return []
+        
+        image_files = filtered_files
     
     # Select random images without replacement, but cap at max_files to avoid scanning entire dataset
     selected_images = random.sample(image_files, min(max_files, len(image_files)))
@@ -647,6 +673,17 @@ def main():
         print("Output directory cleared.")
     
     os.makedirs(args.output_dir, exist_ok=True)
+    
+    # Show dataset filter information
+    if args.dataset_filter:
+        dataset_mapping = {
+            'deepglobe': 'DeepGlobe (D*)',
+            'isaid': 'iSAID (P*)',
+            'loveda': 'LoveDA (L*)'
+        }
+        print(f"Dataset filter: {dataset_mapping[args.dataset_filter]}")
+    else:
+        print("Dataset filter: None (all datasets)")
     
     # Get objects and groups to process
     if args.specific_file:
