@@ -92,14 +92,23 @@ def read_single_annotation(xml_file, split='train'):
             'bbox': bbox
         }
         
+        # Parse expressions by type
         expressions = []
+        enhanced_expressions = []
+        unique_expressions = []
         expressions_elem = obj.find('expressions')
         if expressions_elem is not None:
             for expr in expressions_elem.findall('expression'):
                 if expr.text and expr.text.strip():
-                    expressions.append(expr.text)
+                    expr_type = expr.get('type', 'original')  # Default to 'original' if no type attribute
+                    if expr_type == 'enhanced':
+                        enhanced_expressions.append(expr.text)
+                    elif expr_type == 'unique':
+                        unique_expressions.append(expr.text)
+                    else:
+                        expressions.append(expr.text)
         
-        if expressions:
+        if expressions or enhanced_expressions or unique_expressions:
             all_items.append({
                 'obj_id': obj_id,
                 'category': category,
@@ -107,6 +116,8 @@ def read_single_annotation(xml_file, split='train'):
                 'image_path': image_path,
                 'image_filename': image_filename,
                 'expressions': expressions,
+                'enhanced_expressions': enhanced_expressions,
+                'unique_expressions': unique_expressions,
                 'type': 'instance'
             })
     
@@ -158,12 +169,21 @@ def read_single_annotation(xml_file, split='train'):
             if group_bbox is None:
                 continue
             
+            # Parse expressions by type for groups
             expressions = []
+            enhanced_expressions = []
+            unique_expressions = []
             expressions_elem = group.find('expressions')
             if expressions_elem is not None:
                 for expr in expressions_elem.findall('expression'):
                     if expr.text and expr.text.strip():
-                        expressions.append(expr.text)
+                        expr_type = expr.get('type', 'original')  # Default to 'original' if no type attribute
+                        if expr_type == 'enhanced':
+                            enhanced_expressions.append(expr.text)
+                        elif expr_type == 'unique':
+                            unique_expressions.append(expr.text)
+                        else:
+                            expressions.append(expr.text)
             
             # Get group segmentation RLE if available
             group_segmentation = None
@@ -174,7 +194,7 @@ def read_single_annotation(xml_file, split='train'):
                 except Exception as e:
                     print(f"Error parsing group segmentation for group {group_id}: {e}")
             
-            if expressions:
+            if expressions or enhanced_expressions or unique_expressions:
                 all_items.append({
                     'group_id': group_id,
                     'category': category,
@@ -185,6 +205,8 @@ def read_single_annotation(xml_file, split='train'):
                     'image_path': image_path,
                     'image_filename': image_filename,
                     'expressions': expressions,
+                    'enhanced_expressions': enhanced_expressions,
+                    'unique_expressions': unique_expressions,
                     'type': 'group'
                 })
     
@@ -509,19 +531,43 @@ def index():
                     <p>Image ID: {{ image_id }}</p>
                     <p>Patch: {{ current_patch }}</p>
                     <p>Item {{ item_idx + 1 }} of {{ total_items }} in current patch</p>
-                    <p>Number of Expressions: {{ item['expressions']|length }}</p>
+                    <p>Number of Expressions: {{ (item['expressions']|length) + (item['enhanced_expressions']|length) + (item['unique_expressions']|length) }}</p>
                 </div>
             </div>
 
             <div class="expressions-container">
+                {% if item['expressions'] %}
                 <div class="expressions-list">
-                    <h3>Unique Rule-Based Expressions:</h3>
+                    <h3>Original Rule-Based Expressions:</h3>
                     <ol>
                         {% for expr in item['expressions'] %}
                         <li>{{ expr }}</li>
                         {% endfor %}
                     </ol>
                 </div>
+                {% endif %}
+                
+                {% if item['enhanced_expressions'] %}
+                <div class="expressions-list" style="background-color: #e8f5e8; border-color: #4CAF50;">
+                    <h3>Enhanced Expressions:</h3>
+                    <ol>
+                        {% for expr in item['enhanced_expressions'] %}
+                        <li>{{ expr }}</li>
+                        {% endfor %}
+                    </ol>
+                </div>
+                {% endif %}
+                
+                {% if item['unique_expressions'] %}
+                <div class="expressions-list" style="background-color: #fff3cd; border-color: #ffc107;">
+                    <h3>Unique Expressions:</h3>
+                    <ol>
+                        {% for expr in item['unique_expressions'] %}
+                        <li>{{ expr }}</li>
+                        {% endfor %}
+                    </ol>
+                </div>
+                {% endif %}
             </div>
         </div>
 
