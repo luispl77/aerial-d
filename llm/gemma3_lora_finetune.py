@@ -51,7 +51,7 @@ def extract_model_size(model_id):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Fine-tune Gemma 3 model (4b or 12b) for aerial referring expressions with LoRA')
-    parser.add_argument('--model_id', type=str, default="google/gemma-3-4b-it",
+    parser.add_argument('--model_id', type=str, default="google/gemma-3-12b-it",
                        help='Hugging Face model ID')
     parser.add_argument('--enhanced_dir', type=str, default="./enhanced_annotations_o3",
                        help='Directory containing enhanced annotations')
@@ -63,13 +63,13 @@ def parse_args():
     parser.add_argument('--output_dir', type=str, default=f"gemma-aerial-referring-{model_size}-lora",
                        help='Output directory for fine-tuned model')
     parser.add_argument('--gpu', type=int, default=0, help='GPU ID to use')
-    parser.add_argument('--epochs', type=int, default=2, help='Number of training epochs')
+    parser.add_argument('--epochs', type=int, default=1, help='Number of training epochs')
     parser.add_argument('--batch_size', type=int, default=1, help='Per device batch size')
-    parser.add_argument('--gradient_accumulation_steps', type=int, default=4,
+    parser.add_argument('--gradient_accumulation_steps', type=int, default=8,
                        help='Gradient accumulation steps')
     parser.add_argument('--learning_rate', type=float, default=2e-4, help='Learning rate')
     parser.add_argument('--hf_token', type=str, help='Hugging Face token')
-    parser.add_argument('--merged_output_dir', type=str, default=f"merged_model_{model_size}",
+    parser.add_argument('--merged_output_dir', type=str, default=f"gemma-aerial-{model_size}",
                        help='Output directory for merged full model')
     parser.add_argument('--lora_rank', type=int, default=16,
                        help='LoRA rank (higher = more parameters, better adaptation)')

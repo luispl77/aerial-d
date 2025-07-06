@@ -21,8 +21,8 @@ from tqdm import tqdm
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train aerial segmentation model with SigLIP+SAM')
-    parser.add_argument('--batch_size', type=int, default=2, help='Batch size for training')
-    parser.add_argument('--epochs', type=int, default=20, help='Number of epochs to train')
+    parser.add_argument('--batch_size', type=int, default=4, help='Batch size for training')
+    parser.add_argument('--epochs', type=int, default=5, help='Number of epochs to train')
     parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate')
     parser.add_argument('--weight_decay', type=float, default=0.01, help='Weight decay for AdamW')
     parser.add_argument('--gpu_id', type=int, default=0, help='GPU ID to use')
@@ -41,7 +41,7 @@ def parse_args():
     parser.add_argument('--lora_dropout', type=float, default=0.05, help='LoRA dropout rate')
     parser.add_argument('--siglip_model', type=str, default='google/siglip2-so400m-patch14-384', help='SigLIP model name')
     parser.add_argument('--sam_model', type=str, default='facebook/sam-vit-base', help='SAM model name')
-    parser.add_argument('--use_historic', action='store_true', help='Use historic (BW) images instead of normal color images')
+    parser.add_argument('--use_historic', action='store_true', default=True, help='Use historic (BW) images instead of normal color images')
     
     return parser.parse_args()
 
@@ -221,9 +221,9 @@ def train(
     optimizer,
     device,
     scaler,
-    num_epochs=20,
-    checkpoint_dir='./clip_sam/models/clip_sam',
-    vis_dir='./clip_sam/visualizations/clip_sam',
+    num_epochs=5,
+    checkpoint_dir='./models/clip_sam',
+    vis_dir='./visualizations/clip_sam',
     resume=False,
     initial_lr=1e-4,
     power=0.9,
@@ -387,8 +387,8 @@ class SimpleDataset:
         self.use_historic = use_historic
         
         # Set paths based on split
-        self.ann_dir = os.path.join(dataset_root, 'patches', split, 'annotations')
-        self.image_dir = os.path.join(dataset_root, 'patches', split, 'images')
+        self.ann_dir = os.path.join(dataset_root, split, 'annotations')
+        self.image_dir = os.path.join(dataset_root, split, 'images')
         
         # Add transform to match model configuration
         self.transform = T.Compose([
@@ -472,10 +472,9 @@ class SimpleDataset:
                 else:
                     continue  # Skip objects without segmentation
                 
-                # Store object data by ID for group processing
+                # Store object data by ID for group processing (if needed)
                 if obj_id is not None:
                     objects_by_id[obj_id] = {
-                        'bbox': [xmin, ymin, xmax, ymax],
                         'segmentation': rle,
                         'category': name
                     }
@@ -495,7 +494,6 @@ class SimpleDataset:
                     for expression in expressions:
                         self.objects.append({
                             'image_filename': display_filename,
-                            'bbox': [xmin, ymin, xmax, ymax],
                             'segmentation': rle,
                             'expression': expression,
                             'category': name,
@@ -506,11 +504,16 @@ class SimpleDataset:
             groups_elem = root.find('groups')
             if groups_elem is not None:
                 for group in groups_elem.findall('group'):
-                    # Get group properties
-                    group_id = group.find('id').text
-                    instance_ids_text = group.find('instance_ids').text
-                    instance_ids = [id.strip() for id in instance_ids_text.split(',')]
-                    category = group.find('category').text
+                    # Get group properties with null checks
+                    group_id_elem = group.find('id')
+                    if group_id_elem is None:
+                        continue  # Skip groups without ID
+                    group_id = group_id_elem.text
+                    
+                    category_elem = group.find('category')
+                    if category_elem is None:
+                        continue  # Skip groups without category
+                    category = category_elem.text
                     
                     # Get group expressions
                     group_expressions = []
@@ -522,17 +525,22 @@ class SimpleDataset:
                     if not group_expressions:
                         continue  # Skip groups without expressions
                     
-                    # Collect segmentations for all instances in the group
-                    group_segmentations = []
-                    group_bboxes = []
+                    # Groups have direct segmentation data
+                    seg_elem = group.find('segmentation')
+                    if seg_elem is None or not seg_elem.text:
+                        print(f"WARNING: Group {group_id} in {xml_file} has no segmentation data - this should not happen!")
+                        continue  # Skip groups without segmentation
                     
-                    for instance_id in instance_ids:
-                        if instance_id in objects_by_id:
-                            group_segmentations.append(objects_by_id[instance_id]['segmentation'])
-                            group_bboxes.append(objects_by_id[instance_id]['bbox'])
-                    
-                    if not group_segmentations:
-                        continue  # Skip groups with no valid instances
+                    try:
+                        # Parse the segmentation dictionary
+                        seg_dict = eval(seg_elem.text)
+                        size = seg_dict['size']
+                        counts = seg_dict['counts']
+                        rle = {'size': size, 'counts': counts}
+                        group_segmentation = rle
+                    except Exception as e:
+                        print(f"WARNING: Failed to parse segmentation for group {group_id} in {xml_file}: {e}")
+                        continue
                     
                     total_groups += 1
                     total_group_expressions += len(group_expressions)
@@ -541,12 +549,10 @@ class SimpleDataset:
                     for expression in group_expressions:
                         self.objects.append({
                             'image_filename': display_filename,
-                            'bbox': group_bboxes,  # List of bboxes for all instances
-                            'segmentation': group_segmentations,  # List of segmentations
+                            'segmentation': group_segmentation,  # Single segmentation for group
                             'expression': expression,
                             'category': category,
-                            'type': 'group',
-                            'instance_ids': instance_ids
+                            'type': 'group'
                         })
         
         print(f"\nDataset statistics:")
@@ -578,16 +584,8 @@ class SimpleDataset:
             # Single object mask
             binary_mask = mask_utils.decode(obj['segmentation'])
         else:  # group
-            # Combine multiple masks for group
-            combined_mask = None
-            for segmentation in obj['segmentation']:
-                binary_mask = mask_utils.decode(segmentation)
-                if combined_mask is None:
-                    combined_mask = binary_mask
-                else:
-                    # Union of masks (logical OR)
-                    combined_mask = np.logical_or(combined_mask, binary_mask)
-            binary_mask = combined_mask.astype(np.uint8)
+            # Single group mask
+            binary_mask = mask_utils.decode(obj['segmentation'])
         
         mask = torch.from_numpy(binary_mask).float()
         mask = T.Resize((self.input_size, self.input_size), antialias=True)(mask.unsqueeze(0)).squeeze(0)
@@ -649,7 +647,7 @@ def main():
     device = torch.device(f'cuda:{args.gpu_id}')
     
     # Set dataset path to aeriald root directory
-    dataset_path = "./aeriald"
+    dataset_path = "/cfs/home/u035679/datasets/aeriald"
     
     torch.backends.cuda.enable_mem_efficient_sdp(True)
     
