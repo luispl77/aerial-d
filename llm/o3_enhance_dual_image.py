@@ -167,7 +167,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='Enhance aerial image annotations using OpenAI O3 API')
     parser.add_argument('--dataset_path', type=str, default='/cfs/home/u035679/datasets/aeriald/train',
                         help='Path to the dataset directory')
-    parser.add_argument('--output_dir', type=str, default='./enhanced_annotations_o3',
+    parser.add_argument('--output_dir', type=str, default='./enhanced_annotations_o3_dual',
                         help='Directory to save enhanced annotations')
     parser.add_argument('--random_seed', type=int, default=42,
                         help='Random seed for reproducibility')
