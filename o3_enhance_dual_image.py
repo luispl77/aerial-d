@@ -8,20 +8,20 @@ import shutil
 from PIL import Image
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from transformers import AutoProcessor, AutoModelForImageTextToText
-from peft import PeftModel
-import torch
-import time
+from pydantic import BaseModel
+from openai import OpenAI
+from dotenv import load_dotenv
+from typing import List
+import base64
+import io
+from PIL import Image as PILImage
 import numpy as np
 from pycocotools import mask as mask_utils
 from scipy import ndimage
 from skimage.measure import label, regionprops
 
-# Completely disable torch compilation and dynamo
-os.environ["TORCH_COMPILE"] = "0"
-torch._dynamo.config.disable = True
-torch.backends.cudnn.enabled = False  # Disable cudnn compilation
-torch.set_float32_matmul_precision('high')  # Suppress the warning
+# Load environment variables
+load_dotenv()
 
 def decode_rle_and_get_bbox(segmentation_str):
     """Decode RLE segmentation and compute bounding box."""
@@ -107,20 +107,67 @@ def decode_rle_and_get_individual_bboxes(segmentation_str, min_area=10):
 NUM_ENHANCED = 1  # Number of enhanced expressions per original
 NUM_UNIQUE = 2    # Number of unique expressions to generate
 
+# Pydantic models for structured output
+class ExpressionVariation(BaseModel):
+    original_expression: str
+    variation: str
+
+class EnhancementResponse(BaseModel):
+    enhanced_expressions: List[ExpressionVariation]
+    unique_description: str
+    unique_expressions: List[str]
+
+# JSON schema for response format
+ENHANCEMENT_RESPONSE_SCHEMA = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "enhancement_response",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "enhanced_expressions": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "original_expression": {
+                                "type": "string",
+                                "description": "The original expression to be enhanced"
+                            },
+                            "variation": {
+                                "type": "string",
+                                "description": "A language variation of the original expression"
+                            }
+                        },
+                        "required": ["original_expression", "variation"],
+                        "additionalProperties": False
+                    }
+                },
+                "unique_description": {
+                    "type": "string",
+                    "description": "Detailed analysis of spatial context and uniqueness factors"
+                },
+                "unique_expressions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "New unique expressions based on the original expressions"
+                }
+            },
+            "required": ["enhanced_expressions", "unique_description", "unique_expressions"],
+            "additionalProperties": False
+        }
+    }
+}
+
 def parse_arguments():
     """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description='Enhance aerial image annotations using fine-tuned Gemma 3')
-    parser.add_argument('--dataset_path', type=str, default='/cfs/home/u035679/datasets/old/aeriald_old2/train',
+    parser = argparse.ArgumentParser(description='Enhance aerial image annotations using OpenAI O3 API')
+    parser.add_argument('--dataset_path', type=str, default='/cfs/home/u035679/datasets/aeriald/train',
                         help='Path to the dataset directory')
-    parser.add_argument('--model_path', type=str, default='./gemma-aerial-12b',
-                        help='Path to the fine-tuned Gemma 3 model')
-    parser.add_argument('--use_lora', action='store_true',
-                        help='Use LoRA adapter with base model instead of merged model')
-    parser.add_argument('--base_model', type=str, default='google/gemma-3-12b-it',
-                        help='Base model to use when loading LoRA adapter')
-    parser.add_argument('--lora_path', type=str, default='./gemma-aerial-referring-12b-lora',
-                        help='Path to LoRA adapter weights')
-    parser.add_argument('--output_dir', type=str, default='./enhanced_gemma_annotations',
+    parser.add_argument('--output_dir', type=str, default='./enhanced_annotations_o3',
                         help='Directory to save enhanced annotations')
     parser.add_argument('--random_seed', type=int, default=42,
                         help='Random seed for reproducibility')
@@ -130,9 +177,10 @@ def parse_arguments():
                         help='Number of random objects to process (ignored if specific_file is provided)')
     parser.add_argument('--clean', action='store_true',
                         help='Clear the output directory before processing')
-    parser.add_argument('--gpu', type=int, default=0, help='GPU ID to use')
     parser.add_argument('--dataset_filter', type=str, choices=['deepglobe', 'isaid', 'loveda'], default=None,
                         help='Filter samples by source dataset: deepglobe (D*), isaid (P*), loveda (L*)')
+    parser.add_argument('--crop_fraction', type=float, default=0.5,
+                        help='Fraction of original image size to use for focused crop (default: 0.5 for half image)')
     return parser.parse_args()
 
 def get_random_files(args, max_files=100):
@@ -364,15 +412,118 @@ def parse_annotations(annotation_path):
         'groups': groups
     }
 
-def create_prompt(object_name, original_expressions):
-    """Create the detailed prompt for Gemma 3."""
+def compute_centroid_from_bboxes(bboxes):
+    """Compute centroid from a list of bounding boxes or a single bbox."""
+    if isinstance(bboxes, dict):
+        # Single bbox
+        center_x = (bboxes['xmin'] + bboxes['xmax']) / 2
+        center_y = (bboxes['ymin'] + bboxes['ymax']) / 2
+        return center_x, center_y
+    elif isinstance(bboxes, list):
+        # Multiple bboxes - compute center of all bbox centers
+        total_x = 0
+        total_y = 0
+        for bbox in bboxes:
+            center_x = (bbox['xmin'] + bbox['xmax']) / 2
+            center_y = (bbox['ymin'] + bbox['ymax']) / 2
+            total_x += center_x
+            total_y += center_y
+        return total_x / len(bboxes), total_y / len(bboxes)
+    else:
+        raise ValueError("bboxes must be a dict or list of dicts")
+
+def create_focused_crop(image_path, bboxes, crop_size=384, image_fraction=0.5):
+    """Create a focused square crop around the target area with black padding if needed.
+    
+    Args:
+        image_path: Path to the original image
+        bboxes: Bounding box(es) dict or list of dicts
+        crop_size: Final output size (384x384)
+        image_fraction: Fraction of the original image size to use (0.5 = half the image)
+        
+    Returns:
+        PIL Image: 384x384 square crop with black padding if needed
+    """
+    img = Image.open(image_path)
+    img_width, img_height = img.size
+    
+    # Compute centroid
+    center_x, center_y = compute_centroid_from_bboxes(bboxes)
+    
+    # Use a fixed fraction of the original image size
+    # Make it square by using the smaller dimension to ensure we don't exceed image bounds
+    min_dimension = min(img_width, img_height)
+    target_size = min_dimension * image_fraction
+    
+    # Compute crop coordinates centered on the centroid
+    half_size = target_size / 2
+    crop_left = int(center_x - half_size)
+    crop_right = int(center_x + half_size)
+    crop_top = int(center_y - half_size)
+    crop_bottom = int(center_y + half_size)
+    
+    # Handle cases where crop goes outside image boundaries
+    # Calculate how much padding we need on each side
+    pad_left = max(0, -crop_left)
+    pad_right = max(0, crop_right - img_width)
+    pad_top = max(0, -crop_top)
+    pad_bottom = max(0, crop_bottom - img_height)
+    
+    # Adjust crop coordinates to stay within image bounds
+    crop_left = max(0, crop_left)
+    crop_right = min(img_width, crop_right)
+    crop_top = max(0, crop_top)
+    crop_bottom = min(img_height, crop_bottom)
+    
+    # Extract the crop
+    cropped = img.crop((crop_left, crop_top, crop_right, crop_bottom))
+    
+    # Create a square canvas with black background
+    square_size = int(target_size)
+    if pad_left > 0 or pad_right > 0 or pad_top > 0 or pad_bottom > 0:
+        # Create black canvas
+        canvas = Image.new('RGB', (square_size, square_size), (0, 0, 0))
+        
+        # Calculate where to paste the cropped image
+        paste_x = pad_left
+        paste_y = pad_top
+        
+        canvas.paste(cropped, (paste_x, paste_y))
+        result = canvas
+    else:
+        result = cropped
+    
+    # Resize to final target size
+    result = result.resize((crop_size, crop_size), PILImage.Resampling.LANCZOS)
+    
+    return result
+
+def create_prompt(object_name, original_expressions, dual_image=False):
+    """Create the detailed prompt for O3."""
     formatted_expressions = "\n".join([f"- {expr}" for expr in original_expressions])
     
+    # Different intro text based on single or dual image mode
+    if dual_image:
+        intro_text = (
+            "You are an expert at creating natural language descriptions for objects and groups in aerial imagery. "
+            "Your task is to help create diverse and precise referring expressions for the target. "
+            "The target may be a single object or a group/collection of multiple objects.\n\n"
+            
+            "I am providing you with TWO images:\n"
+            "1. CONTEXT IMAGE: Full aerial scene with the target highlighted by red bounding box(es)\n"
+            "2. FOCUSED IMAGE: Close-up crop centered on the target area without bounding boxes\n\n"
+            
+            "Use BOTH images to understand the target and its context better.\n\n"
+        )
+    else:
+        intro_text = (
+            "You are an expert at creating natural language descriptions for objects and groups in aerial imagery. "
+            "Your task is to help create diverse and precise referring expressions for the target highlighted with a red bounding box. "
+            "The target may be a single object or a group/collection of multiple objects.\n\n"
+        )
+    
     system_prompt = (
-        "You are an expert at creating natural language descriptions for objects and groups in aerial imagery. "
-        "Your task is to help create diverse and precise referring expressions for the target highlighted with a red bounding box. "
-        "The target may be a single object or a group/collection of multiple objects.\n\n"
-        
+        intro_text +
         "IMPORTANT GUIDELINES:\n"
         "- If the original expressions refer to 'all', 'group of', or multiple objects, maintain this collective reference\n"
         "- If working with a group, use plural forms and consider the spatial distribution of the entire collection\n"
@@ -433,11 +584,18 @@ def create_prompt(object_name, original_expressions):
         "Write all the expressions using lowercase letters and no punctuation."
     )
     
-    user_prompt = (
-        f"Create language variations of the provided expressions while preserving spatial information, "
-        f"analyze the spatial context for uniqueness factors, and generate new unique expressions for the target "
-        "(highlighted in red)."
-    )
+    if dual_image:
+        user_prompt = (
+            f"Create language variations of the provided expressions while preserving spatial information, "
+            f"analyze the spatial context for uniqueness factors, and generate new unique expressions for the target. "
+            f"Use both the context image (with red highlighting) and the focused crop to understand the target better."
+        )
+    else:
+        user_prompt = (
+            f"Create language variations of the provided expressions while preserving spatial information, "
+            f"analyze the spatial context for uniqueness factors, and generate new unique expressions for the target "
+            "(highlighted in red)."
+        )
     
     return system_prompt, user_prompt
 
@@ -473,65 +631,29 @@ def visualize_and_save_object(image_path, bboxes, output_path):
     plt.savefig(output_path, bbox_inches='tight', pad_inches=0)
     plt.close()
 
-def setup_model_and_processor(args):
-    """Setup the model and processor with either merged model or LoRA adapter."""
-    device = f"cuda:{args.gpu}" if torch.cuda.is_available() else "cpu"
-    print(f"Using device: {device}")
-    
-    if args.use_lora:
-        print(f"Loading base model: {args.base_model}")
-        print(f"Loading LoRA adapter from: {args.lora_path}")
-        
-        # Load base model
-        model = AutoModelForImageTextToText.from_pretrained(
-            args.base_model,
-            torch_dtype=torch.bfloat16,
-            device_map="auto",
-            attn_implementation="eager"
-        )
-        
-        # Load LoRA adapter
-        model = PeftModel.from_pretrained(model, args.lora_path)
-        
-        # Load processor from base model
-        processor = AutoProcessor.from_pretrained(args.base_model)
-        
-        print("Base model and LoRA adapter loaded successfully")
-    else:
-        print(f"Loading merged fine-tuned model from: {args.model_path}")
-        
-        # Load merged model
-        model = AutoModelForImageTextToText.from_pretrained(
-            args.model_path,
-            torch_dtype=torch.bfloat16,
-            device_map="auto",
-            attn_implementation="eager"
-        )
-        
-        # Load processor from fine-tuned model path
-        processor = AutoProcessor.from_pretrained(args.model_path)
-        
-        print("Merged model loaded successfully")
-    
-    return model, processor
-
-def process_single_object(object_info, model_processor_tuple, args):
+def process_single_object(object_info, client, args):
     """Process a single object or group and return results."""
-    model, processor = model_processor_tuple
     image_path = object_info['image_path']
     obj = object_info['object_data']
     
     image_name = os.path.basename(image_path).split('.')[0]
     item_type = obj.get('type', 'object')
     
+    # Check if this is an iSAID image (starts with 'P')
+    is_isaid = image_name.startswith('P')
+    
     if item_type == 'group':
         print(f"\nProcessing group {obj['id']} (size: {obj['size']}) from image: {image_name}")
         output_dir = os.path.join(args.output_dir, f"{image_name}_group_{obj['id']}")
         viz_path = os.path.join(output_dir, f"{image_name}_group_{obj['id']}.png")
+        if is_isaid:
+            focused_path = os.path.join(output_dir, f"{image_name}_group_{obj['id']}_focused.png")
     else:
         print(f"\nProcessing object {obj['id']} from image: {image_name}")
         output_dir = os.path.join(args.output_dir, f"{image_name}_obj_{obj['id']}")
         viz_path = os.path.join(output_dir, f"{image_name}_obj_{obj['id']}.png")
+        if is_isaid:
+            focused_path = os.path.join(output_dir, f"{image_name}_obj_{obj['id']}_focused.png")
     
     os.makedirs(output_dir, exist_ok=True)
     
@@ -544,118 +666,110 @@ def process_single_object(object_info, model_processor_tuple, args):
     
     visualize_and_save_object(image_path, bboxes_to_visualize, viz_path)
     
+    # For iSAID images, also create focused crop
+    if is_isaid:
+        print(f"  Creating focused crop for iSAID image (fraction: {args.crop_fraction})...")
+        focused_crop = create_focused_crop(image_path, bboxes_to_visualize, image_fraction=args.crop_fraction)
+        focused_crop.save(focused_path)
+        print(f"  Focused crop saved to: {focused_path}")
+    
     try:
-        system_prompt, user_prompt = create_prompt(obj['category'], obj['expressions'])
+        system_prompt, user_prompt = create_prompt(obj['category'], obj['expressions'], dual_image=is_isaid)
         
-        # Create messages format that matches training
-        messages = [
-            {
-                "role": "system",
-                "content": [{"type": "text", "text": system_prompt}]
-            },
-            {
-                "role": "user",
-                "content": [
-                    {"type": "image", "url": viz_path},
-                    {"type": "text", "text": user_prompt}
-                ]
-            }
-        ]
+        # Prepare content for the API call
+        user_content = []
         
-        # Process inputs using the processor
-        inputs = processor.apply_chat_template(
-            messages,
-            tokenize=True,
-            return_dict=True,
-            return_tensors="pt",
-            add_generation_prompt=True,
-        ).to("cuda")
-        
-        # Time the generation
-        start_time = time.time()
-        with torch.no_grad():
-            output = model.generate(**inputs, max_new_tokens=1024, do_sample=True, temperature=0.8)
-        end_time = time.time()
-        
-        # Calculate metrics
-        generation_time = end_time - start_time
-        generated_content = processor.decode(output[0], skip_special_tokens=True)
-        
-        # Extract only the new content (remove the input prompt)
-        input_length = len(processor.decode(inputs['input_ids'][0], skip_special_tokens=True))
-        generated_content = generated_content[input_length:].strip()
-        
-        print(f"Generation time: {generation_time:.2f} seconds")
-        print(f"Generated content:\n{generated_content}\n")
-        
-        # Try to parse JSON response with better error handling
-        def extract_and_parse_json(content):
-            """Extract JSON from content that might be wrapped in code blocks."""
-            import re
+        # Load the main image with bounding box
+        with PILImage.open(viz_path) as img:
+            # Resize to 384x384 to save vision tokens
+            img_resized = img.resize((384, 384), PILImage.Resampling.LANCZOS)
             
-            # First try to parse as-is
-            try:
-                return json.loads(content.strip())
-            except json.JSONDecodeError:
-                pass
+            # Convert to bytes
+            img_buffer = io.BytesIO()
+            img_resized.save(img_buffer, format='PNG')
+            image_data = base64.b64encode(img_buffer.getvalue()).decode('utf-8')
             
-            # Try to extract JSON from markdown code blocks
-            json_patterns = [
-                r'```json\s*(.*?)\s*```',  # ```json ... ```
-                r'```\s*(.*?)\s*```',      # ``` ... ```
-                r'`(.*?)`',                # `...`
-            ]
-            
-            for pattern in json_patterns:
-                matches = re.findall(pattern, content, re.DOTALL)
-                for match in matches:
-                    try:
-                        return json.loads(match.strip())
-                    except json.JSONDecodeError:
-                        continue
-            
-            # Try to find JSON-like content (starts with { and ends with })
-            json_match = re.search(r'\{.*\}', content, re.DOTALL)
-            if json_match:
-                try:
-                    return json.loads(json_match.group().strip())
-                except json.JSONDecodeError:
-                    pass
-            
-            # If all else fails, return None
-            return None
+            user_content.append({
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/png;base64,{image_data}"
+                }
+            })
         
+        # For iSAID images, also include the focused crop
+        if is_isaid:
+            with PILImage.open(focused_path) as focused_img:
+                # Convert focused image to bytes (already 384x384)
+                focused_buffer = io.BytesIO()
+                focused_img.save(focused_buffer, format='PNG')
+                focused_data = base64.b64encode(focused_buffer.getvalue()).decode('utf-8')
+                
+                user_content.append({
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/png;base64,{focused_data}"
+                    }
+                })
+        
+        # Add text prompt
+        user_content.append({
+            "type": "text",
+            "text": user_prompt
+        })
+        
+        # Use OpenAI O3 model
+        completion = client.chat.completions.create(
+            model="o3",
+            temperature=1.0,
+            messages=[
+                {
+                    "role": "system",
+                    "content": system_prompt
+                },
+                {
+                    "role": "user", 
+                    "content": user_content
+                },
+            ],
+            response_format=ENHANCEMENT_RESPONSE_SCHEMA,
+            reasoning_effort="low",
+        )
+        
+        # Get the response content (should be valid JSON with schema)
+        response_content = completion.choices[0].message.content
+        print(f"Full raw response:\n{response_content}\n")
+        
+        # Parse JSON response
         try:
-            enhanced_data = extract_and_parse_json(generated_content)
-            if enhanced_data is None:
-                raise json.JSONDecodeError("Could not extract valid JSON", generated_content, 0)
-            success = True
-        except json.JSONDecodeError as e:
+            enhanced_data_dict = json.loads(response_content)
+            
+            # Create EnhancementResponse object from parsed data
+            enhanced_data = EnhancementResponse(**enhanced_data_dict)
+                
+        except (json.JSONDecodeError, ValueError) as e:
             print(f"JSON parsing error: {e}")
-            print(f"Raw generated content:\n{generated_content[:500]}...")
-            enhanced_data = {
-                "enhanced_expressions": [],
-                "unique_description": f"Parsing error: {e}",
-                "unique_expressions": []
-            }
-            success = False
+            enhanced_data = EnhancementResponse(
+                enhanced_expressions=[],
+                unique_description=f"Parsing error: {e}",
+                unique_expressions=[]
+            )
+
+        print(enhanced_data)
         
-        if success:
-            if item_type == 'group':
-                print(f"Successfully enhanced group {obj['id']} ({obj['category']}, size: {obj['size']})")
-            else:
-                print(f"Successfully enhanced object {obj['id']} ({obj['category']})")
-            if 'enhanced_expressions' in enhanced_data:
-                print(f"Generated {len(enhanced_data['enhanced_expressions'])} enhanced expression groups")
-            if 'unique_expressions' in enhanced_data:
-                print(f"Generated {len(enhanced_data['unique_expressions'])} unique expressions")
+        if item_type == 'group':
+            print(f"Successfully enhanced group {obj['id']} ({obj['category']}, size: {obj['size']})")
+        else:
+            print(f"Successfully enhanced object {obj['id']} ({obj['category']})")
+        print(f"Used {'dual image' if is_isaid else 'single image'} mode")
+        print(f"Generated {len(enhanced_data.enhanced_expressions)} enhanced expression groups")
+        print(f"Generated {len(enhanced_data.unique_expressions)} unique expressions")
             
     except Exception as e:
-        enhanced_data = {
-            "enhanced_expressions": [],
-            "unique_description": f"Processing error: {e}",
-            "unique_expressions": []
-        }
+        enhanced_data = EnhancementResponse(
+            enhanced_expressions=[],
+            unique_description=f"Processing error: {e}",
+            unique_expressions=[]
+        )
         print(f"Error processing object {obj['id']}: {e}")
     
     result = {
@@ -664,7 +778,9 @@ def process_single_object(object_info, model_processor_tuple, args):
         "item_type": item_type,
         "category": obj['category'],
         "original_expressions": obj['expressions'],
-        "enhanced_data": enhanced_data
+        "enhanced_data": enhanced_data.model_dump() if hasattr(enhanced_data, 'model_dump') else enhanced_data.__dict__,
+        "processing_mode": "dual_image" if is_isaid else "single_image",
+        "is_isaid": is_isaid
     }
     
     # Add type-specific information
@@ -689,6 +805,16 @@ def main():
     """Main function."""
     args = parse_arguments()
     
+    # Initialize OpenAI client for O3
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY not found in environment variables. Please add it to your .env file.")
+    
+    client = OpenAI(
+        api_key=api_key,
+        base_url="https://api.openai.com/v1",
+    )
+    
     # Clean output directory if requested
     if args.clean and os.path.exists(args.output_dir):
         print(f"Cleaning output directory: {args.output_dir}")
@@ -707,9 +833,6 @@ def main():
         print(f"Dataset filter: {dataset_mapping[args.dataset_filter]}")
     else:
         print("Dataset filter: None (all datasets)")
-    
-    # Setup model and processor
-    model_processor_tuple = setup_model_and_processor(args)
     
     # Get objects and groups to process
     if args.specific_file:
@@ -751,6 +874,8 @@ def main():
         return
     
     print(f"Processing {len(objects_to_process)} object(s)...")
+    print(f"Note: iSAID images (P* prefix) will use dual image mode with focused crops")
+    print(f"Crop fraction for focused images: {args.crop_fraction} ({args.crop_fraction*100:.0f}% of original image)")
     
     successful_processes = 0
     for i, object_info in enumerate(objects_to_process, 1):
@@ -759,7 +884,7 @@ def main():
         print(f"{'='*50}")
         
         try:
-            result = process_single_object(object_info, model_processor_tuple, args)
+            result = process_single_object(object_info, client, args)
             if result:
                 successful_processes += 1
         except Exception as e:
