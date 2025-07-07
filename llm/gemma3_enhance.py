@@ -120,7 +120,7 @@ def parse_arguments():
                         help='Base model to use when loading LoRA adapter')
     parser.add_argument('--lora_path', type=str, default='./gemma-aerial-referring-12b-lora',
                         help='Path to LoRA adapter weights')
-    parser.add_argument('--output_dir', type=str, default='./enhanced_gemma_annotations',
+    parser.add_argument('--output_dir', type=str, default='./enhanced_gemma_annotations_dual',
                         help='Directory to save enhanced annotations')
     parser.add_argument('--random_seed', type=int, default=42,
                         help='Random seed for reproducibility')
@@ -133,6 +133,8 @@ def parse_arguments():
     parser.add_argument('--gpu', type=int, default=0, help='GPU ID to use')
     parser.add_argument('--dataset_filter', type=str, choices=['deepglobe', 'isaid', 'loveda'], default=None,
                         help='Filter samples by source dataset: deepglobe (D*), isaid (P*), loveda (L*)')
+    parser.add_argument('--crop_fraction', type=float, default=0.5,
+                        help='Fraction of original image size to use for focused crop (default: 0.5 for half image)')
     return parser.parse_args()
 
 def get_random_files(args, max_files=100):
@@ -364,21 +366,47 @@ def parse_annotations(annotation_path):
         'groups': groups
     }
 
-def create_prompt(object_name, original_expressions):
-    """Create the detailed prompt for Gemma 3."""
+def create_prompt(object_name, original_expressions, image_mode="bbox_dual"):
+    """Create the detailed prompt for Gemma 3 with dual image support."""
     formatted_expressions = "\n".join([f"- {expr}" for expr in original_expressions])
     
+    # Different intro text based on image mode
+    if image_mode == "mask_dual":
+        intro_text = (
+            "You are an expert at creating natural language descriptions for objects and groups in aerial imagery. "
+            "Your task is to help create diverse and precise referring expressions for the target. "
+            "The target is a group/collection of multiple objects with semantic segmentation.\n\n"
+            
+            "I am providing you with TWO images:\n"
+            "1. MASK IMAGE: Full aerial scene with the target region highlighted by a red mask overlay\n"
+            "2. CLEAN IMAGE: The same full aerial scene without any highlighting\n\n"
+            
+            "IMPORTANT: The red highlighting in the first image indicates the target area, but does NOT mean the objects are actually red in color. "
+            "Look at the clean image (second image) to understand the true appearance and colors of the target objects.\n\n"
+            
+            "Use BOTH images to understand the target and its context better.\n\n"
+        )
+    else:  # bbox_dual mode
+        intro_text = (
+            "You are an expert at creating natural language descriptions for objects and groups in aerial imagery. "
+            "Your task is to help create diverse and precise referring expressions for the target. "
+            "The target may be a single object or a group/collection of multiple objects.\n\n"
+            
+            "I am providing you with TWO images:\n"
+            "1. CONTEXT IMAGE: Full aerial scene with the target highlighted by red bounding box(es)\n"
+            "2. FOCUSED IMAGE: Close-up crop centered on the target area without bounding boxes\n\n"
+            
+            "Use BOTH images to understand the target and its context better.\n\n"
+        )
+    
     system_prompt = (
-        "You are an expert at creating natural language descriptions for objects and groups in aerial imagery. "
-        "Your task is to help create diverse and precise referring expressions for the target highlighted with a red bounding box. "
-        "The target may be a single object or a group/collection of multiple objects.\n\n"
-        
+        intro_text +
         "IMPORTANT GUIDELINES:\n"
         "- If the original expressions refer to 'all', 'group of', or multiple objects, maintain this collective reference\n"
         "- If working with a group, use plural forms and consider the spatial distribution of the entire collection\n"
         "- If working with a single object, focus on that specific instance\n"
         "- Always preserve the scope and meaning of the original expressions\n"
-        "- NEVER reference red boxes or markings in your expressions\n\n"
+        "- NEVER reference red boxes, masks, or markings in your expressions\n\n"
         
         "You have three tasks:\n\n"
         
@@ -435,8 +463,8 @@ def create_prompt(object_name, original_expressions):
     
     user_prompt = (
         f"Create language variations of the provided expressions while preserving spatial information, "
-        f"analyze the spatial context for uniqueness factors, and generate new unique expressions for the target "
-        "(highlighted in red)."
+        f"analyze the spatial context for uniqueness factors, and generate new unique expressions for this {object_name}. "
+        f"Use both images to understand the target better."
     )
     
     return system_prompt, user_prompt
@@ -515,6 +543,119 @@ def setup_model_and_processor(args):
     
     return model, processor
 
+def compute_centroid_from_bboxes(bboxes):
+    """Compute centroid from a list of bounding boxes or a single bbox."""
+    if isinstance(bboxes, dict):
+        # Single bbox
+        center_x = (bboxes['xmin'] + bboxes['xmax']) / 2
+        center_y = (bboxes['ymin'] + bboxes['ymax']) / 2
+        return center_x, center_y
+    elif isinstance(bboxes, list):
+        # Multiple bboxes - compute center of all bbox centers
+        total_x = 0
+        total_y = 0
+        for bbox in bboxes:
+            center_x = (bbox['xmin'] + bbox['xmax']) / 2
+            center_y = (bbox['ymin'] + bbox['ymax']) / 2
+            total_x += center_x
+            total_y += center_y
+        return total_x / len(bboxes), total_y / len(bboxes)
+    else:
+        raise ValueError("bboxes must be a dict or list of dicts")
+
+def create_focused_crop(image_path, bboxes, crop_size=384, image_fraction=0.5):
+    """Create a focused square crop around the target area with black padding if needed."""
+    img = Image.open(image_path)
+    img_width, img_height = img.size
+    
+    # Compute centroid
+    center_x, center_y = compute_centroid_from_bboxes(bboxes)
+    
+    # Use a fixed fraction of the original image size
+    # Make it square by using the smaller dimension to ensure we don't exceed image bounds
+    min_dimension = min(img_width, img_height)
+    target_size = min_dimension * image_fraction
+    
+    # Compute crop coordinates centered on the centroid
+    half_size = target_size / 2
+    crop_left = int(center_x - half_size)
+    crop_right = int(center_x + half_size)
+    crop_top = int(center_y - half_size)
+    crop_bottom = int(center_y + half_size)
+    
+    # Handle cases where crop goes outside image boundaries
+    # Calculate how much padding we need on each side
+    pad_left = max(0, -crop_left)
+    pad_right = max(0, crop_right - img_width)
+    pad_top = max(0, -crop_top)
+    pad_bottom = max(0, crop_bottom - img_height)
+    
+    # Adjust crop coordinates to stay within image bounds
+    crop_left = max(0, crop_left)
+    crop_right = min(img_width, crop_right)
+    crop_top = max(0, crop_top)
+    crop_bottom = min(img_height, crop_bottom)
+    
+    # Extract the crop
+    cropped = img.crop((crop_left, crop_top, crop_right, crop_bottom))
+    
+    # Create a square canvas with black background
+    square_size = int(target_size)
+    if pad_left > 0 or pad_right > 0 or pad_top > 0 or pad_bottom > 0:
+        # Create black canvas
+        canvas = Image.new('RGB', (square_size, square_size), (0, 0, 0))
+        
+        # Calculate where to paste the cropped image
+        paste_x = pad_left
+        paste_y = pad_top
+        
+        canvas.paste(cropped, (paste_x, paste_y))
+        result = canvas
+    else:
+        result = cropped
+    
+    # Resize to final target size
+    result = result.resize((crop_size, crop_size), Image.Resampling.LANCZOS)
+    
+    return result
+
+def create_mask_overlay(image_path, segmentation_str, output_path, mask_color=(255, 0, 0), mask_alpha=0.3):
+    """Create an image with red mask overlay from RLE segmentation data."""
+    # Load the original image
+    img = Image.open(image_path).convert('RGB')
+    img_width, img_height = img.size
+    
+    # Decode the RLE mask
+    mask = decode_rle_and_get_mask(segmentation_str)
+    if mask is None:
+        print(f"Error: Could not decode segmentation mask for {image_path}")
+        # Fallback: save original image
+        img.save(output_path)
+        return
+    
+    # Convert mask to numpy array and ensure it's binary
+    mask_array = np.array(mask, dtype=bool)
+    
+    # Create a colored mask overlay
+    mask_overlay = np.zeros((img_height, img_width, 3), dtype=np.uint8)
+    mask_overlay[mask_array] = mask_color
+    
+    # Convert images to numpy arrays
+    img_array = np.array(img)
+    
+    # Blend the original image with the mask overlay
+    # Only apply overlay where mask is True
+    blended = img_array.copy()
+    for c in range(3):  # RGB channels
+        blended[mask_array, c] = (
+            (1 - mask_alpha) * img_array[mask_array, c] + 
+            mask_alpha * mask_overlay[mask_array, c]
+        ).astype(np.uint8)
+    
+    # Convert back to PIL Image and save
+    result_img = Image.fromarray(blended)
+    result_img.save(output_path)
+
 def process_single_object(object_info, model_processor_tuple, args):
     """Process a single object or group and return results."""
     model, processor = model_processor_tuple
@@ -524,28 +665,81 @@ def process_single_object(object_info, model_processor_tuple, args):
     image_name = os.path.basename(image_path).split('.')[0]
     item_type = obj.get('type', 'object')
     
+    # Determine processing mode based on dataset and item type
+    if image_name.startswith('D'):  # DeepGlobe - only has groups
+        mode = 'mask_dual'
+        mode_desc = 'DeepGlobe group with mask overlay'
+    elif image_name.startswith('L'):  # LoveDA
+        if item_type == 'group':
+            mode = 'mask_dual'
+            mode_desc = 'LoveDA group with mask overlay'
+        else:
+            mode = 'bbox_dual'
+            mode_desc = 'LoveDA instance with bbox and focused crop'
+    elif image_name.startswith('P'):  # iSAID
+        mode = 'bbox_dual'
+        mode_desc = 'iSAID with bbox and focused crop'
+    else:
+        mode = 'bbox_dual'
+        mode_desc = 'Unknown dataset - using bbox and focused crop'
+    
     if item_type == 'group':
         print(f"\nProcessing group {obj['id']} (size: {obj['size']}) from image: {image_name}")
         output_dir = os.path.join(args.output_dir, f"{image_name}_group_{obj['id']}")
-        viz_path = os.path.join(output_dir, f"{image_name}_group_{obj['id']}.png")
     else:
         print(f"\nProcessing object {obj['id']} from image: {image_name}")
         output_dir = os.path.join(args.output_dir, f"{image_name}_obj_{obj['id']}")
-        viz_path = os.path.join(output_dir, f"{image_name}_obj_{obj['id']}.png")
     
     os.makedirs(output_dir, exist_ok=True)
+    print(f"  Using {mode_desc}")
     
-    # Create visualization with bounding box(es)
-    if item_type == 'group':
-        bboxes_to_visualize = obj['bboxes']
-        print(f"  Drawing {len(bboxes_to_visualize)} individual bounding boxes for group")
-    else:
-        bboxes_to_visualize = obj['bbox']
-    
-    visualize_and_save_object(image_path, bboxes_to_visualize, viz_path)
+    # Set up paths for images
+    if mode == 'mask_dual':
+        # For mask overlay mode (DeepGlobe and LoveDA groups)
+        mask_path = os.path.join(output_dir, f"{image_name}_mask.png")
+        clean_path = os.path.join(output_dir, f"{image_name}_clean.png")
+        
+        # Create mask overlay
+        if 'segmentation' not in obj:
+            print("Error: No segmentation data found for mask overlay mode")
+            return None
+        
+        # Save clean image first (just a copy)
+        shutil.copy2(image_path, clean_path)
+        
+        # Create and save mask overlay
+        create_mask_overlay(image_path, obj['segmentation'], mask_path)
+        print("  Created mask overlay and clean images")
+        
+        main_image_path = mask_path  # First image will be the mask overlay
+        second_image_path = clean_path  # Second image will be the clean version
+        
+    else:  # bbox_dual mode
+        # For bbox mode (iSAID and LoveDA instances)
+        bbox_path = os.path.join(output_dir, f"{image_name}_bbox.png")
+        focused_path = os.path.join(output_dir, f"{image_name}_focused.png")
+        
+        # Create visualization with bounding box(es)
+        if item_type == 'group':
+            bboxes_to_visualize = obj['bboxes']
+            print(f"  Drawing {len(bboxes_to_visualize)} individual bounding boxes for group")
+        else:
+            bboxes_to_visualize = obj['bbox']
+        
+        visualize_and_save_object(image_path, bboxes_to_visualize, bbox_path)
+        
+        # Create focused crop
+        print(f"  Creating focused crop (fraction: {args.crop_fraction})...")
+        focused_crop = create_focused_crop(image_path, bboxes_to_visualize, image_fraction=args.crop_fraction)
+        focused_crop.save(focused_path)
+        print(f"  Focused crop saved to: {focused_path}")
+        
+        main_image_path = bbox_path  # First image will be the bbox visualization
+        second_image_path = focused_path  # Second image will be the focused crop
     
     try:
-        system_prompt, user_prompt = create_prompt(obj['category'], obj['expressions'])
+        # Create prompts with mode-specific text
+        system_prompt, user_prompt = create_prompt(obj['category'], obj['expressions'], image_mode=mode)
         
         # Create messages format that matches training
         messages = [
@@ -556,7 +750,8 @@ def process_single_object(object_info, model_processor_tuple, args):
             {
                 "role": "user",
                 "content": [
-                    {"type": "image", "url": viz_path},
+                    {"type": "image", "url": main_image_path},
+                    {"type": "image", "url": second_image_path},
                     {"type": "text", "text": user_prompt}
                 ]
             }
@@ -645,6 +840,7 @@ def process_single_object(object_info, model_processor_tuple, args):
                 print(f"Successfully enhanced group {obj['id']} ({obj['category']}, size: {obj['size']})")
             else:
                 print(f"Successfully enhanced object {obj['id']} ({obj['category']})")
+            print(f"Used {mode} mode ({mode_desc})")
             if 'enhanced_expressions' in enhanced_data:
                 print(f"Generated {len(enhanced_data['enhanced_expressions'])} enhanced expression groups")
             if 'unique_expressions' in enhanced_data:
@@ -664,7 +860,9 @@ def process_single_object(object_info, model_processor_tuple, args):
         "item_type": item_type,
         "category": obj['category'],
         "original_expressions": obj['expressions'],
-        "enhanced_data": enhanced_data
+        "enhanced_data": enhanced_data,
+        "processing_mode": mode,
+        "processing_description": mode_desc
     }
     
     # Add type-specific information

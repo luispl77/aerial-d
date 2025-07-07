@@ -11,7 +11,7 @@ import json
 import glob
 from datasets import Dataset
 from PIL import Image
-from transformers import AutoProcessor, AutoModelForImageTextToText
+from transformers import AutoProcessor, AutoModelForImageTextToText, BitsAndBytesConfig
 from peft import LoraConfig, PeftModel
 from trl import SFTConfig, SFTTrainer
 from huggingface_hub import login
@@ -20,16 +20,16 @@ from huggingface_hub import login
 import sys
 
 # Mock bitsandbytes before importing peft to prevent the import error
-class MockBNB:
-    def __getattr__(self, name):
-        return MockBNB()
-    def __call__(self, *args, **kwargs):
-        return MockBNB()
+# class MockBNB:
+#     def __getattr__(self, name):
+#         return MockBNB()
+#     def __call__(self, *args, **kwargs):
+#         return MockBNB()
 
 # Replace bitsandbytes module in sys.modules before importing peft
-sys.modules['bitsandbytes'] = MockBNB()
-sys.modules['bitsandbytes.nn'] = MockBNB()
-sys.modules['bitsandbytes.nn.modules'] = MockBNB()
+# sys.modules['bitsandbytes'] = MockBNB()
+# sys.modules['bitsandbytes.nn'] = MockBNB()
+# sys.modules['bitsandbytes.nn.modules'] = MockBNB()
 
 # Constants that match o3_enhance.py
 NUM_ENHANCED = 1  # Number of enhanced expressions per original
@@ -53,7 +53,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Fine-tune Gemma 3 model (4b or 12b) for aerial referring expressions with LoRA')
     parser.add_argument('--model_id', type=str, default="google/gemma-3-12b-it",
                        help='Hugging Face model ID')
-    parser.add_argument('--enhanced_dir', type=str, default="./enhanced_annotations_o3",
+    parser.add_argument('--enhanced_dir', type=str, default="./enhanced_annotations_o3_dual",
                        help='Directory containing enhanced annotations')
     
     # Parse known args first to get model_id
@@ -94,72 +94,8 @@ def setup_device_and_login(args):
     return device
 
 def load_enhanced_dataset(enhanced_dir):
-    """Load and prepare the enhanced aerial dataset"""
+    """Load and prepare the enhanced aerial dataset with dual images"""
     print("Loading enhanced aerial dataset...")
-    
-    # System message that exactly matches o3_enhance.py
-    system_message = (
-        "You are an expert at creating natural language descriptions for objects and groups in aerial imagery. "
-        "Your task is to help create diverse and precise referring expressions for the target highlighted with a red bounding box. "
-        "The target may be a single object or a group/collection of multiple objects.\n\n"
-        
-        "IMPORTANT GUIDELINES:\n"
-        "- If the original expressions refer to 'all', 'group of', or multiple objects, maintain this collective reference\n"
-        "- If working with a group, use plural forms and consider the spatial distribution of the entire collection\n"
-        "- If working with a single object, focus on that specific instance\n"
-        "- Always preserve the scope and meaning of the original expressions\n"
-        "- NEVER reference red boxes or markings in your expressions\n\n"
-        
-        "You have three tasks:\n\n"
-        
-        f"TASK 1: For each original expression listed below, create EXACTLY {NUM_ENHANCED} language variation that:\n"
-        "1. MUST PRESERVE ALL SPATIAL INFORMATION from the original expression:\n"
-        "   - Absolute positions (e.g., \"in the top right\", \"near the center\")\n"
-        "   - Relative positions (e.g., \"to the right of\", \"below\")\n"
-        "   - Collective scope (e.g., \"all\", \"group of\", individual references)\n"
-        "2. Use natural, everyday language that a regular person would use\n"
-        "   - Avoid overly formal or technical vocabulary\n"
-        "   - Use common synonyms (e.g., \"car\" instead of \"automobile\")\n"
-        "   - Keep the tone conversational and straightforward\n"
-        "3. Ensure the variation uniquely identifies the target to avoid ambiguity\n"
-        "4. Maintain the same scope as the original (single object vs. group/collection)\n\n"
-        
-        "TASK 2: Analyze the target's context and uniqueness factors:\n"
-        "1. Examine the immediate surroundings of the target\n"
-        "2. Identify distinctive features that could be used to uniquely identify the target:\n"
-        "   - Nearby objects and their relationships\n"
-        "   - Visual characteristics that distinguish it from similar objects\n"
-        "   - Environmental context (roads, buildings, terrain) that provide reference points\n"
-        "   - For groups: spatial distribution and arrangement patterns\n"
-        "3. Consider how the original automated expressions could be improved\n"
-        "4. Focus on features that would help someone locate this specific target without ambiguity\n\n"
-        
-        f"TASK 3: Generate EXACTLY {NUM_UNIQUE} new expressions that:\n"
-        "1. MUST be based on one of the original expressions or their variations\n"
-        "2. Add visual details ONLY when you are highly confident about them\n"
-        "3. Each expression must uniquely identify the target\n"
-        "4. Focus on describing the target's relationship with its immediate surroundings\n"
-        "5. Maintain the core spatial information from the original expression\n"
-        "6. Preserve the same scope as the original (individual vs. collective reference)\n\n"
-        
-        "You must return your output in the following JSON format:\n"
-        "{\n"
-        "  \"enhanced_expressions\": [\n"
-        "    {\n"
-        "      \"original_expression\": \"<original expression>\",\n"
-        "      \"variation\": \"<single language variation>\"\n"
-        "    },\n"
-        "    ...\n"
-        "  ],\n"
-        "  \"unique_description\": \"<detailed analysis of spatial context and uniqueness factors>\",\n"
-        "  \"unique_expressions\": [\n"
-        "    \"<new expression based on original 1>\",\n"
-        "    \"<new expression based on original 2>\"\n"
-        "  ]\n"
-        "}\n"
-        "Only return the JSON object, no other text or comments.\n"
-        "Write all the expressions using lowercase letters and no punctuation."
-    )
     
     # Find all enhanced annotation files
     json_files = glob.glob(os.path.join(enhanced_dir, "*", "enhanced_expressions.json"))
@@ -173,28 +109,128 @@ def load_enhanced_dataset(enhanced_dir):
             with open(json_file, 'r') as f:
                 data = json.load(f)
             
-            # Find corresponding image file
+            # Find both images in the object directory
             obj_dir = os.path.dirname(json_file)
-            image_files = glob.glob(os.path.join(obj_dir, "*.png"))
-            if not image_files:
-                print(f"Warning: No image found for {json_file}")
-                continue
             
-            image_path = image_files[0]
+            # Get processing mode from the data
+            mode = data.get('processing_mode', 'bbox_dual')  # Default to bbox_dual if not specified
             
-            # Create user prompt that includes the original expressions
+            if mode == 'mask_dual':
+                # For mask overlay mode, look for mask and clean images
+                mask_path = glob.glob(os.path.join(obj_dir, "*_mask.png"))[0]
+                clean_path = glob.glob(os.path.join(obj_dir, "*_clean.png"))[0]
+                main_image_path = mask_path
+                second_image_path = clean_path
+                
+                # Adjust intro text for mask dual mode
+                intro_text = (
+                    "You are an expert at creating natural language descriptions for objects and groups in aerial imagery. "
+                    "Your task is to help create diverse and precise referring expressions for the target. "
+                    "The target is a group/collection of multiple objects with semantic segmentation.\n\n"
+                    
+                    "I am providing you with TWO images:\n"
+                    "1. MASK IMAGE: Full aerial scene with the target region highlighted by a red mask overlay\n"
+                    "2. CLEAN IMAGE: The same full aerial scene without any highlighting\n\n"
+                    
+                    "IMPORTANT: The red highlighting in the first image indicates the target area, but does NOT mean the objects are actually red in color. "
+                    "Look at the clean image (second image) to understand the true appearance and colors of the target objects.\n\n"
+                    
+                    "Use BOTH images to understand the target and its context better.\n\n"
+                )
+            else:  # bbox_dual mode
+                # For bbox mode, look for bbox and focused images
+                bbox_path = glob.glob(os.path.join(obj_dir, "*_bbox.png"))[0]
+                focused_path = glob.glob(os.path.join(obj_dir, "*_focused.png"))[0]
+                main_image_path = bbox_path
+                second_image_path = focused_path
+                
+                # Adjust intro text for bbox dual mode
+                intro_text = (
+                    "You are an expert at creating natural language descriptions for objects and groups in aerial imagery. "
+                    "Your task is to help create diverse and precise referring expressions for the target. "
+                    "The target may be a single object or a group/collection of multiple objects.\n\n"
+                    
+                    "I am providing you with TWO images:\n"
+                    "1. CONTEXT IMAGE: Full aerial scene with the target highlighted by red bounding box(es)\n"
+                    "2. FOCUSED IMAGE: Close-up crop centered on the target area without bounding boxes\n\n"
+                    
+                    "Use BOTH images to understand the target and its context better.\n\n"
+                )
+            
+            # Create system message with mode-specific intro
+            system_message = (
+                intro_text +
+                "IMPORTANT GUIDELINES:\n"
+                "- If the original expressions refer to 'all', 'group of', or multiple objects, maintain this collective reference\n"
+                "- If working with a group, use plural forms and consider the spatial distribution of the entire collection\n"
+                "- If working with a single object, focus on that specific instance\n"
+                "- Always preserve the scope and meaning of the original expressions\n"
+                "- NEVER reference red boxes, masks, or markings in your expressions\n\n"
+                
+                "You have three tasks:\n\n"
+                
+                f"TASK 1: For each original expression listed below, create EXACTLY {NUM_ENHANCED} language variation that:\n"
+                "1. MUST PRESERVE ALL SPATIAL INFORMATION from the original expression:\n"
+                "   - Absolute positions (e.g., \"in the top right\", \"near the center\")\n"
+                "   - Relative positions (e.g., \"to the right of\", \"below\")\n"
+                "   - Collective scope (e.g., \"all\", \"group of\", individual references)\n"
+                "2. Use natural, everyday language that a regular person would use\n"
+                "   - Avoid overly formal or technical vocabulary\n"
+                "   - Use common synonyms (e.g., \"car\" instead of \"automobile\")\n"
+                "   - Keep the tone conversational and straightforward\n"
+                "3. Ensure the variation uniquely identifies the target to avoid ambiguity\n"
+                "4. Maintain the same scope as the original (single object vs. group/collection)\n\n"
+                
+                "TASK 2: Analyze the target's context and uniqueness factors:\n"
+                "1. Examine the immediate surroundings of the target\n"
+                "2. Identify distinctive features that could be used to uniquely identify the target:\n"
+                "   - Nearby objects and their relationships\n"
+                "   - Visual characteristics that distinguish it from similar objects\n"
+                "   - Environmental context (roads, buildings, terrain) that provide reference points\n"
+                "   - For groups: spatial distribution and arrangement patterns\n"
+                "3. Consider how the original automated expressions could be improved\n"
+                "4. Focus on features that would help someone locate this specific target without ambiguity\n\n"
+                
+                f"TASK 3: Generate EXACTLY {NUM_UNIQUE} new expressions that:\n"
+                "1. MUST be based on one of the original expressions or their variations\n"
+                "2. Add visual details ONLY when you are highly confident about them\n"
+                "3. Each expression must uniquely identify the target\n"
+                "4. Focus on describing the target's relationship with its immediate surroundings\n"
+                "5. Maintain the core spatial information from the original expression\n"
+                "6. Preserve the same scope as the original (individual vs. collective reference)\n\n"
+                
+                "You must return your output in the following JSON format:\n"
+                "{\n"
+                "  \"enhanced_expressions\": [\n"
+                "    {\n"
+                "      \"original_expression\": \"<original expression>\",\n"
+                "      \"variation\": \"<single language variation>\"\n"
+                "    },\n"
+                "    ...\n"
+                "  ],\n"
+                "  \"unique_description\": \"<detailed analysis of spatial context and uniqueness factors>\",\n"
+                "  \"unique_expressions\": [\n"
+                "    \"<new expression based on original 1>\",\n"
+                "    \"<new expression based on original 2>\"\n"
+                "  ]\n"
+                "}\n"
+                "Only return the JSON object, no other text or comments.\n"
+                "Write all the expressions using lowercase letters and no punctuation."
+            )
+            
+            # Create user prompt that matches the mode
             formatted_expressions = "\n".join([f"- {expr}" for expr in data["original_expressions"]])
             user_prompt = (
                 f"Create language variations of the provided expressions while preserving spatial information, "
-                f"analyze the spatial context for uniqueness factors, and generate new unique expressions for this {data['category']} "
-                "(highlighted in red).\n\n"
+                f"analyze the spatial context for uniqueness factors, and generate new unique expressions for this {data['category']}. "
+                f"Use both images to understand the target better.\n\n"
                 f"ORIGINAL EXPRESSIONS TO ENHANCE:\n{formatted_expressions}"
             )
             
             # Create the expected response JSON
             response_json = json.dumps(data["enhanced_data"], indent=2)
             
-            # Convert to messages format
+            # Convert to messages format with both images
             sample = {
                 "messages": [
                     {
@@ -206,7 +242,11 @@ def load_enhanced_dataset(enhanced_dir):
                         "content": [
                             {
                                 "type": "image",
-                                "image": Image.open(image_path).convert("RGB"),
+                                "image": Image.open(main_image_path).convert("RGB"),
+                            },
+                            {
+                                "type": "image",
+                                "image": Image.open(second_image_path).convert("RGB"),
                             },
                             {
                                 "type": "text",
@@ -233,9 +273,9 @@ def load_enhanced_dataset(enhanced_dir):
         print("System message preview:")
         print(formatted_dataset[0]["messages"][0]["content"][0]["text"][:200] + "...")
         print("\nUser prompt preview:")
-        print(formatted_dataset[0]["messages"][1]["content"][1]["text"][:200] + "...")
+        print(formatted_dataset[0]["messages"][1]["content"][2]["text"][:200] + "...")
     
-    return formatted_dataset, system_message
+    return formatted_dataset
 
 def process_vision_info(messages):
     """Process vision information from messages"""
@@ -271,6 +311,15 @@ def setup_model_and_processor(args, device):
         device_map=f"cuda:{args.gpu}",  # Explicit device mapping to avoid auto-detection issues
         low_cpu_mem_usage=True,  # Reduce CPU memory usage during loading
         trust_remote_code=True,  # Required for some models
+    )
+
+    # BitsAndBytesConfig: Enables 4-bit quantization to reduce model size/memory usage
+    model_kwargs["quantization_config"] = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_quant_type='nf4',
+        bnb_4bit_compute_dtype=model_kwargs['torch_dtype'],
+        bnb_4bit_quant_storage=model_kwargs['torch_dtype'],
     )
 
     # Load model and processor
@@ -418,8 +467,6 @@ def merge_and_save_model(args):
     
     print(f"Full model merged and saved to '{args.merged_output_dir}' directory")
 
-
-
 def main():
     args = parse_args()
     
@@ -427,7 +474,7 @@ def main():
     device = setup_device_and_login(args)
     
     # Create dataset
-    dataset, system_message = load_enhanced_dataset(args.enhanced_dir)
+    dataset = load_enhanced_dataset(args.enhanced_dir)
     
     if not dataset:
         print("No training data found!")
