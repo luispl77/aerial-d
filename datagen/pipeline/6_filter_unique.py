@@ -221,7 +221,7 @@ def clean_xml_annotations(xml_root):
     if groups_elem is not None:
         for group in groups_elem.findall('group'):
             # Remove unnecessary elements from groups
-            elements_to_remove = ['grid_position', 'instance_ids']
+            elements_to_remove = ['grid_position', 'instance_ids', 'relationships']
             for elem_name in elements_to_remove:
                 elem = group.find(elem_name)
                 if elem is not None:
@@ -231,6 +231,11 @@ def clean_xml_annotations(xml_root):
     nodes_elem = xml_root.find('nodes')
     if nodes_elem is not None and len(nodes_elem) == 0:
         xml_root.remove(nodes_elem)
+    
+    # Remove relationships element at the end of the file if it exists
+    relationships_elem = xml_root.find('relationships')
+    if relationships_elem is not None:
+        xml_root.remove(relationships_elem)
 
 def remove_objects_without_expressions(xml_root, filtered_instance_expressions, filtered_group_expressions):
     """Remove objects and groups that don't have any expressions after filtering"""

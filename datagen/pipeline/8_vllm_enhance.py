@@ -164,13 +164,13 @@ def parse_arguments():
                         help='Root path to the dataset directory')
     parser.add_argument('--server_url', type=str, default='http://localhost:8000/v1',
                         help='URL of the vLLM server (default: http://localhost:8000/v1)')
-    parser.add_argument('--model_name', type=str, default='../llm/merged_model_4b/',
+    parser.add_argument('--model_name', type=str, default='gemma-aerial-12b',
                         help='Model name to use with the server')
     parser.add_argument('--split', type=str, choices=['train', 'val', 'both'], default='both',
                         help='Which dataset split to process')
     parser.add_argument('--limit', type=int, default=None,
                         help='Limit the number of annotation files to process (for testing)')
-    parser.add_argument('--temp_dir', type=str, default='./temp',
+    parser.add_argument('--temp_dir', type=str, default='./tmp/u035679/temp_enhance_gemma_3_12b',
                         help='Temporary directory for visualization images')
     parser.add_argument('--seed', type=int, default=42,
                         help='Random seed for deterministic file ordering (default: 42)')
@@ -180,6 +180,10 @@ def parse_arguments():
                         help='Number of threads to use for processing items within each file (default: 2)')
     parser.add_argument('--dry_run', action='store_true',
                         help='Run without actually modifying the XML files')
+    parser.add_argument('--crop_fraction', type=float, default=0.5,
+                        help='Fraction of original image size to use for focused crop (default: 0.5 for half image)')
+    parser.add_argument('--cleanup', action='store_true',
+                        help='Clean up all enhanced and unique expressions from XML files before processing')
     return parser.parse_args()
 
 def decode_rle_and_get_bbox(segmentation_str):
@@ -247,21 +251,47 @@ def decode_rle_and_get_individual_bboxes(segmentation_str, min_area=10):
         print(f"Error decoding RLE segmentation for individual objects: {e}")
         return None
 
-def create_prompt(object_name, original_expressions):
-    """Create the detailed prompt for Gemma 3."""
+def create_prompt(object_name, original_expressions, image_mode="bbox_dual"):
+    """Create the detailed prompt for Gemma 3 with dual image support."""
     formatted_expressions = "\n".join([f"- {expr}" for expr in original_expressions])
     
+    # Different intro text based on image mode
+    if image_mode == "mask_dual":
+        intro_text = (
+            "You are an expert at creating natural language descriptions for objects and groups in aerial imagery. "
+            "Your task is to help create diverse and precise referring expressions for the target. "
+            "The target is a group/collection of multiple objects with semantic segmentation.\n\n"
+            
+            "I am providing you with TWO images:\n"
+            "1. MASK IMAGE: Full aerial scene with the target region highlighted by a red mask overlay\n"
+            "2. CLEAN IMAGE: The same full aerial scene without any highlighting\n\n"
+            
+            "IMPORTANT: The red highlighting in the first image indicates the target area, but does NOT mean the objects are actually red in color. "
+            "Look at the clean image (second image) to understand the true appearance and colors of the target objects.\n\n"
+            
+            "Use BOTH images to understand the target and its context better.\n\n"
+        )
+    else:  # bbox_dual mode
+        intro_text = (
+            "You are an expert at creating natural language descriptions for objects and groups in aerial imagery. "
+            "Your task is to help create diverse and precise referring expressions for the target. "
+            "The target may be a single object or a group/collection of multiple objects.\n\n"
+            
+            "I am providing you with TWO images:\n"
+            "1. CONTEXT IMAGE: Full aerial scene with the target highlighted by red bounding box(es)\n"
+            "2. FOCUSED IMAGE: Close-up crop centered on the target area without bounding boxes\n\n"
+            
+            "Use BOTH images to understand the target and its context better.\n\n"
+        )
+    
     system_prompt = (
-        "You are an expert at creating natural language descriptions for objects and groups in aerial imagery. "
-        "Your task is to help create diverse and precise referring expressions for the target highlighted with a red bounding box. "
-        "The target may be a single object or a group/collection of multiple objects.\n\n"
-        
+        intro_text +
         "IMPORTANT GUIDELINES:\n"
         "- If the original expressions refer to 'all', 'group of', or multiple objects, maintain this collective reference\n"
         "- If working with a group, use plural forms and consider the spatial distribution of the entire collection\n"
         "- If working with a single object, focus on that specific instance\n"
         "- Always preserve the scope and meaning of the original expressions\n"
-        "- NEVER reference red boxes or markings in your expressions\n\n"
+        "- NEVER reference red boxes, masks, or markings in your expressions\n\n"
         
         "You have three tasks:\n\n"
         
@@ -318,8 +348,8 @@ def create_prompt(object_name, original_expressions):
     
     user_prompt = (
         f"Create language variations of the provided expressions while preserving spatial information, "
-        f"analyze the spatial context for uniqueness factors, and generate new unique expressions for the target "
-        "(highlighted in red)."
+        f"analyze the spatial context for uniqueness factors, and generate new unique expressions for this {object_name}. "
+        f"Use both images to understand the target better."
     )
     
     return system_prompt, user_prompt
@@ -362,7 +392,62 @@ def visualize_and_save_object(image_path, bboxes, output_path):
         plt.savefig(output_path, dpi=100, bbox_inches='tight')
         plt.close(fig)
 
+def decode_rle_and_get_mask(segmentation_str):
+    """Decode RLE segmentation string to binary mask."""
+    try:
+        # Parse the segmentation string (it's a dict-like string)
+        seg_dict = eval(segmentation_str)
+        
+        # Create RLE dict in the format expected by pycocotools
+        rle = {
+            'size': seg_dict['size'],
+            'counts': seg_dict['counts'].encode('utf-8')
+        }
+        
+        # Decode RLE to binary mask
+        mask = mask_utils.decode(rle)
+        return mask
+        
+    except Exception as e:
+        print(f"Error decoding RLE segmentation to mask: {e}")
+        return None
 
+def create_mask_overlay(image_path, segmentation_str, output_path, mask_color=(255, 0, 0), mask_alpha=0.3):
+    """Create an image with red mask overlay from RLE segmentation data."""
+    # Load the original image
+    img = Image.open(image_path).convert('RGB')
+    img_width, img_height = img.size
+    
+    # Decode the RLE mask
+    mask = decode_rle_and_get_mask(segmentation_str)
+    if mask is None:
+        print(f"Error: Could not decode segmentation mask for {image_path}")
+        # Fallback: save original image
+        img.save(output_path)
+        return
+    
+    # Convert mask to numpy array and ensure it's binary
+    mask_array = np.array(mask, dtype=bool)
+    
+    # Create a colored mask overlay
+    mask_overlay = np.zeros((img_height, img_width, 3), dtype=np.uint8)
+    mask_overlay[mask_array] = mask_color
+    
+    # Convert images to numpy arrays
+    img_array = np.array(img)
+    
+    # Blend the original image with the mask overlay
+    # Only apply overlay where mask is True
+    blended = img_array.copy()
+    for c in range(3):  # RGB channels
+        blended[mask_array, c] = (
+            (1 - mask_alpha) * img_array[mask_array, c] + 
+            mask_alpha * mask_overlay[mask_array, c]
+        ).astype(np.uint8)
+    
+    # Convert back to PIL Image and save
+    result_img = Image.fromarray(blended)
+    result_img.save(output_path)
 
 def setup_openai_client(server_url):
     """Initialize OpenAI client for vLLM server."""
@@ -476,15 +561,20 @@ def parse_annotations(annotation_path):
             category = group.find('category').text if group.find('category') is not None else "unknown"
             size = group.find('size').text if group.find('size') is not None else "unknown"
             
-            # Get bboxes from segmentation
-            bboxes = []
+            # Get segmentation data
+            segmentation = None
             segmentation_elem = group.find('segmentation')
             if segmentation_elem is not None and segmentation_elem.text:
-                individual_bboxes = decode_rle_and_get_individual_bboxes(segmentation_elem.text)
+                segmentation = segmentation_elem.text
+            
+            # Get bboxes from segmentation
+            bboxes = []
+            if segmentation:
+                individual_bboxes = decode_rle_and_get_individual_bboxes(segmentation)
                 if individual_bboxes:
                     bboxes = individual_bboxes
                 else:
-                    single_bbox = decode_rle_and_get_bbox(segmentation_elem.text)
+                    single_bbox = decode_rle_and_get_bbox(segmentation)
                     if single_bbox:
                         bboxes = [single_bbox]
             
@@ -495,13 +585,14 @@ def parse_annotations(annotation_path):
                     if expr.text is not None and expr.text.strip():
                         expressions.append(expr.text.strip())
             
-            # Only process groups with bboxes and expressions
-            if bboxes and expressions:
+            # Only process groups with segmentation/bboxes and expressions
+            if segmentation and expressions:
                 items_to_process.append({
                     'element': group,
                     'id': group_id,
                     'category': category,
                     'size': size,
+                    'segmentation': segmentation,  # Add segmentation data
                     'bboxes': bboxes,
                     'expressions': expressions,
                     'type': 'group'
@@ -570,35 +661,151 @@ def add_enhanced_expressions_to_xml(item, enhanced_data):
                 expr_elem.text = unique_expr.strip()
                 expr_elem.set('type', 'unique')
 
-def process_single_item(client, item, image_path, temp_dir, model_name, max_retries=3):
+def compute_centroid_from_bboxes(bboxes):
+    """Compute centroid from a list of bounding boxes or a single bbox."""
+    if isinstance(bboxes, dict):
+        # Single bbox
+        center_x = (bboxes['xmin'] + bboxes['xmax']) / 2
+        center_y = (bboxes['ymin'] + bboxes['ymax']) / 2
+        return center_x, center_y
+    elif isinstance(bboxes, list):
+        # Multiple bboxes - compute center of all bbox centers
+        total_x = 0
+        total_y = 0
+        for bbox in bboxes:
+            center_x = (bbox['xmin'] + bbox['xmax']) / 2
+            center_y = (bbox['ymin'] + bbox['ymax']) / 2
+            total_x += center_x
+            total_y += center_y
+        return total_x / len(bboxes), total_y / len(bboxes)
+    else:
+        raise ValueError("bboxes must be a dict or list of dicts")
+
+def create_focused_crop(image_path, bboxes, crop_size=384, image_fraction=0.5):
+    """Create a focused square crop around the target area with black padding if needed."""
+    img = Image.open(image_path)
+    img_width, img_height = img.size
+    
+    # Compute centroid
+    center_x, center_y = compute_centroid_from_bboxes(bboxes)
+    
+    # Use a fixed fraction of the original image size
+    # Make it square by using the smaller dimension to ensure we don't exceed image bounds
+    min_dimension = min(img_width, img_height)
+    target_size = min_dimension * image_fraction
+    
+    # Compute crop coordinates centered on the centroid
+    half_size = target_size / 2
+    crop_left = int(center_x - half_size)
+    crop_right = int(center_x + half_size)
+    crop_top = int(center_y - half_size)
+    crop_bottom = int(center_y + half_size)
+    
+    # Handle cases where crop goes outside image boundaries
+    # Calculate how much padding we need on each side
+    pad_left = max(0, -crop_left)
+    pad_right = max(0, crop_right - img_width)
+    pad_top = max(0, -crop_top)
+    pad_bottom = max(0, crop_bottom - img_height)
+    
+    # Adjust crop coordinates to stay within image bounds
+    crop_left = max(0, crop_left)
+    crop_right = min(img_width, crop_right)
+    crop_top = max(0, crop_top)
+    crop_bottom = min(img_height, crop_bottom)
+    
+    # Extract the crop
+    cropped = img.crop((crop_left, crop_top, crop_right, crop_bottom))
+    
+    # Create a square canvas with black background
+    square_size = int(target_size)
+    if pad_left > 0 or pad_right > 0 or pad_top > 0 or pad_bottom > 0:
+        # Create black canvas
+        canvas = Image.new('RGB', (square_size, square_size), (0, 0, 0))
+        
+        # Calculate where to paste the cropped image
+        paste_x = pad_left
+        paste_y = pad_top
+        
+        canvas.paste(cropped, (paste_x, paste_y))
+        result = canvas
+    else:
+        result = cropped
+    
+    # Resize to final target size
+    result = result.resize((crop_size, crop_size), Image.Resampling.LANCZOS)
+    
+    return result
+
+def process_single_item(client, item, image_path, temp_dir, model_name, crop_fraction=0.5, max_retries=3):
     """Process a single item with OpenAI client."""
     viz_path = None
+    second_image_path = None
     
     try:
-        # Create temporary visualization
-        viz_filename = f"temp_viz_{item['id']}_{item['type']}_{time.time()}.png"
-        viz_path = os.path.join(temp_dir, viz_filename)
-        
-        # Create visualization with bounding box(es)
-        if item['type'] == 'group':
-            bboxes_to_visualize = item['bboxes']
+        # Determine processing mode based on dataset and item type
+        image_name = os.path.basename(image_path).split('.')[0]
+        if image_name.startswith('D'):  # DeepGlobe - only has groups
+            mode = 'mask_dual'
+            mode_desc = 'DeepGlobe group with mask overlay'
+        elif image_name.startswith('L'):  # LoveDA
+            if item['type'] == 'group':
+                mode = 'mask_dual'
+                mode_desc = 'LoveDA group with mask overlay'
+            else:
+                mode = 'bbox_dual'
+                mode_desc = 'LoveDA instance with bbox and focused crop'
+        elif image_name.startswith('P'):  # iSAID
+            mode = 'bbox_dual'
+            mode_desc = 'iSAID with bbox and focused crop'
         else:
-            bboxes_to_visualize = item['bbox']
+            mode = 'bbox_dual'
+            mode_desc = 'Unknown dataset - using bbox and focused crop'
         
-        visualize_and_save_object(image_path, bboxes_to_visualize, viz_path)
+        # Create temporary visualization paths
+        viz_filename = f"temp_viz_{item['id']}_{item['type']}_{time.time()}.png"
+        second_filename = f"temp_second_{item['id']}_{item['type']}_{time.time()}.png"
+        viz_path = os.path.join(temp_dir, viz_filename)
+        second_image_path = os.path.join(temp_dir, second_filename)
         
-        # Create prompt
-        system_prompt, user_prompt = create_prompt(item['category'], item['expressions'])
+        if mode == 'mask_dual':
+            # For mask overlay mode (DeepGlobe and LoveDA groups)
+            # Save clean image first (just a copy)
+            shutil.copy2(image_path, second_image_path)
+            
+            # Create and save mask overlay
+            if 'segmentation' not in item:
+                raise Exception("No segmentation data found for mask overlay mode")
+            create_mask_overlay(image_path, item['segmentation'], viz_path)
+            
+        else:  # bbox_dual mode
+            # Create visualization with bounding box(es)
+            if item['type'] == 'group':
+                bboxes_to_visualize = item['bboxes']
+            else:
+                bboxes_to_visualize = item['bbox']
+            
+            # Create bbox visualization
+            visualize_and_save_object(image_path, bboxes_to_visualize, viz_path)
+            
+            # Create focused crop
+            focused_crop = create_focused_crop(image_path, bboxes_to_visualize, image_fraction=crop_fraction)
+            focused_crop.save(second_image_path)
         
-        # Convert image to base64
-        image_base64 = encode_base64_content_from_file(viz_path)
-        if image_base64 is None:
-            raise Exception("Failed to encode image to base64")
+        # Create prompt with mode
+        system_prompt, user_prompt = create_prompt(item['category'], item['expressions'], image_mode=mode)
         
         # Process with retries
         for attempt in range(max_retries + 1):
             try:
-                # Format messages for OpenAI API
+                # Convert both images to base64
+                main_image_base64 = encode_base64_content_from_file(viz_path)
+                second_image_base64 = encode_base64_content_from_file(second_image_path)
+                
+                if main_image_base64 is None or second_image_base64 is None:
+                    raise Exception("Failed to encode images to base64")
+                
+                # Format messages for OpenAI API with both images
                 messages = [
                     {
                         "role": "system",
@@ -607,11 +814,15 @@ def process_single_item(client, item, image_path, temp_dir, model_name, max_retr
                     {
                         "role": "user",
                         "content": [
-                            {"type": "text", "text": user_prompt},
                             {
                                 "type": "image_url",
-                                "image_url": {"url": f"data:image/png;base64,{image_base64}"},
+                                "image_url": {"url": f"data:image/png;base64,{main_image_base64}"},
                             },
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:image/png;base64,{second_image_base64}"},
+                            },
+                            {"type": "text", "text": user_prompt},
                         ],
                     }
                 ]
@@ -634,7 +845,9 @@ def process_single_item(client, item, image_path, temp_dir, model_name, max_retr
                         'item': item,
                         'enhanced_data': enhanced_data,
                         'success': True,
-                        'retries': attempt
+                        'retries': attempt,
+                        'mode': mode,
+                        'mode_desc': mode_desc
                     }
                 else:
                     raise Exception(f"Failed to parse JSON: {generated_text[:200]}...")
@@ -648,7 +861,9 @@ def process_single_item(client, item, image_path, temp_dir, model_name, max_retr
                         'enhanced_data': None,
                         'success': False,
                         'retries': attempt,
-                        'error': str(e)
+                        'error': str(e),
+                        'mode': mode,
+                        'mode_desc': mode_desc
                     }
                 time.sleep(1)  # Brief delay before retry
     
@@ -663,14 +878,15 @@ def process_single_item(client, item, image_path, temp_dir, model_name, max_retr
         }
     
     finally:
-        # Always clean up the temporary visualization file
-        if viz_path and os.path.exists(viz_path):
-            try:
-                os.remove(viz_path)
-            except:
-                pass  # Ignore cleanup errors
+        # Clean up temporary files
+        for temp_file in [viz_path, second_image_path]:
+            if temp_file and os.path.exists(temp_file):
+                try:
+                    os.remove(temp_file)
+                except:
+                    pass  # Ignore cleanup errors
 
-def process_annotation_file(annotation_path, images_dir, client, model_name, temp_dir, num_threads=2, dry_run=False):
+def process_annotation_file(annotation_path, images_dir, client, model_name, temp_dir, num_threads=2, crop_fraction=0.5, dry_run=False):
     """Process a single annotation file using OpenAI client with threading."""
     try:
         # Parse annotations
@@ -701,7 +917,7 @@ def process_annotation_file(annotation_path, images_dir, client, model_name, tem
         with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
             # Submit all tasks
             future_to_item = {
-                executor.submit(process_single_item, client, item, image_path, temp_dir, model_name): item 
+                executor.submit(process_single_item, client, item, image_path, temp_dir, model_name, crop_fraction): item 
                 for item in items
             }
             
@@ -723,10 +939,12 @@ def process_annotation_file(annotation_path, images_dir, client, model_name, tem
                         num_unique = len(result['enhanced_data'].get('unique_expressions', []))
                         enhanced_count += num_enhanced + num_unique
                         
-                        thread_safe_print(f"    ✓ {item['type']} {item['id']}: Added {num_enhanced} enhanced + {num_unique} unique expressions")
+                        mode_info = f" [{result.get('mode_desc', 'unknown mode')}]"
+                        thread_safe_print(f"    ✓ {item['type']} {item['id']}{mode_info}: Added {num_enhanced} enhanced + {num_unique} unique expressions")
                     else:
                         failed_items += 1
-                        thread_safe_print(f"    ❌ {item['type']} {item['id']}: {result.get('error', 'Unknown error')}")
+                        mode_info = f" [{result.get('mode_desc', 'unknown mode')}]"
+                        thread_safe_print(f"    ❌ {item['type']} {item['id']}{mode_info}: {result.get('error', 'Unknown error')}")
                     
                     processed_count += 1
                     
@@ -746,8 +964,93 @@ def process_annotation_file(annotation_path, images_dir, client, model_name, tem
         print(f"  Error processing annotation file: {e}")
         return 0, 0, 0, 0
 
+def cleanup_enhanced_expressions(annotation_path):
+    """Remove all enhanced and unique expressions from an XML file."""
+    try:
+        tree = ET.parse(annotation_path)
+        root = tree.getroot()
+        changes_made = False
+        
+        # Process individual objects
+        for obj in root.findall('object'):
+            expressions_elem = obj.find('expressions')
+            if expressions_elem is not None:
+                # Find all expressions with type="enhanced" or type="unique"
+                enhanced_exprs = expressions_elem.findall('expression[@type="enhanced"]')
+                unique_exprs = expressions_elem.findall('expression[@type="unique"]')
+                
+                # Remove them if found
+                for expr in enhanced_exprs + unique_exprs:
+                    expressions_elem.remove(expr)
+                    changes_made = True
+        
+        # Process groups
+        groups_elem = root.find('groups')
+        if groups_elem is not None:
+            for group in groups_elem.findall('group'):
+                expressions_elem = group.find('expressions')
+                if expressions_elem is not None:
+                    # Find all expressions with type="enhanced" or type="unique"
+                    enhanced_exprs = expressions_elem.findall('expression[@type="enhanced"]')
+                    unique_exprs = expressions_elem.findall('expression[@type="unique"]')
+                    
+                    # Remove them if found
+                    for expr in enhanced_exprs + unique_exprs:
+                        expressions_elem.remove(expr)
+                        changes_made = True
+        
+        # Save changes if any were made
+        if changes_made:
+            tree.write(annotation_path, encoding='utf-8', xml_declaration=True)
+            return True
+        
+        return False
+        
+    except Exception as e:
+        print(f"Error cleaning up enhanced expressions in {annotation_path}: {e}")
+        return False
+
+def cleanup_dataset_expressions(dataset_root, splits=['train', 'val']):
+    """Clean up enhanced and unique expressions from all XML files in the dataset."""
+    total_files = 0
+    cleaned_files = 0
+    
+    print("\n🧹 Starting dataset cleanup...")
+    
+    for split in splits:
+        annotations_dir = os.path.join(dataset_root, 'patches_rules_expressions_unique', split, 'annotations')
+        if not os.path.exists(annotations_dir):
+            print(f"Warning: Annotations directory not found: {annotations_dir}")
+            continue
+        
+        annotation_files = [f for f in os.listdir(annotations_dir) if f.endswith('.xml')]
+        split_total = len(annotation_files)
+        split_cleaned = 0
+        
+        print(f"\nProcessing {split} split ({split_total} files)...")
+        
+        for i, annotation_file in enumerate(annotation_files, 1):
+            annotation_path = os.path.join(annotations_dir, annotation_file)
+            
+            if cleanup_enhanced_expressions(annotation_path):
+                split_cleaned += 1
+                cleaned_files += 1
+            
+            total_files += 1
+            
+            # Progress update every 100 files
+            if i % 100 == 0 or i == split_total:
+                print(f"  Progress: {i}/{split_total} files processed ({split_cleaned} cleaned)")
+        
+        print(f"  {split} split complete: {split_cleaned}/{split_total} files cleaned")
+    
+    print(f"\n✨ Cleanup complete!")
+    print(f"   Total files processed: {total_files}")
+    print(f"   Files cleaned: {cleaned_files}")
+    return cleaned_files
+
 def main():
-    """Main processing function."""
+    """Main function."""
     args = parse_arguments()
     
     # Set random seed for deterministic file ordering
@@ -763,10 +1066,28 @@ def main():
     print(f"Server URL: {server_url}")
     print(f"Model name: {model_name}")
     print(f"Threads per file: {args.threads}")
+    print(f"Focused crop fraction: {args.crop_fraction}")
     
     if not os.path.exists(dataset_root):
         print(f"Error: Dataset root not found: {dataset_root}")
         return
+    
+    # Cleanup enhanced expressions if requested
+    if args.cleanup:
+        splits = ['train', 'val'] if args.split == 'both' else [args.split]
+        cleaned_files = cleanup_dataset_expressions(dataset_root, splits)
+        if args.dry_run:
+            print("\n🔍 Dry run - would have cleaned up expressions")
+            return
+        elif cleaned_files == 0:
+            print("\n✨ No files needed cleanup")
+        else:
+            print("\n✨ Cleanup completed successfully")
+            response = input("\nContinue with enhancement process? [y/N]: ").lower()
+            if response != 'y':
+                print("Enhancement process cancelled.")
+                return
+            print("\nProceeding with enhancement process...")
     
     # Setup temporary directory
     if args.temp_dir:
@@ -860,7 +1181,7 @@ def main():
                 print(f"Processing {annotation_file} ({i+1}/{len(annotation_files)})")
                 
                 items_processed, expressions_enhanced, retries, failed = process_annotation_file(
-                    annotation_path, images_dir, client, model_name, temp_dir, args.threads, args.dry_run
+                    annotation_path, images_dir, client, model_name, temp_dir, args.threads, args.crop_fraction, args.dry_run
                 )
                 
                 if items_processed > 0:
