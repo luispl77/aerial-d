@@ -17,7 +17,7 @@ app = Flask(__name__, static_folder='static')
 WORKSPACE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Configuration with absolute paths
-DATASET_PATH = os.path.join(WORKSPACE_ROOT, 'aeriald')
+DATASET_PATH = "/cfs/home/u035679/datasets/aeriald"
 MODEL_PATH = os.path.join(WORKSPACE_ROOT, 'models')
 VISUALIZATIONS_PATH = os.path.join(WORKSPACE_ROOT, 'utils', 'static', 'clip_sam', 'visualizations')
 
