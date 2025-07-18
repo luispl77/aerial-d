@@ -28,6 +28,7 @@ def parse_args():
     parser.add_argument('--gpu_id', type=int, default=0, help='GPU ID to use')
     parser.add_argument('--input_size', type=int, default=384, help='Input size for images')
     parser.add_argument('--resume', action='store_true', help='Resume from latest checkpoint')
+    parser.add_argument('--model_name', type=str, help='Model name for resuming training (required when using --resume)')
     parser.add_argument('--tmp_dir', type=str, default='/tmp/u035679', help='Temporary directory for dataset')
     parser.add_argument('--poly_power', type=float, default=0.9, help='Power factor for polynomial decay')
     parser.add_argument('--grad_accum_steps', type=int, default=2, help='Number of steps to accumulate gradients')
@@ -642,6 +643,12 @@ def main():
     # Parse command line arguments
     args = parse_args()
     
+    # Validate arguments for resume functionality
+    if args.resume and not args.model_name:
+        print("Error: --model_name is required when using --resume")
+        print("Please specify the model name to resume from (e.g., clip_sam_20241215_143022_epochs5_bs4x2_lr0.0001)")
+        return
+    
     print("Start")
     torch.cuda.set_device(args.gpu_id)
     device = torch.device(f'cuda:{args.gpu_id}')
@@ -737,17 +744,68 @@ def main():
     print(f"\nStarting training with {len(train_dataset)} train and {len(val_dataset)} val samples...")
     print(f"Gradient accumulation steps: {grad_accum_steps} (effective batch size: {effective_batch_size})")
     
-    # Update paths to use models and visualizations directories directly
-    model_name = f"clip_sam_{run_id}_epochs{args.epochs}_bs{args.batch_size}x{grad_accum_steps}_lr{args.lr}"
-    checkpoint_dir = os.path.join('./models', model_name)
-    vis_dir = os.path.join('./visualizations', model_name)
-    
-    # Create directories if they don't exist
-    os.makedirs(checkpoint_dir, exist_ok=True)
-    os.makedirs(vis_dir, exist_ok=True)
-    
-    # Save run details
-    save_run_details(args, run_id, model_name, effective_batch_size, train_dataset, val_dataset, vis_dir)
+    # Handle model naming and directory creation based on resume flag
+    if args.resume:
+        # Use existing model directory for resume
+        original_model_name = args.model_name
+        original_checkpoint_dir = os.path.join('./models', original_model_name)
+        original_vis_dir = os.path.join('./visualizations', original_model_name)
+        
+        # Check if the original model directory exists
+        if not os.path.exists(original_checkpoint_dir):
+            print(f"Error: Model directory '{original_checkpoint_dir}' not found!")
+            print(f"Available models in ./models/:")
+            if os.path.exists('./models'):
+                for item in os.listdir('./models'):
+                    if os.path.isdir(os.path.join('./models', item)):
+                        print(f"  - {item}")
+            return
+        
+        # Check if checkpoint exists
+        checkpoint_path = os.path.join(original_checkpoint_dir, 'latest.pt')
+        if not os.path.exists(checkpoint_path):
+            print(f"Error: Checkpoint 'latest.pt' not found in {original_checkpoint_dir}")
+            return
+        
+        # Create restart directory
+        restart_model_name = f"{original_model_name}_restart_{run_id}_epochs{args.epochs}"
+        model_name = restart_model_name
+        checkpoint_dir = os.path.join('./models', restart_model_name)
+        vis_dir = os.path.join('./visualizations', restart_model_name)
+        
+        print(f"Resuming from: {original_model_name}")
+        print(f"Creating restart directory: {restart_model_name}")
+        
+        # Create new directories for restart
+        os.makedirs(checkpoint_dir, exist_ok=True)
+        os.makedirs(vis_dir, exist_ok=True)
+        
+        # Copy the checkpoint to the new directory as starting point
+        shutil.copy2(checkpoint_path, os.path.join(checkpoint_dir, 'latest.pt'))
+        
+        # Copy run details from original directory to preserve history
+        original_details_path = os.path.join(original_vis_dir, 'run_details.txt')
+        if os.path.exists(original_details_path):
+            shutil.copy2(original_details_path, os.path.join(vis_dir, 'run_details.txt'))
+            # Add restart information
+            with open(os.path.join(vis_dir, 'run_details.txt'), 'a') as f:
+                f.write(f"\n\n===== RESTART INFORMATION =====\n")
+                f.write(f"Restart Date and Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write(f"Original Model: {original_model_name}\n")
+                f.write(f"Restart Model: {restart_model_name}\n")
+                f.write(f"Additional Epochs: {args.epochs}\n")
+    else:
+        # Create new model for fresh training
+        model_name = f"clip_sam_{run_id}_epochs{args.epochs}_bs{args.batch_size}x{grad_accum_steps}_lr{args.lr}"
+        checkpoint_dir = os.path.join('./models', model_name)
+        vis_dir = os.path.join('./visualizations', model_name)
+        
+        # Create directories if they don't exist
+        os.makedirs(checkpoint_dir, exist_ok=True)
+        os.makedirs(vis_dir, exist_ok=True)
+        
+        # Save run details
+        save_run_details(args, run_id, model_name, effective_batch_size, train_dataset, val_dataset, vis_dir)
     
     train(
         model, 
