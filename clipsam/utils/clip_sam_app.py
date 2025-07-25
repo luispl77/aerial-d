@@ -9,6 +9,7 @@ import json
 from clip_sam_model_utils import load_model, make_prediction
 import torchvision.transforms as T
 import matplotlib.pyplot as plt
+import torch.nn.functional as F
 import time
 
 app = Flask(__name__, static_folder='static')
@@ -24,12 +25,14 @@ VISUALIZATIONS_PATH = os.path.join(WORKSPACE_ROOT, 'utils', 'static', 'clip_sam'
 # Global variables
 model = None
 device = None
+args = None
 
 def parse_args():
     parser = argparse.ArgumentParser(description='CLIP-SAM Model Testing Interface')
     parser.add_argument('--model_name', type=str, required=True, help='Model name for checkpoint loading')
     parser.add_argument('--gpu_id', type=int, default=0, help='GPU ID to use')
     parser.add_argument('--input_size', type=int, default=384, help='Input size for images')
+    parser.add_argument('--get_domain_logits', action='store_true', help='Get domain classification logits during prediction')
     return parser.parse_args()
 
 def get_isaid_images(split=None):
@@ -119,7 +122,7 @@ def serve_image(split, filename):
 @app.route('/api/predict', methods=['POST'])
 def predict():
     """Make prediction using selected model and image."""
-    global model, device
+    global model, device, args
     
     data = request.json
     image_path = data.get('image_path')
@@ -154,10 +157,16 @@ def predict():
         start_event.record()
         
         # Make prediction using the pre-loaded model
+        domain_logits = None
         with torch.no_grad():
             with torch.amp.autocast(device_type='cuda'):
-                output = model(image_tensor, text)
-        
+                # If domain logits are requested and the model supports it
+                if args.get_domain_logits and hasattr(model, 'domain_classifier') and model.domain_classifier is not None:
+                    output, domain_logits = model(image_tensor, text, return_domain_logits_inference=True)
+                else:
+                    # Standard prediction
+                    output = model(image_tensor, text)
+
         # End timing and synchronize
         end_event.record()
         torch.cuda.synchronize()  # Wait for GPU operations to complete
@@ -171,6 +180,14 @@ def predict():
         # Calculate total VRAM used for this prediction
         vram_used = peak_vram - initial_vram
         
+        # Process domain logits if they exist
+        domain_results = None
+        if domain_logits is not None:
+            domain_probs = torch.softmax(domain_logits, dim=1).cpu().numpy()[0]
+            domain_map = {0: 'iSAID', 1: 'DeepGlobe', 2: 'LoveDA'}
+            domain_results = {name: f"{prob:.4f}" for name, prob in zip(domain_map.values(), domain_probs)}
+            print(f"Domain Classification: {domain_results}")
+
         # Start visualization timing
         vis_start_time = time.time()
         
@@ -227,7 +244,7 @@ def predict():
         model_vram = (torch.cuda.memory_reserved(device) - initial_vram) / 1024**2  # Convert to MB
         print(f"Model VRAM usage: {model_vram:.2f} MB")
         
-        return jsonify({
+        response_data = {
             'status': 'success',
             'result_path': f'/static/visualizations/{os.path.basename(vis_path)}',
             'metrics': {
@@ -238,7 +255,12 @@ def predict():
                 'peak_vram_mb': round(peak_vram, 2),
                 'model_vram_mb': round(model_vram, 2)  # Add model VRAM usage
             }
-        })
+        }
+        
+        if domain_results:
+            response_data['domain_classification'] = domain_results
+            
+        return jsonify(response_data)
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -270,7 +292,12 @@ if __name__ == '__main__':
     
     # Load model
     print(f"Loading model from {checkpoint_path}")
-    model = load_model('clip_sam', checkpoint_path, args.gpu_id)
+    model = load_model(
+        'clip_sam', 
+        checkpoint_path, 
+        args.gpu_id, 
+        enable_domain_adaptation=args.get_domain_logits
+    )
     model.eval()
     
     # Ensure model stays on the correct device
@@ -285,4 +312,5 @@ if __name__ == '__main__':
     os.makedirs(VISUALIZATIONS_PATH, exist_ok=True)
     
     # Run Flask app
-    app.run(debug=True, port=5001) 
+    app.run(debug=True, port=5001)
+ 
