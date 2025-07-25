@@ -457,13 +457,15 @@ class SigLipSamSegmentator(nn.Module):
         if self.gradient_reversal is not None:
             self.gradient_reversal.set_lambda(lambda_)
     
-    def forward(self, image, text_list, domain_labels=None):
+    def forward(self, image, text_list, domain_labels=None, return_domain_logits_inference=False):
         """Forward pass of the model"""
         # Use memory efficient attention
         torch.backends.cuda.enable_mem_efficient_sdp(True)
         
-        # Extract features and get segmentation mask (and domain logits if training with domain adaptation)
-        return_domain_logits = self.enable_domain_adaptation and domain_labels is not None
+        # Determine if we should return domain logits
+        # This is true if we are training with domain adaptation OR if it's explicitly requested for inference
+        return_domain_logits = (self.enable_domain_adaptation and domain_labels is not None) or \
+                               (self.enable_domain_adaptation and return_domain_logits_inference)
         
         if return_domain_logits:
             seg_mask, domain_logits = self.extract_features(image, text_list, return_domain_logits=True)
