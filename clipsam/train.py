@@ -19,10 +19,24 @@ from datetime import datetime
 import random
 from tqdm import tqdm
 
+def calculate_grl_lambda(current_iter, total_iters, schedule='linear', max_lambda=1.0):
+    """Calculate gradient reversal lambda based on training progress"""
+    progress = current_iter / total_iters
+    
+    if schedule == 'constant':
+        return max_lambda
+    elif schedule == 'linear':
+        return progress * max_lambda
+    elif schedule == 'exponential':
+        # Exponential schedule: 2 / (1 + exp(-10 * progress)) - 1
+        return max_lambda * (2 / (1 + np.exp(-10 * progress)) - 1)
+    else:
+        return max_lambda
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Train aerial segmentation model with SigLIP+SAM')
     parser.add_argument('--batch_size', type=int, default=4, help='Batch size for training')
-    parser.add_argument('--epochs', type=int, default=5, help='Number of epochs to train')
+    parser.add_argument('--epochs', type=int, default=1, help='Number of epochs to train')
     parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate')
     parser.add_argument('--weight_decay', type=float, default=0.01, help='Weight decay for AdamW')
     parser.add_argument('--gpu_id', type=int, default=0, help='GPU ID to use')
@@ -43,6 +57,20 @@ def parse_args():
     parser.add_argument('--siglip_model', type=str, default='google/siglip2-so400m-patch14-384', help='SigLIP model name')
     parser.add_argument('--sam_model', type=str, default='facebook/sam-vit-base', help='SAM model name')
     parser.add_argument('--use_historic', action='store_true', default=True, help='Use historic (BW) images instead of normal color images')
+    
+    # Domain adaptation arguments
+    parser.add_argument('--enable_domain_adaptation', action='store_true', help='Enable domain adversarial training')
+    parser.add_argument('--num_domains', type=int, default=3, help='Number of domains (iSAID=0, DeepGlobe=1, LoveDA=2)')
+    parser.add_argument('--domain_loss_weight', type=float, default=0.1, help='Weight for domain adversarial loss')
+    parser.add_argument('--grl_lambda_schedule', type=str, default='linear', choices=['constant', 'linear', 'exponential'], help='GRL lambda scheduling')
+    parser.add_argument('--grl_max_lambda', type=float, default=1.0, help='Maximum lambda value for gradient reversal')
+    
+    # Mid-epoch checkpointing
+    parser.add_argument('--save_mid_epoch_checkpoints', action='store_true', help='Save checkpoints at 25%, 50%, 75% of each epoch')
+    parser.add_argument('--mid_epoch_intervals', type=int, default=4, help='Number of intervals per epoch to save checkpoints (default: 4 = quarters)')
+    
+    # Expression filtering
+    parser.add_argument('--unique_only', action='store_true', help='Train only on unique expressions (type="unique" in XML). Validation still uses all expressions.')
     
     return parser.parse_args()
 
@@ -230,7 +258,13 @@ def train(
     power=0.9,
     weight_decay=0.01,
     max_grad_norm=1.0,
-    grad_accum_steps=1
+    grad_accum_steps=1,
+    enable_domain_adaptation=False,
+    domain_loss_weight=0.1,
+    grl_lambda_schedule='linear',
+    grl_max_lambda=1.0,
+    save_mid_epoch_checkpoints=False,
+    mid_epoch_intervals=4
 ):
     start_epoch = 0
     best_loss = float('inf')
@@ -264,19 +298,60 @@ def train(
         optimizer.zero_grad(set_to_none=True)
         accumulated_loss = 0
         
-        for batch_idx, (images, texts, masks, sample_types) in enumerate(train_loader):
+        # Calculate mid-epoch checkpoint intervals
+        total_batches = len(train_loader)
+        if save_mid_epoch_checkpoints and total_batches >= mid_epoch_intervals:
+            checkpoint_intervals = [int(total_batches * (i + 1) / mid_epoch_intervals) - 1 
+                                  for i in range(mid_epoch_intervals)]
+            print(f"Mid-epoch checkpoints will be saved at batches: {[i+1 for i in checkpoint_intervals]}")
+        else:
+            checkpoint_intervals = []
+        
+        for batch_idx, batch_data in enumerate(train_loader):
+            # Handle variable batch returns (with or without domain labels)
+            if enable_domain_adaptation:
+                images, texts, masks, sample_types, domain_labels = batch_data
+                domain_labels = domain_labels.to(device, non_blocking=True)
+            else:
+                images, texts, masks, sample_types = batch_data
+                domain_labels = None
+            
             # Update learning rate using polynomial decay
             if batch_idx % grad_accum_steps == 0:
                 poly_lr = initial_lr * (1 - current_iter / total_iters) ** power
                 for param_group in optimizer.param_groups:
                     param_group['lr'] = poly_lr
+                    
+                # Update gradient reversal lambda if using domain adaptation
+                if enable_domain_adaptation:
+                    grl_lambda = calculate_grl_lambda(
+                        current_iter, total_iters, 
+                        grl_lambda_schedule, grl_max_lambda
+                    )
+                    model.set_gradient_reversal_lambda(grl_lambda)
             
             images = images.to(device, non_blocking=True)
             masks = masks.to(device, non_blocking=True)
             
             with torch.amp.autocast(device_type='cuda'):
-                outputs = model(images, texts)
-                loss = model.compute_loss(outputs, masks, lambda_ce=0.9)
+                if enable_domain_adaptation and domain_labels is not None:
+                    # Forward pass with domain labels
+                    outputs, domain_logits = model(images, texts, domain_labels)
+                    
+                    # Compute segmentation loss
+                    seg_loss = model.compute_loss(outputs, masks, lambda_ce=0.9)
+                    
+                    # Compute domain loss
+                    domain_loss = model.compute_domain_loss(domain_logits, domain_labels)
+                    
+                    # Combined loss
+                    loss = seg_loss + domain_loss_weight * domain_loss
+                else:
+                    # Standard forward pass
+                    outputs = model(images, texts)
+                    loss = model.compute_loss(outputs, masks, lambda_ce=0.9)
+                    domain_loss = torch.tensor(0.0, device=device)
+                
                 # Scale the loss by the number of accumulation steps
                 loss = loss / grad_accum_steps
             
@@ -308,11 +383,31 @@ def train(
                 
                 # Log the accumulated loss
                 epoch_loss += accumulated_loss
-                print(f"Batch {batch_idx} - Accumulated Loss: {accumulated_loss:.4f} - IoU: {batch_metrics['iou']:.4f} - LR: {poly_lr:.6f}")
+                if enable_domain_adaptation:
+                    print(f"Batch {batch_idx} - Loss: {accumulated_loss:.4f} - IoU: {batch_metrics['iou']:.4f} - LR: {poly_lr:.6f} - GRL λ: {grl_lambda:.3f}")
+                else:
+                    print(f"Batch {batch_idx} - Loss: {accumulated_loss:.4f} - IoU: {batch_metrics['iou']:.4f} - LR: {poly_lr:.6f}")
                 accumulated_loss = 0
                 
                 # Increment iteration counter
                 current_iter += 1
+                
+                # Save mid-epoch checkpoint if needed
+                if batch_idx in checkpoint_intervals:
+                    interval_pct = ((checkpoint_intervals.index(batch_idx) + 1) * 100) // mid_epoch_intervals
+                    checkpoint_name = f'epoch_{epoch}_checkpoint_{interval_pct}pct.pt'
+                    checkpoint_path = os.path.join(checkpoint_dir, checkpoint_name)
+                    
+                    # Calculate current average metrics for this portion of the epoch
+                    current_avg_loss = epoch_loss * grad_accum_steps / (batch_idx + 1)
+                    current_avg_metrics = {k: v * grad_accum_steps / (batch_idx + 1) for k, v in epoch_metrics.items()}
+                    
+                    save_checkpoint(model, optimizer, epoch, current_avg_loss, checkpoint_path)
+                    print(f"💾 Saved mid-epoch checkpoint: {checkpoint_name} (Loss: {current_avg_loss:.4f}, IoU: {current_avg_metrics['iou']:.4f})")
+                    
+                    # Also update latest.pt to this mid-epoch checkpoint
+                    latest_checkpoint_path = os.path.join(checkpoint_dir, 'latest.pt')
+                    save_checkpoint(model, optimizer, epoch, current_avg_loss, latest_checkpoint_path)
         
         avg_loss = epoch_loss * grad_accum_steps / len(train_loader)
         avg_metrics = {k: v * grad_accum_steps / len(train_loader) for k, v in epoch_metrics.items()}
@@ -324,11 +419,18 @@ def train(
         
         print("\nValidating...")
         with torch.no_grad():
-            for batch_idx, (images, texts, masks, sample_types) in enumerate(val_loader):
+            for batch_idx, batch_data in enumerate(val_loader):
+                # Handle variable batch returns (with or without domain labels)
+                if enable_domain_adaptation:
+                    images, texts, masks, sample_types, domain_labels = batch_data
+                else:
+                    images, texts, masks, sample_types = batch_data
+                
                 images = images.to(device, non_blocking=True)
                 masks = masks.to(device, non_blocking=True)
                 
                 with torch.amp.autocast(device_type='cuda'):
+                    # For validation, we don't use domain adaptation (no domain labels passed)
                     outputs = model(images, texts)
                     loss = model.compute_loss(outputs, masks, lambda_ce=0.9)
                 
@@ -380,12 +482,28 @@ def train(
                 f.write(f"\n=== NEW BEST MODEL AT EPOCH {epoch} ===\n")
                 f.write(f"IoU: {best_iou:.6f}\n")
 
+def get_domain_from_filename(filename):
+    """Determine domain based on annotation filename prefix"""
+    filename = filename.upper()
+    if filename.startswith('D'):
+        return 1  # DeepGlobe
+    elif filename.startswith('P'):
+        return 0  # iSAID (P for patches)
+    elif filename.startswith('L'):
+        return 2  # LoveDA
+    else:
+        # Default to iSAID if can't determine
+        print(f"Warning: Could not determine domain from filename {filename}, defaulting to iSAID (0)")
+        return 0
+
 class SimpleDataset:
-    def __init__(self, dataset_root, split='train', input_size=512, use_historic=False):
+    def __init__(self, dataset_root, split='train', input_size=512, use_historic=False, enable_domain_adaptation=False, unique_only=False):
         self.dataset_root = dataset_root
         self.split = split
         self.input_size = input_size
         self.use_historic = use_historic
+        self.enable_domain_adaptation = enable_domain_adaptation
+        self.unique_only = unique_only
         
         # Set paths based on split
         self.ann_dir = os.path.join(dataset_root, split, 'annotations')
@@ -418,8 +536,9 @@ class SimpleDataset:
             tree = ET.parse(xml_path)
             root = tree.getroot()
             
-            # Get image filename
+            # Get image filename and determine domain from XML filename
             filename = root.find('filename').text
+            domain_label = get_domain_from_filename(xml_file) if self.enable_domain_adaptation else None
             
             # Handle historic vs normal images
             if self.use_historic:
@@ -485,7 +604,15 @@ class SimpleDataset:
                 exp_elem = obj.find('expressions')
                 if exp_elem is not None:
                     for exp in exp_elem.findall('expression'):
-                        expressions.append(exp.text)
+                        # Filter expressions based on unique_only flag
+                        if self.unique_only:
+                            # Only include expressions with type="unique"
+                            exp_type = exp.get('type')
+                            if exp_type == 'unique':
+                                expressions.append(exp.text)
+                        else:
+                            # Include all expressions
+                            expressions.append(exp.text)
                 
                 if expressions:
                     total_objects += 1
@@ -493,13 +620,16 @@ class SimpleDataset:
                     
                     # Add a sample for each expression
                     for expression in expressions:
-                        self.objects.append({
+                        obj_data = {
                             'image_filename': display_filename,
                             'segmentation': rle,
                             'expression': expression,
                             'category': name,
                             'type': 'individual'
-                        })
+                        }
+                        if self.enable_domain_adaptation:
+                            obj_data['domain_label'] = domain_label
+                        self.objects.append(obj_data)
             
             # Process groups
             groups_elem = root.find('groups')
@@ -521,7 +651,15 @@ class SimpleDataset:
                     exp_elem = group.find('expressions')
                     if exp_elem is not None:
                         for exp in exp_elem.findall('expression'):
-                            group_expressions.append(exp.text)
+                            # Filter expressions based on unique_only flag
+                            if self.unique_only:
+                                # Only include expressions with type="unique"
+                                exp_type = exp.get('type')
+                                if exp_type == 'unique':
+                                    group_expressions.append(exp.text)
+                            else:
+                                # Include all expressions
+                                group_expressions.append(exp.text)
                     
                     if not group_expressions:
                         continue  # Skip groups without expressions
@@ -548,13 +686,16 @@ class SimpleDataset:
                     
                     # Add a sample for each group expression
                     for expression in group_expressions:
-                        self.objects.append({
+                        obj_data = {
                             'image_filename': display_filename,
                             'segmentation': group_segmentation,  # Single segmentation for group
                             'expression': expression,
                             'category': category,
                             'type': 'group'
-                        })
+                        }
+                        if self.enable_domain_adaptation:
+                            obj_data['domain_label'] = domain_label
+                        self.objects.append(obj_data)
         
         print(f"\nDataset statistics:")
         print(f"- Total patches: {len(self.xml_files)}")
@@ -564,6 +705,22 @@ class SimpleDataset:
         print(f"- Total groups with expressions: {total_groups}")
         print(f"- Total group expressions: {total_group_expressions}")
         print(f"- Total samples created: {len(self.objects)}")
+        if self.unique_only:
+            print(f"- Expression filtering: UNIQUE ONLY (type='unique')")
+        else:
+            print(f"- Expression filtering: ALL EXPRESSIONS")
+        
+        # Print domain distribution if domain adaptation is enabled
+        if self.enable_domain_adaptation:
+            domain_counts = {0: 0, 1: 0, 2: 0}  # iSAID, DeepGlobe, LoveDA
+            for obj in self.objects:
+                domain_label = obj.get('domain_label', 0)
+                domain_counts[domain_label] += 1
+            
+            domain_names = {0: 'iSAID', 1: 'DeepGlobe', 2: 'LoveDA'}
+            print(f"\nDomain distribution:")
+            for domain_id, count in domain_counts.items():
+                print(f"- {domain_names[domain_id]} (ID {domain_id}): {count} samples")
     
     def __len__(self):
         return len(self.objects)
@@ -591,7 +748,11 @@ class SimpleDataset:
         mask = torch.from_numpy(binary_mask).float()
         mask = T.Resize((self.input_size, self.input_size), antialias=True)(mask.unsqueeze(0)).squeeze(0)
         
-        return image, obj['expression'], mask, obj['type']
+        if self.enable_domain_adaptation:
+            domain_label = obj.get('domain_label', 0)  # Default to 0 (iSAID) if not found
+            return image, obj['expression'], mask, obj['type'], domain_label
+        else:
+            return image, obj['expression'], mask, obj['type']
 
 def save_run_details(args, run_id, model_name, effective_batch_size, train_dataset, val_dataset, vis_dir):
     """
@@ -629,12 +790,27 @@ def save_run_details(args, run_id, model_name, effective_batch_size, train_datas
         f.write(f"Learning Rate: {args.lr}\n")
         f.write(f"Weight Decay: {args.weight_decay}\n")
         f.write(f"Polynomial Decay Power: {args.poly_power}\n")
-        f.write(f"GPU ID: {args.gpu_id}\n\n")
+        f.write(f"GPU ID: {args.gpu_id}\n")
+        f.write(f"Mid-Epoch Checkpointing: {args.save_mid_epoch_checkpoints}\n")
+        if args.save_mid_epoch_checkpoints:
+            f.write(f"Checkpoint Intervals: {args.mid_epoch_intervals}\n")
+        
+        if args.enable_domain_adaptation:
+            f.write(f"\n===== DOMAIN ADAPTATION =====\n")
+            f.write(f"Enabled: Yes\n")
+            f.write(f"Number of Domains: {args.num_domains}\n")
+            f.write(f"Domain Loss Weight: {args.domain_loss_weight}\n")
+            f.write(f"GRL Lambda Schedule: {args.grl_lambda_schedule}\n")
+            f.write(f"GRL Max Lambda: {args.grl_max_lambda}\n\n")
+        else:
+            f.write(f"\n===== DOMAIN ADAPTATION =====\n")
+            f.write(f"Enabled: No\n\n")
         
         f.write(f"===== DATASET INFORMATION =====\n")
         f.write(f"Training Samples: {len(train_dataset)}\n")
         f.write(f"Validation Samples: {len(val_dataset)}\n")
         f.write(f"Using Historic Images: {args.use_historic}\n")
+        f.write(f"Train on Unique Expressions Only: {args.unique_only}\n")
         f.write(f"Dataset Path: ./aeriald\n")
         f.write(f"Images Path: ./aeriald/patches\n")
         f.write(f"Annotations Path: ./aeriald/patches\n")
@@ -700,7 +876,9 @@ def main():
         down_spatial_times=args.down_spatial_times,
         with_dense_feat=args.with_dense_feat,
         lora_cfg=lora_cfg,
-        device=device
+        device=device,
+        enable_domain_adaptation=args.enable_domain_adaptation,
+        num_domains=args.num_domains
     ).to(device)
     
     # Get trainable parameters (those with requires_grad=True)
@@ -715,14 +893,18 @@ def main():
         dataset_root=dataset_path,
         split='train',
         input_size=args.input_size,
-        use_historic=args.use_historic
+        use_historic=args.use_historic,
+        enable_domain_adaptation=args.enable_domain_adaptation,
+        unique_only=args.unique_only  # Only filter training data
     )
     
     val_dataset = SimpleDataset(
         dataset_root=dataset_path,
         split='val',
         input_size=args.input_size,
-        use_historic=args.use_historic
+        use_historic=args.use_historic,
+        enable_domain_adaptation=args.enable_domain_adaptation,
+        unique_only=False  # Always use all expressions for validation
     )
     
     train_loader = torch.utils.data.DataLoader(
@@ -822,7 +1004,13 @@ def main():
         power=args.poly_power,
         weight_decay=args.weight_decay,
         max_grad_norm=1.0,
-        grad_accum_steps=grad_accum_steps  # Pass gradient accumulation steps
+        grad_accum_steps=grad_accum_steps,
+        enable_domain_adaptation=args.enable_domain_adaptation,
+        domain_loss_weight=args.domain_loss_weight,
+        grl_lambda_schedule=args.grl_lambda_schedule,
+        grl_max_lambda=args.grl_max_lambda,
+        save_mid_epoch_checkpoints=args.save_mid_epoch_checkpoints,
+        mid_epoch_intervals=args.mid_epoch_intervals
     )
 
 if __name__ == '__main__':
