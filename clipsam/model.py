@@ -199,23 +199,37 @@ class SigLipSamSegmentator(nn.Module):
         
         # Domain adaptation components
         if self.enable_domain_adaptation:
-            # Gradient reversal layer
+            # Gradient reversal layer (shared between classifiers)
             self.gradient_reversal = GradientReversalLayer(lambda_=1.0)
             
-            # Domain classifier using SigLIP vision pooled features
-            siglip_hidden_size = self.clip_text_encoder.config.hidden_size  # Same as vision encoder
-            self.domain_classifier = DomainClassifier(
+            # Domain classifier for SigLIP vision pooled features
+            siglip_hidden_size = self.clip_text_encoder.config.hidden_size
+            self.siglip_domain_classifier = DomainClassifier(
                 input_dim=siglip_hidden_size,
                 num_domains=self.num_domains,
                 hidden_dim=512,
                 dropout=0.5
             )
             
+            # Domain classifier for SAM vision features
+            # SAM features are [B, 256, 64, 64], so we need to pool them first
+            self.sam_feature_pool = nn.AdaptiveAvgPool2d((1, 1))
+            sam_feature_dim = 256  # As per SAM neck output
+            self.sam_domain_classifier = DomainClassifier(
+                input_dim=sam_feature_dim,
+                num_domains=self.num_domains,
+                hidden_dim=256, # Smaller hidden dim for smaller input
+                dropout=0.5
+            )
+            
             print(f"Domain adaptation enabled with {self.num_domains} domains")
-            print(f"Domain classifier input dim: {siglip_hidden_size}")
+            print(f"SigLIP domain classifier input dim: {siglip_hidden_size}")
+            print(f"SAM domain classifier input dim: {sam_feature_dim}")
         else:
             self.gradient_reversal = None
-            self.domain_classifier = None
+            self.siglip_domain_classifier = None
+            self.sam_domain_classifier = None
+            self.sam_feature_pool = None
         
         # Freeze models by default (can be unfrozen selectively)
         self._freeze_models()
@@ -246,7 +260,8 @@ class SigLipSamSegmentator(nn.Module):
         
         # Domain adaptation components should also be trainable if enabled
         if self.enable_domain_adaptation:
-            self.domain_classifier.requires_grad_(True)
+            self.siglip_domain_classifier.requires_grad_(True)
+            self.sam_domain_classifier.requires_grad_(True)
     
     def unfreeze_components(self, component_list):
         """Selectively unfreeze components for fine-tuning"""
@@ -316,10 +331,19 @@ class SigLipSamSegmentator(nn.Module):
         # Domain prediction using gradient reversal (if enabled)
         domain_logits = None
         if self.enable_domain_adaptation and return_domain_logits:
-            # Apply gradient reversal to pooled visual features
-            reversed_features = self.gradient_reversal(clip_visual_feat_pooler)
-            # Predict domain
-            domain_logits = self.domain_classifier(reversed_features)
+            # 1. SigLIP domain prediction
+            siglip_reversed_features = self.gradient_reversal(clip_visual_feat_pooler)
+            siglip_domain_logits = self.siglip_domain_classifier(siglip_reversed_features)
+            
+            # 2. SAM domain prediction
+            sam_pooled_feat = self.sam_feature_pool(sam_visual_feat).flatten(1)
+            sam_reversed_features = self.gradient_reversal(sam_pooled_feat)
+            sam_domain_logits = self.sam_domain_classifier(sam_reversed_features)
+            
+            domain_logits = {
+                'siglip': siglip_domain_logits,
+                'sam': sam_domain_logits
+            }
 
         # Process text with SigLIP
         text_dict = self.clip_text_processor(text_list, return_tensors='pt', padding=True, truncation=True, max_length=128)
@@ -444,13 +468,26 @@ class SigLipSamSegmentator(nn.Module):
         
         return loss
     
-    def compute_domain_loss(self, domain_logits, domain_labels):
-        """Compute domain classification loss"""
+    def compute_domain_loss(self, domain_logits, domain_labels, sam_loss_weight=0.5):
+        """
+        Compute domain classification loss for both SigLIP and SAM classifiers.
+        domain_logits: A dictionary containing 'siglip' and 'sam' logits.
+        domain_labels: The ground truth domain labels.
+        sam_loss_weight: A float to weigh the SAM domain loss.
+        """
         if domain_logits is None or domain_labels is None:
             return torch.tensor(0.0, device=self.device)
         
-        # Cross-entropy loss for domain classification
-        return F.cross_entropy(domain_logits, domain_labels)
+        # SigLIP domain loss
+        siglip_loss = F.cross_entropy(domain_logits['siglip'], domain_labels)
+        
+        # SAM domain loss
+        sam_loss = F.cross_entropy(domain_logits['sam'], domain_labels)
+        
+        # Total domain loss
+        total_loss = siglip_loss + (sam_loss * sam_loss_weight)
+        
+        return total_loss
     
     def set_gradient_reversal_lambda(self, lambda_):
         """Set the lambda parameter for gradient reversal layer"""

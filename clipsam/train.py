@@ -71,6 +71,10 @@ def parse_args():
     
     # Expression filtering
     parser.add_argument('--unique_only', action='store_true', help='Train only on unique expressions (type="unique" in XML). Validation still uses all expressions.')
+    parser.add_argument('--one_unique_per_obj', action='store_true', help='If set along with --unique_only, only one unique expression per object/group will be used for training.')
+    
+    # Balanced batch sampling
+    parser.add_argument('--balanced_batch_sampling', action='store_true', help='Enable balanced batch sampling for domain adaptation. Only active if --enable_domain_adaptation is also set.')
     
     return parser.parse_args()
 
@@ -482,6 +486,61 @@ def train(
                 f.write(f"\n=== NEW BEST MODEL AT EPOCH {epoch} ===\n")
                 f.write(f"IoU: {best_iou:.6f}\n")
 
+class DomainBalancedSampler(torch.utils.data.Sampler):
+    """
+    Custom sampler to ensure each batch contains a balanced number of samples
+    from each domain.
+    """
+    def __init__(self, data_source, batch_size, num_domains):
+        self.data_source = data_source
+        self.batch_size = batch_size
+        self.num_domains = num_domains
+        
+        # Group indices by domain
+        self.indices_by_domain = [[] for _ in range(num_domains)]
+        for idx, obj in enumerate(data_source.objects):
+            domain_label = obj.get('domain_label', 0)
+            self.indices_by_domain[domain_label].append(idx)
+            
+        # Calculate samples per domain for each batch
+        self.samples_per_domain = self.batch_size // self.num_domains
+        
+        # Total number of batches is determined by the largest domain to ensure all samples are seen
+        self.num_batches = len(data_source) // self.batch_size
+        
+        print("\nDomainBalancedSampler initialized:")
+        for i in range(num_domains):
+            print(f"- Domain {i}: {len(self.indices_by_domain[i])} samples")
+        print(f"- Batch size: {self.batch_size}")
+        print(f"- Samples per domain per batch: {self.samples_per_domain}")
+        print(f"- Total batches per epoch: {self.num_batches}\n")
+
+    def __iter__(self):
+        # Shuffle indices for each domain at the start of each epoch
+        domain_iters = [iter(torch.randperm(len(indices)).tolist()) for indices in self.indices_by_domain]
+        
+        for _ in range(self.num_batches):
+            batch_indices = []
+            for domain_id in range(self.num_domains):
+                for _ in range(self.samples_per_domain):
+                    try:
+                        # Get the next shuffled index
+                        shuffled_idx = next(domain_iters[domain_id])
+                        # Get the actual dataset index
+                        batch_indices.append(self.indices_by_domain[domain_id][shuffled_idx])
+                    except StopIteration:
+                        # If a domain runs out of samples, reshuffle and start over
+                        domain_iters[domain_id] = iter(torch.randperm(len(self.indices_by_domain[domain_id])).tolist())
+                        shuffled_idx = next(domain_iters[domain_id])
+                        batch_indices.append(self.indices_by_domain[domain_id][shuffled_idx])
+            
+            # Shuffle the final batch to mix domains
+            random.shuffle(batch_indices)
+            yield batch_indices
+
+    def __len__(self):
+        return self.num_batches
+
 def get_domain_from_filename(filename):
     """Determine domain based on annotation filename prefix"""
     filename = filename.upper()
@@ -497,13 +556,14 @@ def get_domain_from_filename(filename):
         return 0
 
 class SimpleDataset:
-    def __init__(self, dataset_root, split='train', input_size=512, use_historic=False, enable_domain_adaptation=False, unique_only=False):
+    def __init__(self, dataset_root, split='train', input_size=512, use_historic=False, enable_domain_adaptation=False, unique_only=False, one_unique_per_obj=False):
         self.dataset_root = dataset_root
         self.split = split
         self.input_size = input_size
         self.use_historic = use_historic
         self.enable_domain_adaptation = enable_domain_adaptation
         self.unique_only = unique_only
+        self.one_unique_per_obj = one_unique_per_obj
         
         # Set paths based on split
         self.ann_dir = os.path.join(dataset_root, split, 'annotations')
@@ -616,10 +676,17 @@ class SimpleDataset:
                 
                 if expressions:
                     total_objects += 1
-                    total_expressions += len(expressions)
+                    
+                    # If one_unique_per_obj is flagged, take only the first expression
+                    if self.unique_only and self.one_unique_per_obj:
+                        expressions_to_add = expressions[:1]
+                    else:
+                        expressions_to_add = expressions
+                        
+                    total_expressions += len(expressions_to_add)
                     
                     # Add a sample for each expression
-                    for expression in expressions:
+                    for expression in expressions_to_add:
                         obj_data = {
                             'image_filename': display_filename,
                             'segmentation': rle,
@@ -682,10 +749,17 @@ class SimpleDataset:
                         continue
                     
                     total_groups += 1
-                    total_group_expressions += len(group_expressions)
+                    
+                    # If one_unique_per_obj is flagged, take only the first expression
+                    if self.unique_only and self.one_unique_per_obj:
+                        expressions_to_add = group_expressions[:1]
+                    else:
+                        expressions_to_add = group_expressions
+                        
+                    total_group_expressions += len(expressions_to_add)
                     
                     # Add a sample for each group expression
-                    for expression in group_expressions:
+                    for expression in expressions_to_add:
                         obj_data = {
                             'image_filename': display_filename,
                             'segmentation': group_segmentation,  # Single segmentation for group
@@ -707,6 +781,8 @@ class SimpleDataset:
         print(f"- Total samples created: {len(self.objects)}")
         if self.unique_only:
             print(f"- Expression filtering: UNIQUE ONLY (type='unique')")
+            if self.one_unique_per_obj:
+                print(f"- Expression count: ONE PER OBJECT/GROUP")
         else:
             print(f"- Expression filtering: ALL EXPRESSIONS")
         
@@ -811,6 +887,8 @@ def save_run_details(args, run_id, model_name, effective_batch_size, train_datas
         f.write(f"Validation Samples: {len(val_dataset)}\n")
         f.write(f"Using Historic Images: {args.use_historic}\n")
         f.write(f"Train on Unique Expressions Only: {args.unique_only}\n")
+        if args.unique_only and args.one_unique_per_obj:
+            f.write(f"Train on One Unique Expression per Object: Yes\n")
         f.write(f"Dataset Path: ./aeriald\n")
         f.write(f"Images Path: ./aeriald/patches\n")
         f.write(f"Annotations Path: ./aeriald/patches\n")
@@ -895,7 +973,8 @@ def main():
         input_size=args.input_size,
         use_historic=args.use_historic,
         enable_domain_adaptation=args.enable_domain_adaptation,
-        unique_only=args.unique_only  # Only filter training data
+        unique_only=args.unique_only,
+        one_unique_per_obj=args.one_unique_per_obj
     )
     
     val_dataset = SimpleDataset(
@@ -904,16 +983,39 @@ def main():
         input_size=args.input_size,
         use_historic=args.use_historic,
         enable_domain_adaptation=args.enable_domain_adaptation,
-        unique_only=False  # Always use all expressions for validation
+        unique_only=False,  # Always use all expressions for validation
+        one_unique_per_obj=False
     )
     
-    train_loader = torch.utils.data.DataLoader(
-        train_dataset, 
-        batch_size=args.batch_size,
-        shuffle=True,
-        pin_memory=True,
-        num_workers=4
-    )
+    # Initialize train_loader with default settings first
+    train_loader_kwargs = {
+        'batch_size': args.batch_size,
+        'pin_memory': True,
+        'num_workers': 4
+    }
+
+    # Use the custom balanced sampler if both flags are enabled
+    if args.enable_domain_adaptation and args.balanced_batch_sampling:
+        print("Using Domain Balanced Sampler for training.")
+        # Ensure batch size is divisible by the number of domains
+        if args.batch_size % args.num_domains != 0:
+            print(f"Warning: Batch size ({args.batch_size}) is not perfectly divisible by the number of domains ({args.num_domains}).")
+            print("This may result in slightly unbalanced batches.")
+
+        balanced_sampler = DomainBalancedSampler(
+            data_source=train_dataset,
+            batch_size=args.batch_size,
+            num_domains=args.num_domains
+        )
+        # When using a batch_sampler, 'batch_size', 'shuffle', 'sampler', and 'drop_last' must be None.
+        train_loader_kwargs['batch_sampler'] = balanced_sampler
+        # Remove keys that conflict with batch_sampler
+        train_loader_kwargs.pop('batch_size', None)
+    else:
+        print("Using standard random shuffling for training.")
+        train_loader_kwargs['shuffle'] = True
+
+    train_loader = torch.utils.data.DataLoader(train_dataset, **train_loader_kwargs)
     
     val_loader = torch.utils.data.DataLoader(
         val_dataset,
