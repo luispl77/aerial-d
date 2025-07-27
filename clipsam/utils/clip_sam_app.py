@@ -161,7 +161,7 @@ def predict():
         with torch.no_grad():
             with torch.amp.autocast(device_type='cuda'):
                 # If domain logits are requested and the model supports it
-                if args.get_domain_logits and hasattr(model, 'domain_classifier') and model.domain_classifier is not None:
+                if args.get_domain_logits and hasattr(model, 'siglip_domain_classifier') and model.siglip_domain_classifier is not None:
                     output, domain_logits = model(image_tensor, text, return_domain_logits_inference=True)
                 else:
                     # Standard prediction
@@ -183,9 +183,19 @@ def predict():
         # Process domain logits if they exist
         domain_results = None
         if domain_logits is not None:
-            domain_probs = torch.softmax(domain_logits, dim=1).cpu().numpy()[0]
             domain_map = {0: 'iSAID', 1: 'DeepGlobe', 2: 'LoveDA'}
-            domain_results = {name: f"{prob:.4f}" for name, prob in zip(domain_map.values(), domain_probs)}
+            domain_results = {}
+            
+            # Process SigLIP domain logits
+            if 'siglip' in domain_logits:
+                siglip_probs = torch.softmax(domain_logits['siglip'], dim=1).cpu().numpy()[0]
+                domain_results['SigLIP'] = {name: f"{prob:.4f}" for name, prob in zip(domain_map.values(), siglip_probs)}
+            
+            # Process SAM domain logits
+            if 'sam' in domain_logits:
+                sam_probs = torch.softmax(domain_logits['sam'], dim=1).cpu().numpy()[0]
+                domain_results['SAM'] = {name: f"{prob:.4f}" for name, prob in zip(domain_map.values(), sam_probs)}
+            
             print(f"Domain Classification: {domain_results}")
 
         # Start visualization timing
