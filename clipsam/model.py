@@ -478,11 +478,16 @@ class SigLipSamSegmentator(nn.Module):
         if domain_logits is None or domain_labels is None:
             return torch.tensor(0.0, device=self.device)
         
-        # SigLIP domain loss
-        siglip_loss = F.cross_entropy(domain_logits['siglip'], domain_labels)
+        # Class weights to handle domain imbalance
+        # Based on training set: iSAID=170067, DeepGlobe=4980, LoveDA=19118
+        # Weights calculated as: total_samples / (num_classes * class_count)
+        class_weights = torch.tensor([0.381, 12.995, 3.384], device=self.device)
         
-        # SAM domain loss
-        sam_loss = F.cross_entropy(domain_logits['sam'], domain_labels)
+        # SigLIP domain loss with class weights
+        siglip_loss = F.cross_entropy(domain_logits['siglip'], domain_labels, weight=class_weights)
+        
+        # SAM domain loss with class weights
+        sam_loss = F.cross_entropy(domain_logits['sam'], domain_labels, weight=class_weights)
         
         # Total domain loss
         total_loss = siglip_loss + (sam_loss * sam_loss_weight)
