@@ -30,6 +30,12 @@ def calculate_grl_lambda(current_iter, total_iters, schedule='linear', max_lambd
     elif schedule == 'exponential':
         # Exponential schedule: 2 / (1 + exp(-10 * progress)) - 1
         return max_lambda * (2 / (1 + np.exp(-10 * progress)) - 1)
+    elif schedule == 'delayed':
+        # No GRL for first 70% of training, then gradual ramp
+        if progress < 0.7:
+            return 0.0
+        else:
+            return max_lambda * ((progress - 0.7) / 0.3) ** 2
     else:
         return max_lambda
 
@@ -61,9 +67,9 @@ def parse_args():
     # Domain adaptation arguments
     parser.add_argument('--enable_domain_adaptation', action='store_true', help='Enable domain adversarial training')
     parser.add_argument('--num_domains', type=int, default=3, help='Number of domains (iSAID=0, DeepGlobe=1, LoveDA=2)')
-    parser.add_argument('--domain_loss_weight', type=float, default=0.1, help='Weight for domain adversarial loss')
-    parser.add_argument('--grl_lambda_schedule', type=str, default='linear', choices=['constant', 'linear', 'exponential'], help='GRL lambda scheduling')
-    parser.add_argument('--grl_max_lambda', type=float, default=1.0, help='Maximum lambda value for gradient reversal')
+    parser.add_argument('--domain_loss_weight', type=float, default=0.02, help='Weight for domain adversarial loss')
+    parser.add_argument('--grl_lambda_schedule', type=str, default='delayed', choices=['constant', 'linear', 'exponential', 'delayed'], help='GRL lambda scheduling')
+    parser.add_argument('--grl_max_lambda', type=float, default=0.5, help='Maximum lambda value for gradient reversal')
     
     # Mid-epoch checkpointing
     parser.add_argument('--save_mid_epoch_checkpoints', action='store_true', help='Save checkpoints at 25%, 50%, 75% of each epoch')
