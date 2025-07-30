@@ -30,3 +30,7 @@ hf_transfer
 # Additional dependencies that might be needed
 datasets
 accelerate
+
+opencv-python
+scikit-learn
+seaborn
