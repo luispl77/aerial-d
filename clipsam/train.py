@@ -63,6 +63,7 @@ def parse_args():
     parser.add_argument('--siglip_model', type=str, default='google/siglip2-so400m-patch14-384', help='SigLIP model name')
     parser.add_argument('--sam_model', type=str, default='facebook/sam-vit-base', help='SAM model name')
     parser.add_argument('--use_historic', action='store_true', default=True, help='Use historic (BW) images instead of normal color images')
+    parser.add_argument('--use_transformed', action='store_true', help='Use transformed images (_5, _toD, _toP, _toL) when available')
     
     # Domain adaptation arguments
     parser.add_argument('--enable_domain_adaptation', action='store_true', help='Enable domain adversarial training')
@@ -561,8 +562,40 @@ def get_domain_from_filename(filename):
         print(f"Warning: Could not determine domain from filename {filename}, defaulting to iSAID (0)")
         return 0
 
+def find_transformed_image(image_dir, base_filename):
+    """
+    Find a transformed version of the image if it exists.
+    Checks for various transformation suffixes in priority order.
+    
+    Args:
+        image_dir: Directory containing images
+        base_filename: Original filename (e.g., 'L1840_patch_0.png')
+    
+    Returns:
+        tuple: (found_path, used_filename) or (None, None) if no transformed version exists
+    """
+    if not base_filename:
+        return None, None
+    
+    # Get base name and extension
+    base_path, ext = os.path.splitext(base_filename)
+    
+    # Define transformation suffixes in priority order
+    # Historic effects (_5) and domain transfers (_toD, _toP, _toL)
+    transform_suffixes = ['_5', '_toD', '_toP', '_toL']
+    
+    for suffix in transform_suffixes:
+        transformed_filename = f"{base_path}{suffix}{ext}"
+        transformed_path = os.path.join(image_dir, transformed_filename)
+        
+        if os.path.exists(transformed_path):
+            return transformed_path, transformed_filename
+    
+    # No transformed version found
+    return None, None
+
 class SimpleDataset:
-    def __init__(self, dataset_root, split='train', input_size=512, use_historic=False, enable_domain_adaptation=False, unique_only=False, one_unique_per_obj=False):
+    def __init__(self, dataset_root, split='train', input_size=512, use_historic=False, enable_domain_adaptation=False, unique_only=False, one_unique_per_obj=False, use_transformed=False):
         self.dataset_root = dataset_root
         self.split = split
         self.input_size = input_size
@@ -570,6 +603,7 @@ class SimpleDataset:
         self.enable_domain_adaptation = enable_domain_adaptation
         self.unique_only = unique_only
         self.one_unique_per_obj = one_unique_per_obj
+        self.use_transformed = use_transformed
         
         # Set paths based on split
         self.ann_dir = os.path.join(dataset_root, split, 'annotations')
@@ -606,8 +640,18 @@ class SimpleDataset:
             filename = root.find('filename').text
             domain_label = get_domain_from_filename(xml_file) if self.enable_domain_adaptation else None
             
-            # Handle historic vs normal images
-            if self.use_historic:
+            # Determine which image to use based on flags
+            if self.use_transformed:
+                # Try to find any transformed version first
+                transformed_path, transformed_filename = find_transformed_image(self.image_dir, filename)
+                if transformed_path:
+                    image_path = transformed_path
+                    display_filename = transformed_filename
+                else:
+                    # Fall back to original
+                    image_path = os.path.join(self.image_dir, filename)
+                    display_filename = filename
+            elif self.use_historic:
                 # Convert normal filename to historic filename (replace _0.png with _5.png)
                 if filename.endswith('_0.png'):
                     historic_filename = filename.replace('_0.png', '_5.png')
@@ -892,6 +936,7 @@ def save_run_details(args, run_id, model_name, effective_batch_size, train_datas
         f.write(f"Training Samples: {len(train_dataset)}\n")
         f.write(f"Validation Samples: {len(val_dataset)}\n")
         f.write(f"Using Historic Images: {args.use_historic}\n")
+        f.write(f"Using Transformed Images: {args.use_transformed}\n")
         f.write(f"Train on Unique Expressions Only: {args.unique_only}\n")
         if args.unique_only and args.one_unique_per_obj:
             f.write(f"Train on One Unique Expression per Object: Yes\n")
@@ -980,7 +1025,8 @@ def main():
         use_historic=args.use_historic,
         enable_domain_adaptation=args.enable_domain_adaptation,
         unique_only=args.unique_only,
-        one_unique_per_obj=args.one_unique_per_obj
+        one_unique_per_obj=args.one_unique_per_obj,
+        use_transformed=args.use_transformed
     )
     
     val_dataset = SimpleDataset(
@@ -990,7 +1036,8 @@ def main():
         use_historic=args.use_historic,
         enable_domain_adaptation=args.enable_domain_adaptation,
         unique_only=False,  # Always use all expressions for validation
-        one_unique_per_obj=False
+        one_unique_per_obj=False,
+        use_transformed=args.use_transformed
     )
     
     # Initialize train_loader with default settings first
