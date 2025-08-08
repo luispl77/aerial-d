@@ -28,6 +28,7 @@ from multiprocessing import Pool, Value
 import time
 from skimage import measure
 from skimage.morphology import binary_opening, binary_closing, disk, remove_small_objects
+from pathlib import Path
 
 # LoveDA class mapping (pixel values to class names)
 LOVEDA_INSTANCE_CLASSES = {
@@ -219,6 +220,10 @@ def mask_to_rle(mask):
     rle = mask_util.encode(np.asfortranarray(mask))
     rle_string = {'size': rle['size'], 'counts': rle['counts'].decode('utf-8')}
     return rle_string
+
+def rle_to_string(rle_obj):
+    """Serialize RLE dict consistently as a string for XML storage."""
+    return str({'size': list(rle_obj.get('size', [])), 'counts': rle_obj.get('counts', '')})
 
 def determine_grid_position(x, y, image_width, image_height):
     """Determine grid position label based on the 3x3 grid"""
@@ -569,6 +574,157 @@ def process_loveda_image(image_path, mask_path, output_prefix,
     
     return tiles_generated
 
+def _find_loveda_mask(loveda_dir: str, split_name: str, image_id: str) -> str:
+    """Return absolute path to LoveDA mask for given image id, searching Urban and Rural."""
+    for domain in ['Urban', 'Rural']:
+        candidate = os.path.join(loveda_dir, split_name, domain, 'masks_png', f"{image_id}.png")
+        if os.path.exists(candidate):
+            return candidate
+    return ''
+
+def _extract_tile_from_mask(full_mask: np.ndarray, tile_id: int, crop: bool) -> np.ndarray:
+    """Return 480x480 tile mask matching our patching scheme."""
+    if not crop:
+        # Full image resized to 480x480
+        return cv2.resize(full_mask, (480, 480), interpolation=cv2.INTER_NEAREST)
+    # 2x2 grid of 512x512 tiles, then resize tile to 480x480
+    tile_size = 512
+    row = tile_id // 2
+    col = tile_id % 2
+    y_start = row * tile_size
+    x_start = col * tile_size
+    y_end = y_start + tile_size
+    x_end = x_start + tile_size
+    tile = full_mask[y_start:y_end, x_start:x_end]
+    return cv2.resize(tile, (480, 480), interpolation=cv2.INTER_NEAREST)
+
+def _ensure_groups_elem(root: ET.Element) -> ET.Element:
+    groups_elem = root.find('groups')
+    if groups_elem is None:
+        groups_elem = ET.SubElement(root, 'groups')
+    return groups_elem
+
+def _next_group_id(groups_elem: ET.Element) -> int:
+    existing = [int(g.find('id').text) for g in groups_elem.findall('group') if g.find('id') is not None]
+    if not existing:
+        return 1000000
+    return max(existing) + 1
+
+def _has_road_group(groups_elem: ET.Element) -> bool:
+    for g in groups_elem.findall('group'):
+        cat = g.find('category')
+        if cat is not None and (cat.text or '').strip().lower() == 'road':
+            return True
+    return False
+
+def _add_road_group_to_xml(root: ET.Element, mask_tile_480: np.ndarray, image_w: int = 480, image_h: int = 480) -> bool:
+    """Compute unified road mask (class 3) and add as a single group with expression.
+    Returns True if a group was added, False otherwise.
+    """
+    road_mask = (mask_tile_480 == 3).astype(np.uint8)
+    if int(road_mask.sum()) < 100:  # too small, skip
+        return False
+
+    # Light cleanup
+    kernel = disk(1)
+    road_mask = binary_opening(road_mask, kernel).astype(np.uint8)
+    total_area = int(road_mask.sum())
+    if total_area < 100:
+        return False
+
+    rows, cols = np.where(road_mask == 1)
+    if len(rows) == 0:
+        return False
+    min_row, max_row = rows.min(), rows.max()
+    min_col, max_col = cols.min(), cols.max()
+
+    rle = mask_to_rle(road_mask)
+
+    groups_elem = _ensure_groups_elem(root)
+    if _has_road_group(groups_elem):
+        return False
+
+    group_id = _next_group_id(groups_elem)
+    group_elem = ET.SubElement(groups_elem, 'group')
+    ET.SubElement(group_elem, 'id').text = str(group_id)
+    ET.SubElement(group_elem, 'instance_ids').text = '999999'
+    ET.SubElement(group_elem, 'size').text = '1'
+
+    # Centroid from bbox
+    centroid_x = (min_col + max_col + 1) / 2
+    centroid_y = (min_row + max_row + 1) / 2
+    centroid_elem = ET.SubElement(group_elem, 'centroid')
+    ET.SubElement(centroid_elem, 'x').text = str(round(centroid_x, 1))
+    ET.SubElement(centroid_elem, 'y').text = str(round(centroid_y, 1))
+
+    ET.SubElement(group_elem, 'grid_position').text = determine_grid_position(centroid_x, centroid_y, image_w, image_h)
+    ET.SubElement(group_elem, 'category').text = 'road'
+    ET.SubElement(group_elem, 'segmentation').text = rle_to_string(rle)
+
+    expressions_elem = ET.SubElement(group_elem, 'expressions')
+    expr = ET.SubElement(expressions_elem, 'expression')
+    expr.set('id', '0')
+    expr.text = 'all roads in the image'
+    return True
+
+def inject_roads_into_unique(loveda_dir: str, unique_base_dir: str, splits=(
+        'train', 'val'), crop_for_unique: bool = False):
+    """Post-process unique annotations to add a unified LoveDA road group to L* files.
+
+    loveda_dir: Path to LoveDA dataset (with Train/Val/{Urban,Rural}/masks_png)
+    unique_base_dir: Path to dataset root containing patches_rules_expressions_unique
+    splits: ('train','val') which splits to process
+    crop_for_unique: Whether the original LoveDA patches were generated with --crop
+    """
+    for split in splits:
+        split_uc = 'Train' if split.lower() == 'train' else 'Val'
+        ann_dir = os.path.join(unique_base_dir, 'patches_rules_expressions_unique', split, 'annotations')
+        if not os.path.isdir(ann_dir):
+            print(f"[inject_roads] Skip missing dir: {ann_dir}")
+            continue
+
+        xml_files = [f for f in os.listdir(ann_dir) if f.endswith('.xml') and f.startswith('L')]
+        xml_files.sort()
+        print(f"[inject_roads] {split}: {len(xml_files)} LoveDA XMLs to scan")
+
+        for xml_name in tqdm(xml_files, desc=f"Inject roads ({split})", unit="xml"):
+            xml_path = os.path.join(ann_dir, xml_name)
+            try:
+                # Parse identifiers
+                stem = os.path.splitext(xml_name)[0]
+                # Expect format: L{image_id}_patch_{tile_id}
+                # Extract image_id between 'L' and '_patch_'
+                if '_patch_' not in stem:
+                    continue
+                base, tile_str = stem.split('_patch_')
+                if not base.startswith('L'):
+                    continue
+                image_id = base[1:]
+                tile_id = int(tile_str)
+
+                mask_path = _find_loveda_mask(loveda_dir, split_uc, image_id)
+                if not mask_path:
+                    # Could not locate mask; skip
+                    continue
+                full_mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+                if full_mask is None or full_mask.shape != (1024, 1024):
+                    continue
+                mask_tile_480 = _extract_tile_from_mask(full_mask, tile_id, crop_for_unique)
+
+                # Load XML and check for existing road group
+                tree = ET.parse(xml_path)
+                root = tree.getroot()
+                groups_elem = _ensure_groups_elem(root)
+                if _has_road_group(groups_elem):
+                    # Already has road group
+                    continue
+
+                added = _add_road_group_to_xml(root, mask_tile_480, image_w=480, image_h=480)
+                if added:
+                    tree.write(xml_path, encoding='utf-8', xml_declaration=True)
+            except Exception as e:
+                print(f"[inject_roads] Error processing {xml_name}: {e}")
+
 def process_loveda_split(loveda_dir, split_name, output_base_dir, num_workers=None, crop=False, 
                         num_images=None, random_seed=None):
     """
@@ -677,12 +833,18 @@ def main():
                        help='Path to LoveDA dataset directory')
     parser.add_argument('--output_dir', type=str, default='dataset',
                        help='Output directory for processed data')
+    parser.add_argument('--unique_base_dir', type=str, default='dataset',
+                       help='Base dataset dir that contains patches_rules_expressions_unique')
     parser.add_argument('--splits', nargs='+', default=['Train', 'Val'],
                        help='Which splits to process (Train, Val)')
     parser.add_argument('--num_workers', type=int, default=None,
                        help='Number of worker processes (defaults to CPU count)')
     parser.add_argument('--crop', action='store_true',
                        help='Crop into 4 tiles instead of resizing full 1024x1024 image to 480x480')
+    parser.add_argument('--inject_loveda_roads', action='store_true',
+                       help='When set, post-process patches_rules_expressions_unique to add a single road group to LoveDA L*.xml files')
+    parser.add_argument('--crop_for_unique', action='store_true',
+                       help='Set if the LoveDA patches underlying the UNIQUE annotations were generated with --crop (2x2 tiles)')
     parser.add_argument('--num_images', type=int, default=None,
                        help='Number of images to process from each split (default: all)')
     parser.add_argument('--random_seed', type=int, default=None,
@@ -694,6 +856,18 @@ def main():
     if not os.path.exists(args.loveda_dir):
         print(f"Error: LoveDA directory '{args.loveda_dir}' not found!")
         print("Please ensure you have downloaded the LoveDA dataset.")
+        return
+
+    # Special mode: inject roads into UNIQUE annotations for LoveDA
+    if args.inject_loveda_roads:
+        splits = [s.lower() for s in (args.splits or ['Train', 'Val'])]
+        inject_roads_into_unique(
+            loveda_dir=args.loveda_dir,
+            unique_base_dir=args.unique_base_dir,
+            splits=splits,
+            crop_for_unique=args.crop_for_unique,
+        )
+        print("Finished injecting LoveDA road groups into UNIQUE annotations.")
         return
     
     # Create output directories
