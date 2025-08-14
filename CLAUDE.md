@@ -188,7 +188,14 @@ python o3_enhance.py --dataset_dir ../datagen/dataset
 
 ## Important Notes for Future Claude Instances
 
-### 0. **Script Execution Policy**
+### 0. **Conda Environment Management**
+- **ALWAYS activate the correct conda environment before running any commands**:
+  - `conda activate aerial-seg-datagen` for datagen/ folder code
+  - `conda activate aerial-seg` for clipsam/ folder code  
+  - `conda activate gemma3` for llm/ folder code
+- **IMPORTANT**: Never run Python scripts without first activating the appropriate environment
+
+### 0.1. **Script Execution Policy**
 - **IMPORTANT**: The user runs all scripts themselves unless explicitly told otherwise
 - Do NOT execute scripts with Bash tool - only create/modify them
 - Always inform user when scripts are ready to be run
