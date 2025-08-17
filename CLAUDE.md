@@ -251,14 +251,6 @@ python o3_enhance.py --dataset_dir ../datagen/dataset
 - Each component (datagen, clipsam, llm) has its own requirements.txt
 - Consider using virtual environments for different components
 
-### 7. **LaTeX Thesis Compilation**
-
-- **Thesis Location**: `/Users/luispl/Documents/aerialseg/thesis_tex/`
-- **Compile Command**: `cd /Users/luispl/Documents/aerialseg/thesis_tex && latexmk -pdf -quiet main.tex`
-- **Clean Build**: `latexmk -C` (run before compiling if needed)
-- **Force Compile**: `latexmk -pdf -f -quiet main.tex` (ignore missing references)
-- **IMPORTANT**: ALWAYS compile after making any LaTeX changes to verify the document builds correctly
-
 ### 8. **Thesis Structure**
 
 ```

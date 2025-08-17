@@ -11,17 +11,22 @@ Beyond rule-based expression generation, we further enhance the dataset through 
 \noindent The AERIAL-D dataset is constructed from two primary sources of aerial imagery with fundamentally different annotation paradigms. The iSAID dataset is an instance segmentation dataset providing high-resolution aerial images with precise boundaries for individual object instances across fifteen categories including ships, vehicles, planes, buildings, and infrastructure elements such as harbors and bridges. In contrast, the LoveDA dataset is a semantic segmentation dataset that captures land cover and land use patterns, providing pixel-level classification into categories such as buildings, water bodies, agricultural areas, forests, and barren land. These two datasets ensure comprehensive coverage of both discrete objects and continuous landscape features commonly encountered in aerial imagery analysis.
 
 
-% Dataset sources table
+% Dataset sources table with images
 \begin{table}[H]
 \centering
 \caption{Source Dataset Characteristics}
 \label{tab:dataset_sources}
-\begin{tabular}{@{}lccccc@{}}
+\begin{tabular}{@{}p{4cm}p{8cm}@{}}
 \toprule
-\textbf{Dataset} & \textbf{Total Images} & \textbf{Resolution} & \textbf{480×480 Patches} & \textbf{Instances} & \textbf{Classes} \\
+\multicolumn{2}{c}{\textbf{iSAID Dataset}} \\
 \midrule
-iSAID & -- & -- & -- & -- & 15 \\
-LoveDA & -- & -- & -- & -- & 5 \\
+\raisebox{-0.5\height}{\includegraphics[width=3.5cm, height=3.5cm]{isaid.png}} & 
+\hspace{-0.5cm}\parbox[c]{8cm}{Contains \textbf{2,806} high resolution images at varying widths of 800 to 13,000 pixels, spatial resolution of \textbf{0.1m to 4.5m}, with \textbf{655,451} instances across 15 object classes.} \\[0.5cm]
+\midrule
+\multicolumn{2}{c}{\textbf{LoveDA Dataset}} \\
+\midrule
+\raisebox{-0.5\height}{\includegraphics[width=3.5cm, height=3.5cm]{loveda.png}} & 
+\hspace{-0.5cm}\parbox[c]{8cm}{Contains \textbf{5,987} images at \textbf{1024} pixel width, spatial resolution of \textbf{0.3m}, with -- instances across 5 land cover classes.} \\[0.5cm]
 \bottomrule
 \end{tabular}
 \end{table}
