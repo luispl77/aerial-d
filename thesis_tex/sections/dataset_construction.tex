@@ -24,31 +24,35 @@ DeepGlobe & -- & -- & -- \\
 \centering
 \begin{minipage}{0.5\textwidth}
 \centering
-\includegraphics[width=0.8\textwidth]{rule_based_generation.png}
-\caption*{Airport scene with 3×3 grid overlay showing plane locations}
+\includegraphics[width=0.7\textwidth]{rule_based_generation.png}
 \end{minipage}%
 \begin{minipage}{0.5\textwidth}
 \centering
+\vspace{0.5cm}
+\resizebox{\textwidth}{!}{%
 \footnotesize
 \begin{tabular}{@{}ll@{}}
 \toprule
-\textbf{Rule Type} & \textbf{Assigned Value} \\
+\textbf{Rule Type} & \textbf{Example Instance} \\
 \midrule
-\multicolumn{2}{l}{\textbf{Spatial Rules}} \\
+Category & "plane" \\
 Grid Position & "in the top right" \\
-Borderline Status & false \\
 Extreme Position & None \\
+Size Comparison & None \\
+Color Classification & "light" \\
+Directional Relations & "to the bottom right of a plane" \\
+& "to the top right of a plane" \\
 \midrule
-\multicolumn{2}{l}{\textbf{Visual Rules}} \\
-Color & "light" \\
-Color Ambiguous & false \\
-Size Attribute & None \\
-\midrule
-\multicolumn{2}{l}{\textbf{Relational Rules}} \\
-Relationship 1 & "to the bottom right of plane" \\
-Relationship 2 & "to the top right of plane" \\
+\multicolumn{2}{l}{\textbf{Final Expressions}} \\
+\multicolumn{2}{l}{"the plane in the top right"} \\
+\multicolumn{2}{l}{"the light plane in the top right"} \\
+\multicolumn{2}{l}{"the plane in the top right to the bottom right of a plane"} \\
+\multicolumn{2}{l}{"the light plane in the top right to the bottom right of a plane"} \\
+\multicolumn{2}{l}{"the plane in the top right to the top right of a plane"} \\
+\multicolumn{2}{l}{"the light plane in the top right to the top right of a plane"} \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{minipage}
 \caption{Example of rule generation for a single instance. The highlighted plane in the top right section demonstrates how the system assigns spatial, visual, and relational rules that will later be combined into referring expressions.}
 \label{fig:rule_example}
