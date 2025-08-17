@@ -224,4 +224,28 @@ python o3_enhance.py --dataset_dir ../datagen/dataset
 - Each component (datagen, clipsam, llm) has its own requirements.txt
 - Consider using virtual environments for different components
 
+### 7. **LaTeX Thesis Compilation**
+- **Thesis Location**: `/Users/luispl/Documents/aerialseg/thesis_tex/`
+- **Compile Command**: `cd /Users/luispl/Documents/aerialseg/thesis_tex && latexmk -pdf main.tex`
+- **Clean Build**: `latexmk -C` (run before compiling if needed)
+- **Force Compile**: `latexmk -pdf -f main.tex` (ignore missing references)
+
+### 8. **Thesis Structure**
+```
+thesis_tex/
+├── main.tex                    # Main LaTeX document
+├── main.pdf                    # Generated PDF output
+├── .gitignore                  # LaTeX build files exclusion
+├── *.png                       # Figures (RSRefSeg.png, dataset.png, etc.)
+└── sections/                   # Individual chapter files
+    ├── introduction.tex        # Introduction chapter
+    ├── related_work.tex        # Literature review
+    ├── dataset_construction.tex # Dataset methodology
+    ├── evaluation_setup.tex    # Experimental setup
+    ├── results.tex             # Results and analysis
+    ├── conclusion.tex          # Conclusions
+    ├── acknowledgments.tex     # Acknowledgments
+    └── appendices.tex          # Additional materials
+```
+
 This documentation provides a comprehensive overview for working effectively with the AerialSeg codebase. The project combines computer vision, natural language processing, and web development in a cohesive research framework for aerial image segmentation.
