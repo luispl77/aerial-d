@@ -139,7 +139,7 @@ Final processing ensures expression uniqueness and linguistic quality through sy
 \checkmark & \checkmark & & & & \checkmark & "the group of 3 ships in the center that is above a group of 2 buildings" \\
 \checkmark & \checkmark & & & & \checkmark & "the ship in the bottom right that is to the left of a group of 2 harbors" \\
 \checkmark & & & & & & "all buildings in the image" \\
-\checkmark & & & \checkmark & & & "all small and large vehicles in the image" \\
+\checkmark & & & & & & "all small and large vehicles in the image" \\
 \bottomrule
 \end{tabular}%
 }
@@ -150,29 +150,32 @@ Final processing ensures expression uniqueness and linguistic quality through sy
 % LLM enhancement example figure
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.4\textwidth]{example_group.png}
-\caption{Example aerial image showing a group of four large vehicles (highlighted in red boxes) that demonstrates the LLM enhancement process.}
+\begin{minipage}{0.5\textwidth}
+\centering
+\includegraphics[width=0.7\textwidth]{example_group.png}
+\end{minipage}%
+\begin{minipage}{0.5\textwidth}
+\centering
+\hspace{-1cm}
+\raisebox{-0.3\height}{%
+\footnotesize
+\begin{tabular}{@{}p{2cm}p{5cm}@{}}
+\toprule
+\textbf{Expression Type} & \textbf{Example} \\
+\midrule
+Original & the group of 4 large vehicles in the top center \\
+\midrule
+Enhanced & the cluster of four big vehicles near the upper middle \\
+\midrule
+Unique & the four large vehicles lined up side by side just below the pale paved strip at the very top middle \\
+\midrule
+Unique & the set of four big vehicles parked in a single row in the upper center beside the grassy area to the right \\
+\bottomrule
+\end{tabular}%
+}
+\end{minipage}
+\caption{Example of LLM enhancement process showing original aerial image with group of four large vehicles (left) and corresponding expression enhancements (right).}
 \label{fig:llm_enhancement_example}
 \end{figure}
-
-% LLM enhancement example table
-\begin{table}[H]
-\centering
-\caption{Example LLM Enhancement Output for Group Instance}
-\label{tab:llm_enhancement_example}
-\begin{tabular}{@{}p{0.25\textwidth}p{0.7\textwidth}@{}}
-\toprule
-\textbf{Enhancement Type} & \textbf{Expression} \\
-\midrule
-Original Expression & the group of 4 large vehicles in the top center \\
-\midrule
-Enhanced Expression & the cluster of four big vehicles near the upper middle \\
-\midrule
-\multirow{2}{0.25\textwidth}{Unique Expressions} & the four large vehicles lined up side by side just below the pale paved strip at the very top middle \\
-\cmidrule(l){2-2}
-& the set of four big vehicles parked in a single row in the upper center beside the grassy area to the right \\
-\bottomrule
-\end{tabular}
-\end{table}
 
 
