@@ -43,7 +43,7 @@ Beyond rule-based expression generation, we further enhance the dataset through 
 \end{minipage}%
 \begin{minipage}{0.5\textwidth}
 \centering
-\vspace{0.5cm}
+\raisebox{-0.3\height}{%
 \resizebox{\textwidth}{!}{%
 \footnotesize
 \begin{tabular}{@{}ll@{}}
@@ -67,6 +67,7 @@ Directional Relations & "to the bottom right of a plane" \\
 \multicolumn{2}{l}{"the light plane in the top right to the top right of a plane"} \\
 \bottomrule
 \end{tabular}%
+}%
 }
 \end{minipage}
 \caption{Example of rule generation for a single instance. The highlighted plane in the top right section demonstrates how the system assigns spatial, visual, and relational rules that will later be combined into referring expressions.}
