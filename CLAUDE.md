@@ -226,9 +226,10 @@ python o3_enhance.py --dataset_dir ../datagen/dataset
 
 ### 7. **LaTeX Thesis Compilation**
 - **Thesis Location**: `/Users/luispl/Documents/aerialseg/thesis_tex/`
-- **Compile Command**: `cd /Users/luispl/Documents/aerialseg/thesis_tex && latexmk -pdf main.tex`
+- **Compile Command**: `cd /Users/luispl/Documents/aerialseg/thesis_tex && latexmk -pdf -quiet main.tex`
 - **Clean Build**: `latexmk -C` (run before compiling if needed)
-- **Force Compile**: `latexmk -pdf -f main.tex` (ignore missing references)
+- **Force Compile**: `latexmk -pdf -f -quiet main.tex` (ignore missing references)
+- **IMPORTANT**: ALWAYS compile after making any LaTeX changes to verify the document builds correctly
 
 ### 8. **Thesis Structure**
 ```
@@ -247,5 +248,10 @@ thesis_tex/
     ├── acknowledgments.tex     # Acknowledgments
     └── appendices.tex          # Additional materials
 ```
+
+### 9. **Thesis Writing Guidelines**
+- **Source Code Reference**: When writing about technical implementation details, ALWAYS check the corresponding source code in the repository to confirm accuracy. The thesis and source code are co-located for this purpose.
+- **Writing Style**: Use descriptive prose instead of bullet points. Provide detailed, flowing descriptions that explain concepts thoroughly in paragraph form.
+- **Technical Accuracy**: Verify pipeline steps, model architectures, and implementation details by examining the actual code files before writing about them.
 
 This documentation provides a comprehensive overview for working effectively with the AerialSeg codebase. The project combines computer vision, natural language processing, and web development in a cohesive research framework for aerial image segmentation.
