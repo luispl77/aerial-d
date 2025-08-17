@@ -43,6 +43,7 @@ Beyond rule-based expression generation, we further enhance the dataset through 
 \end{minipage}%
 \begin{minipage}{0.5\textwidth}
 \centering
+\hspace{-1cm}
 \raisebox{-0.3\height}{%
 \resizebox{\textwidth}{!}{%
 \footnotesize
@@ -104,41 +105,41 @@ Final processing ensures expression uniqueness and linguistic quality through sy
 \caption{Complete Taxonomy of Generated Expression Types}
 \label{tab:expression_types}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{@{}lll@{}}
+\begin{tabular}{@{}ccccccl@{}}
 \toprule
-\textbf{Expression Type} & \textbf{Description} & \textbf{Example} \\
+\textbf{Category} & \textbf{Position} & \textbf{Extreme} & \textbf{Size} & \textbf{Color} & \textbf{Relationship} & \textbf{Example} \\
 \midrule
-\multicolumn{3}{l}{\textbf{Individual Instance Expressions}} \\
+\multicolumn{7}{l}{\textbf{Individual Instance Expressions}} \\
 \midrule
-Category Only & Basic object category & "the ship" \\
-Category + Position & Category with grid position & "the ship in the bottom right" \\
-Category + Position + Relationship & Category with position and spatial relationship & "the ship in the bottom right that is to the left of a harbor" \\
-Extreme Position + Category & Extreme spatial position with category & "the topmost ship" \\
-Extreme + Category + Position & Extreme position with grid location & "the topmost ship in the top left" \\
-Extreme + Category + Position + Relationship & Extreme position with relationship & "the topmost ship in the top left that is above a building" \\
-Size + Category + Position & Size attribute with position & "the largest ship in the bottom right" \\
-Size + Category + Position + Relationship & Size attribute with relationship & "the largest ship in the bottom right that is above a harbor" \\
-Size + Extreme + Category + Position & Size with extreme position & "the largest topmost ship in the top left" \\
-Size + Extreme + Category + Position + Relationship & All attributes combined & "the largest topmost ship in the top left that is above a building" \\
-Color + Category & Color attribute with category & "the dark ship" \\
-Color + Category + Position & Color with position & "the dark ship in the bottom right" \\
-Color + Category + Position + Relationship & Color with relationship & "the dark ship in the bottom right that is to the left of a harbor" \\
-Color + Extreme + Category & Color with extreme position & "the dark topmost ship" \\
-Color + Extreme + Category + Position & Color with extreme and position & "the dark topmost ship in the top left" \\
-Color + Extreme + Category + Position + Relationship & Color with all spatial attributes & "the dark topmost ship in the top left that is above a building" \\
-Color + Size + Category + Position & Color with size attribute & "the dark largest ship in the bottom right" \\
-Color + Size + Category + Position + Relationship & Color with size and relationship & "the dark largest ship in the bottom right that is above a harbor" \\
-Color + Size + Extreme + Category + Position & All attributes with color & "the dark largest topmost ship in the top left" \\
-Color + Size + Extreme + Category + Position + Relationship & Maximum complexity expression & "the dark largest topmost ship in the top left that is above a building" \\
+\checkmark & & & & & & "the ship" \\
+\checkmark & \checkmark & & & & & "the ship in the bottom right" \\
+\checkmark & \checkmark & & & & \checkmark & "the ship in the bottom right that is to the left of a harbor" \\
+\checkmark & & \checkmark & & & & "the topmost ship" \\
+\checkmark & \checkmark & \checkmark & & & & "the topmost ship in the top left" \\
+\checkmark & \checkmark & \checkmark & & & \checkmark & "the topmost ship in the top left that is above a building" \\
+\checkmark & \checkmark & & \checkmark & & & "the largest ship in the bottom right" \\
+\checkmark & \checkmark & & \checkmark & & \checkmark & "the largest ship in the bottom right that is above a harbor" \\
+\checkmark & \checkmark & \checkmark & \checkmark & & & "the largest topmost ship in the top left" \\
+\checkmark & \checkmark & \checkmark & \checkmark & & \checkmark & "the largest topmost ship in the top left that is above a building" \\
+\checkmark & & & & \checkmark & & "the dark ship" \\
+\checkmark & \checkmark & & & \checkmark & & "the dark ship in the bottom right" \\
+\checkmark & \checkmark & & & \checkmark & \checkmark & "the dark ship in the bottom right that is to the left of a harbor" \\
+\checkmark & & \checkmark & & \checkmark & & "the dark topmost ship" \\
+\checkmark & \checkmark & \checkmark & & \checkmark & & "the dark topmost ship in the top left" \\
+\checkmark & \checkmark & \checkmark & & \checkmark & \checkmark & "the dark topmost ship in the top left that is above a building" \\
+\checkmark & \checkmark & & \checkmark & \checkmark & & "the dark largest ship in the bottom right" \\
+\checkmark & \checkmark & & \checkmark & \checkmark & \checkmark & "the dark largest ship in the bottom right that is above a harbor" \\
+\checkmark & \checkmark & \checkmark & \checkmark & \checkmark & & "the dark largest topmost ship in the top left" \\
+\checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & "the dark largest topmost ship in the top left that is above a building" \\
 \midrule
-\multicolumn{3}{l}{\textbf{Group Expressions}} \\
+\multicolumn{7}{l}{\textbf{Group Expressions}} \\
 \midrule
-Basic Group & Group with size and category & "the group of 3 ships in the center" \\
-Group + Extreme Position & Group with extreme spatial position & "the topmost group of 3 ships in the center" \\
-Group + Relationship & Group with spatial relationship to other groups & "the group of 3 ships in the center that is above a group of 2 buildings" \\
-Single Instance + Group Relationship & Individual object referencing group & "the ship in the bottom right that is to the left of a group of 2 harbors" \\
-Class-Level Groups & Semantic segmentation expressions & "all buildings in the image" \\
-Special Combination Groups & Multi-class semantic groups & "all small and large vehicles in the image" \\
+\checkmark & \checkmark & & & & & "the group of 3 ships in the center" \\
+\checkmark & \checkmark & \checkmark & & & & "the topmost group of 3 ships in the center" \\
+\checkmark & \checkmark & & & & \checkmark & "the group of 3 ships in the center that is above a group of 2 buildings" \\
+\checkmark & \checkmark & & & & \checkmark & "the ship in the bottom right that is to the left of a group of 2 harbors" \\
+\checkmark & & & & & & "all buildings in the image" \\
+\checkmark & & & \checkmark & & & "all small and large vehicles in the image" \\
 \bottomrule
 \end{tabular}%
 }
