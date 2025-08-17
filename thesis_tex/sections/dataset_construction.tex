@@ -22,9 +22,36 @@ DeepGlobe & -- & -- & -- \\
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=\textwidth]{rule_based_generation.png}
-\caption{Simplified overview of the rule-based generation pipeline. The actual system includes additional rules and safeguards, but follows the same spirit: start from instance masks, organize entities, characterize them spatially, and connect them with relationships to produce unambiguous referring expressions.}
-\label{fig:rule_based_generation}
+\begin{minipage}{0.5\textwidth}
+\centering
+\includegraphics[width=0.8\textwidth]{rule_based_generation.png}
+\caption*{Airport scene with 3×3 grid overlay showing plane locations}
+\end{minipage}%
+\begin{minipage}{0.5\textwidth}
+\centering
+\footnotesize
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Rule Type} & \textbf{Assigned Value} \\
+\midrule
+\multicolumn{2}{l}{\textbf{Spatial Rules}} \\
+Grid Position & "in the top right" \\
+Borderline Status & false \\
+Extreme Position & None \\
+\midrule
+\multicolumn{2}{l}{\textbf{Visual Rules}} \\
+Color & "light" \\
+Color Ambiguous & false \\
+Size Attribute & None \\
+\midrule
+\multicolumn{2}{l}{\textbf{Relational Rules}} \\
+Relationship 1 & "to the bottom right of plane" \\
+Relationship 2 & "to the top right of plane" \\
+\bottomrule
+\end{tabular}
+\end{minipage}
+\caption{Example of rule generation for a single instance. The highlighted plane in the top right section demonstrates how the system assigns spatial, visual, and relational rules that will later be combined into referring expressions.}
+\label{fig:rule_example}
 \end{figure}
 
 Our rule-based component enriches each patch with spatial structure and language-ready annotations before LLM enhancement. It operates on XML annotations produced by the patching steps and outputs three successive datasets: (1) with rules added, (2) with all candidate expressions, and (3) with expressions filtered for uniqueness. Below we summarize the main stages implemented in the pipeline scripts.
