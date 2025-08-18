@@ -186,6 +186,14 @@ Final processing ensures expression uniqueness and linguistic quality through sy
 
 \subsection{LLM Enhancement Component}
 
+% LLM distillation figure
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{distillation.png}
+\caption{Knowledge distillation pipeline for scalable LLM enhancement. A small sample of 500 expressions is processed through OpenAI's O3 model to generate high-quality training targets, which are then used to fine-tune Gemma3 12B via QLora. The fine-tuned model enables cost-effective local inference to enhance the full dataset of 300,000 expressions using vLLM on a single GPU.}
+\label{fig:llm_distillation}
+\end{figure}
+
 % LLM enhancement example figure
 \begin{figure}[H]
 \centering
