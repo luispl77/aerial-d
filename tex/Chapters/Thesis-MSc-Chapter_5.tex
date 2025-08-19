@@ -107,12 +107,6 @@ Road & -- & -- & -- & -- & DeepGlobe \\
 \section{Experimental Configuration} 
 This section describes the training configuration and experimental setup for evaluating the RSRefSeg model on the AerialD dataset.
 
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.8\textwidth]{./Images/test_env}
-\caption{Test Environment}
-\label{fig:test_env}
-\end{figure}
 
 \subsection{Expression Type Analysis}
 
@@ -186,21 +180,6 @@ LLM Unique (Visual Details) & -- & -- & -- \\
 
 The experimental setup evaluates model performance across different expression types and enhancement levels to understand the impact of each component on segmentation accuracy.
 
-\begin{table}[htb]
-\centering
-\normalsize
-    \caption{Network Link Conditioner Profiles}
-    \label{tab:network_profiles}
-{\footnotesize
-    \begin{tabular}{ | c | c | c | c | }
-    \hline 
-    \textbf{Network Profile}	& \textbf{Bandwidth} & \textbf{Packets Droped} & \textbf{Delay}\\ \hline \hline
-    Wifi  & 40 mbps  &  0\%  &   1 ms \\ \hline
-    3G  & 780 kbps  &  0\%  &   100 ms \\ \hline 
-    Edge  & 240 kbps  &  0\%  &   400 ms \\ \hline
-    \end{tabular}
-    }
-\end{table}
 
 \subsection{Training Configuration}
 
