@@ -1,0 +1,91 @@
+% #############################################################################
+% This is Chapter 2
+% !TEX root = ../main.tex
+% #############################################################################
+% Change the Name of the Chapter i the following line
+\fancychapter{This is the Second Chapter}
+\cleardoublepage
+% The following line allows to ref this chapter
+\label{chap:back}
+
+Vivamus auctor leo vel dui. Aliquam erat volutpat. Phasellus nibh. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Cras tempor. Morbi egestas, urna non consequat tempus, nunc arcu mollis enim, eu aliquam erat nulla non nibh. Duis consectetuer malesuada velit. Nam ante nulla, interdum vel, tristique ac, condimentum non, tellus. Proin ornare feugiat nisl. Suspendisse dolor nisl, ultrices at, eleifend vel, consequat at, dolor.
+% #############################################################################
+\section{Traditional Streaming Technologies}
+Cras dictum. Maecenas ut turpis. In vitae erat ac orci dignissim eleifend. Nunc quis justo. Sed vel ipsum in purus tincidunt pharetra \cite{MacAulay:2005fk}. Sed pulvinar, felis id consectetuer malesuada, enim nisl mattis elit, a facilisis tortor nibh quis leo. Sed augue lacus, pretium vitae, molestie eget, rhoncus quis, elit \cite{Schwarz:2007lr}. Donec in augue. Fusce orci wisi, ornare id, mollis vel, lacinia vel, massa. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas..
+
+Sed pulvinar, \enquote{felis id consectetuer} malesuada, enim nisl mattis elit, a facilisis tortor nibh quis leo \Cref{tab:streamingtech}.
+
+\begin{table}[htb]
+\centering
+\normalsize
+{\footnotesize
+    \caption{Streaming Technologies Comparison}
+    \label{tab:streamingtech}
+    \begin{tabular}{ | c | c | c | c |}
+    \hline
+    & Dynamic & Smooth & HLS\\
+    & Streaming & Streaming & \\ \hline \hline
+
+    Streaming Protocol & RTMP & HTTP & HTTP \\
+    %\textbf{Protocol} & & & \\ 
+    \hline
+    
+    Video Codec & H.264, VP6 & H.264 & H.264 \\ 
+    %\textbf{Codec} & &  & \\ 
+    \hline
+    
+    Audio Codec & AAC, MP3 & WMA, AAC & AAC, MP3  \\
+    %\textbf{Codec} & & & \\ 
+    \hline
+    
+    Container Format & MP4, FLV, & MP4 & MPEG2-TS \\
+    %\textbf{Format} & F4V & & \\ 
+    \hline
+    
+     iOS & NO & YES & YES \\ \hline
+     
+    Android & NO & YES & YES \\ \hline
+    
+    \end{tabular}
+    }
+\end{table} 
+
+Suspendisse vestibulum dignissim quam. Integer vel augue. Phasellus nulla purus, interdum ac, venenatis non, varius rutrum, leo. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas \cite{RFC-VP8}. Duis a eros. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos hymenaeos. Fusce magna mi, porttitor quis, convallis eget, sodales ac, urna \cite{Chiang:2011fk}. \textcolor{violet}{\Cref{tab:spreadtb} illustrates the use of a Spreadsheet-like table producing calculations by columns and by lines (observe the code).} 
+
+\begin{table}[htb]
+\centering
+    \caption{A nice Spreadsheet using package ``spreadtab''. Notice the calculations.}
+    \label{tab:spreadtb}
+\begin{spreadtab}{{tabular}{rr|r}} 
+22       & 54       & a1+b1 \\
+43       & 65       & a2+b2 \\ 
+49       & 37       & a3+b3 \\
+\hline
+a1+a2+a3 & b1+b2+b3 & a4+b4
+\end{spreadtab}
+\end{table} 
+% #############################################################################
+\section{Cras lobortis tempor velit}
+Nunc tincidunt convallis tortor. Duis eros mi, dictum vel, fringilla sit amet, fermentum id, sem. Phasellus nunc enim, faucibus ut, laoreet in, consequat id, metus. Vivamus dignissim \cite{Moscoso:2011fk}. \textcolor{violet}{\Cref{tab:comp_arch} is automatically compressed to fit text width. You can use \url{https://www.tablesgenerator.com} to produce these tables, and then copy the \LaTeX\space code generated to paste in the document.}
+
+
+\begin{table}[h]
+\centering
+\caption{Comparison between today's and target Architectures of Telcos}
+\label{tab:comp_arch}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{|
+>{\columncolor[HTML]{ECF4FF}}l |l|
+>{\columncolor[HTML]{E2FFC9}}l |l|}
+\hline
+\multicolumn{2}{|c|}{\cellcolor[HTML]{ECF4FF}Today}                                                                                                             & \multicolumn{2}{c|}{\cellcolor[HTML]{E2FFC9}Target}                                                                                  \\ \hline
+Rigid     & \begin{tabular}[c]{@{}l@{}}Each evolutionary requirement involves \\ development of multiple components, \\ interfaces, platforms,etc.\end{tabular} & Flexible       & \begin{tabular}[c]{@{}l@{}}It is possible to modify or add new\\ functionalities rapidly.\end{tabular}              \\ \hline
+Slow      & \begin{tabular}[c]{@{}l@{}}Development of a new application takes \\ months or years.\end{tabular}                                                  & Fast           & \begin{tabular}[c]{@{}l@{}}Development of a new application takes \\ weeks instead of months or years.\end{tabular} \\ \hline
+Closed    & \begin{tabular}[c]{@{}l@{}}Limited integration with external\\ environments.\end{tabular}                                                           & Open           & \begin{tabular}[c]{@{}l@{}}It is simple to integrate internal,\\ applications with external entities.\end{tabular}  \\ \hline
+Complex   & \begin{tabular}[c]{@{}l@{}}Heterogeneous technologies, obsolescence, \\ lack,of standards, high redundancy.\end{tabular}                            & Standardised   & Use of homogeneous architectural models.                                                                            \\ \hline
+Expensive & \begin{tabular}[c]{@{}l@{}}High Capex (for new service development) \\ and,high,Opex (to ensure running of IT).\end{tabular}                        & Cost-Effective & Capex and Opex are optimised.                                                                                       \\ \hline
+\end{tabular}
+}
+\end{table}
+
+Cras lobortis tempor velit. Phasellus nec diam ac nisl lacinia tristique. Nullam nec metus id mi dictum dignissim. Nullam quis wisi non sem lobortis condimentum. Phasellus pulvinar, nulla non aliquam eleifend, tortor wisi scelerisque felis, in sollicitudin arcu ante lacinia leo.
