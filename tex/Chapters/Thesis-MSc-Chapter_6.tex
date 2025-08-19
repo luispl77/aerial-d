@@ -10,20 +10,10 @@
 
 This chapter presents the results of our experiments on open-vocabulary aerial image segmentation using the AerialD dataset and RSRefSeg architecture. We analyze both quantitative performance metrics and qualitative segmentation results.
 
-% #############################################################################
-\section{Dataset Analysis}
-
-The final AerialD dataset contains a comprehensive collection of aerial images with referring expressions across multiple object categories and spatial relationships.
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.8\textwidth]{./Images/dataset.png}
-\caption{Dataset Statistics and Composition Analysis}
-\label{fig:dataset_stats}
-\end{figure}
+The final AerialD dataset contains a comprehensive collection of aerial images with referring expressions across multiple object categories and spatial relationships, providing a robust foundation for training and evaluating referring segmentation models.
 
 % #############################################################################
-\section{Quantitative Evaluation}
+\subsection{Quantitative Evaluation}
 
 % Cross-dataset performance table
 \begin{table}[H]
@@ -65,15 +55,15 @@ NWPU-Refer & 0.12m-0.5m & 15003 & 49745 & \checkmark & \checkmark & 1024-2048 & 
 The quantitative evaluation demonstrates the effectiveness of our approach across multiple metrics and datasets. The AerialD dataset significantly outperforms existing referring segmentation datasets in terms of scale, with over 1.5 million referring expressions compared to the largest previous dataset of 49,745 annotations.
 
 % #############################################################################
-\section{Qualitative Results}
+\subsection{Qualitative Analysis}
 
 Visual analysis of segmentation results demonstrates the model's capability to accurately identify and segment objects based on natural language descriptions in aerial imagery.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.9\textwidth]{./Images/qualitative.png}
-\caption{Qualitative Segmentation Results on Aerial Images}
-\label{fig:qualitative_results}
+\includegraphics[width=\textwidth]{./Images/qualitative.png}
+\caption{Qualitative segmentation results from RSRefSeg model on AERIAL-D validation set.}
+\label{fig:qualitative_examples}
 \end{figure}
 
 The qualitative results show successful segmentation across various object categories including vehicles, buildings, water bodies, and infrastructure elements with varying spatial relationships and contextual descriptions.
