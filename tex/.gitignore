@@ -48,10 +48,13 @@
 # Minitoc package
 *.mtc
 *.mtc[0-9]*
+*.mtc10
 *.slf
 *.slt
 *.stc
 *.stc[0-9]*
+*.mlf[0-9]*
+*.mlt[0-9]*
 
 # Makeindex
 *.maf
@@ -102,6 +105,11 @@
 # Changes package
 *.soc
 
+# Minitoc specific files
+main.mtc[0-9]*
+main.mlf[0-9]*
+main.mlt[0-9]*
+
 # Nomencl package
 *.nlo
 *.nls
@@ -115,6 +123,7 @@
 *.glsdefs
 *.lzo
 *.lzs
+*.slo
 
 # TODO notes
 *.tdo
