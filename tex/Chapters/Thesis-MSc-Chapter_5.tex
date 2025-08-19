@@ -3,14 +3,39 @@
 % !TEX root = ../main.tex
 % #############################################################################
 % Change the Name of the Chapter i the following line
-\fancychapter{This is the Fifth Chapter}
+\fancychapter{Evaluation Setup}
 \cleardoublepage
 % The following line allows to ref this chapter
 \label{chap:evaluation}
 
-Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Morbi commodo, ipsum sed pharetra gravida, orci magna rhoncus neque, id pulvinar odio lorem non turpis. Nullam sit amet enim. Suspendisse id velit vitae ligula volutpat condimentum. Aliquam erat volutpat. Sed quis velit. Nulla facilisi. Nulla libero. Vivamus pharetra posuere sapien. Nam consectetuer. Sed aliquam, nunc eget euismod ullamcorper, lectus nunc ullamcorper orci, fermentum bibendum enim nibh eget ipsum. Donec porttitor ligula eu dolor. Maecenas vitae nulla consequat libero cursus venenatis. Nam magna enim, accumsan eu, blandit sed, blandit a, eros. 
+This chapter presents the experimental setup for evaluating open-vocabulary aerial image segmentation models. We describe the model architecture, training procedures, evaluation metrics, and baseline comparisons used in our study.
+
 % #############################################################################
-\section{Maecenas vitae nulla consequat} 
+\section{Model Architecture}
+
+Our approach is based on the RSRefSeg (Referring Segmentation with Rule-based annotation System) architecture, which combines text and visual understanding for precise object segmentation in aerial imagery.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{./Images/RSRefSeg.png}
+\caption{RSRefSeg Architecture Overview}
+\label{fig:rsrefseg_architecture}
+\end{figure}
+
+% #############################################################################
+\section{ClipSAM Model Implementation}
+
+We implement a ClipSAM model that leverages SigLIP for multimodal understanding and SAM for precise segmentation mask generation.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{./Images/clipsam.png}
+\caption{ClipSAM Model Architecture with SigLIP and SAM Components}
+\label{fig:clipsam_architecture}
+\end{figure}
+
+% #############################################################################
+\section{Experimental Configuration} 
 Aliquam aliquet, est a ullamcorper condimentum, tellus nulla fringilla elit, a iaculis nulla turpis sed wisi. Fusce volutpat. Etiam sodales ante id nunc. Proin ornare dignissim lacus. Nunc porttitor nunc a sem. Sed sollicitudin velit eu magna. Aliquam erat volutpat. Vivamus ornare est non wisi. Proin vel quam. Vivamus egestas. Nunc tempor diam vehicula mauris. Nullam sapien eros \Cref{fig:test_env}, facilisis vel, eleifend non, auctor dapibus, pede.
 
 \begin{figure}[h]

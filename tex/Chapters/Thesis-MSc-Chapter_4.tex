@@ -3,27 +3,86 @@
 % !TEX root = ../main.tex
 % #############################################################################
 % Change the Name of the Chapter i the following line
-\fancychapter{This is the Fourth Chapter}
+\fancychapter{Dataset Construction}
 \cleardoublepage
 % The following line allows to ref this chapter
 \label{chap:implement}
 
-Aliquam aliquet, est a ullamcorper condimentum, tellus nulla fringilla elit, a iaculis nulla turpis sed wisi. Fusce volutpat. Etiam sodales ante id nunc. Proin ornare dignissim lacus. Nunc porttitor nunc a sem. Sed sollicitudin velit eu magna. Aliquam erat volutpat. Vivamus ornare est non wisi. Proin vel quam. Vivamus egestas. Nunc tempor diam vehicula mauris. Nullam sapien eros, facilisis vel, eleifend non, auctor dapibus, pede. 
-% #############################################################################
-\section{Development Process}
-Suspendisse vestibulum dignissim quam. Integer vel augue. Phasellus nulla purus, interdum ac, venenatis non, varius rutrum, leo. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Duis a eros. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos hymenaeos. Fusce magna mi, porttitor quis, convallis eget, sodales ac, urna. Phasellus luctus venenatis magna. Vivamus eget lacus. Nunc tincidunt convallis tortor. Duis eros mi, dictum vel, fringilla sit amet, fermentum id, sem. Phasellus nunc enim, faucibus ut, laoreet in, consequat id, metus. Vivamus dignissim. Cras lobortis tempor velit. Phasellus nec diam ac nisl lacinia tristique. Nullam nec metus id mi dictum dignissim. Nullam quis wisi non sem lobortis condimentum. Phasellus pulvinar, nulla non aliquam eleifend, tortor wisi scelerisque felis, in sollicitudin arcu ante lacinia leo.:
+This chapter presents the systematic approach for constructing the AerialD dataset for open-vocabulary aerial image segmentation. Our methodology transforms existing aerial datasets into a comprehensive referring segmentation resource through automated rule-based generation and LLM enhancement.
 
-\begin{itemize}
-\item{Technology Research and Related Works}
-\item{Requirements Gathering and Study}
-\item{Design of the Architecture}
-\item{Implementation Process}
-\item{Testing and Functional Validation}
-\end{itemize}
-
-Pellentesque nibh felis, eleifend id, commodo in, interdum vitae, leo. Praesent eu elit. Ut eu ligula. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos hymenaeos. Maecenas elementum augue nec nisl. Proin auctor lorem at nibh. Curabitur nulla purus, feugiat id, elementum in, lobortis quis, pede. Vivamus sodales adipiscing sapien. Vestibulum posuere nulla eget wisi. Integer volutpat ligula eget enim. Suspendisse vitae arcu. Quisque pellentesque. Nullam consequat, sem vitae rhoncus tristique, mauris nulla fermentum est, bibendum ullamcorper sapien magna et quam. Sed dapibus vehicula odio. Proin bibendum gravida nisl. Fusce lorem. Phasellus sagittis, nulla in hendrerit laoreet, libero lacus feugiat urna, eget hendrerit pede magna vitae lorem. Praesent mauris.
 % #############################################################################
-\section{Development Environment}
+\section{Source Datasets}
+
+The AERIAL-D dataset is constructed from multiple sources of aerial imagery with different annotation paradigms, ensuring comprehensive coverage of both discrete objects and continuous landscape features.
+
+% Dataset sources with images
+\begin{figure}[H]
+\centering
+\subfigure[iSAID Dataset Sample]{
+\includegraphics[width=0.45\textwidth]{./Images/isaid.png}
+\label{fig:isaid_sample}
+}
+\hfill
+\subfigure[LoveDA Dataset Sample]{
+\includegraphics[width=0.45\textwidth]{./Images/loveda.png}
+\label{fig:loveda_sample}
+}
+\caption{Source Dataset Examples}
+\label{fig:source_datasets}
+\end{figure}
+
+% #############################################################################
+\section{Rule-Based Generation Pipeline}
+
+Our rule-based pipeline systematically transforms aerial segmentation datasets into referring expression datasets through spatial analysis, visual feature extraction, and combinatorial expression generation.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{./Images/rule_based_generation.png}
+\caption{Rule-Based Expression Generation Pipeline}
+\label{fig:rule_based_pipeline}
+\end{figure}
+
+The pipeline consists of multiple sequential steps that analyze spatial relationships, extract visual characteristics, and generate natural language descriptions for aerial objects.
+
+% #############################################################################
+\subsection{Expression Filtering and Uniqueness}
+
+After generating the initial set of referring expressions, we apply filtering mechanisms to ensure uniqueness and remove ambiguous descriptions that could refer to multiple objects.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{./Images/filter_unique.png}
+\caption{Expression Filtering for Uniqueness}
+\label{fig:filter_unique}
+\end{figure}
+
+% #############################################################################
+\subsection{Generated Expression Examples}
+
+The following figure shows examples of generated referring expressions across different object categories and spatial relationships.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{./Images/example_group.png}
+\caption{Examples of Generated Referring Expressions}
+\label{fig:expression_examples}
+\end{figure}
+
+% #############################################################################
+\section{LLM Enhancement Pipeline}
+
+Beyond rule-based generation, we enhance the dataset through multimodal large language model fine-tuning to create more natural and diverse referring expressions.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{./Images/distillation.png}
+\caption{LLM Enhancement and Knowledge Distillation Pipeline}
+\label{fig:llm_distillation}
+\end{figure}
+
+% #############################################################################
+\section{Dataset Statistics and Composition}
 Cras sed ante. Phasellus in massa. Curabitur dolor eros, gravida et, hendrerit ac, cursus non, massa. Aliquam lorem. In hac habitasse platea dictumst. Cras eu mauris \Cref{time_control_algorithm}\todo[color=cyan!40, author=RC, fancyline]{Notice the reference to the Algorithm construct}{}. Quisque lacus. Donec ipsum. Nullam vitae sem at nunc pharetra ultricies. Vivamus elit eros, ullamcorper a, adipiscing sit amet, porttitor ut, nibh. 
 
 \begin{algorithm}[ht]
