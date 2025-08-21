@@ -7,41 +7,22 @@
 \cleardoublepage
 % The following line allows to ref this chapter
 \label{chap:intro}
-Aerial image analysis has emerged as a critical technology for understanding complex geographical environments, supporting applications ranging from urban planning and environmental monitoring to disaster response and agricultural management. The integration of natural language processing with computer vision has opened new possibilities for intuitive interaction with aerial imagery through referring expression segmentation, where users can identify and segment objects using natural language descriptions rather than manual annotation tools.
+[Introduction overview placeholder - aerial image analysis, open-vocabulary segmentation, and natural language processing integration]
 
-Open-vocabulary aerial image segmentation represents a significant advancement over traditional closed-vocabulary approaches, enabling the identification and segmentation of objects based on flexible natural language descriptions rather than predefined category lists. This capability is particularly valuable for aerial imagery analysis, where the diversity of objects, spatial relationships, and contextual information requires sophisticated understanding of both visual content and linguistic descriptions.
-
-\subsection{Problem Statement}
-
-Despite significant advances in computer vision and natural language processing, existing approaches to referring segmentation face several critical limitations when applied to aerial imagery. Current datasets for referring expression segmentation are predominantly focused on natural images with limited coverage of aerial perspectives, spatial relationships, and object categories relevant to remote sensing applications. The few existing aerial referring segmentation datasets suffer from limited scale, manual annotation bottlenecks, and insufficient linguistic diversity in their referring expressions.
-
-Furthermore, existing approaches typically handle only single-object referring expressions, failing to address the complex multi-object relationships and group dynamics that are common in aerial imagery. The spatial complexity of aerial scenes, with their multiple scales, overlapping objects, and intricate spatial relationships, presents unique challenges that current referring segmentation models struggle to address effectively.
-
-\subsection{Contributions}
-
-This thesis makes several key contributions to the field of open-vocabulary aerial image segmentation:
-
-\textbf{Dataset Contribution}: We introduce AerialD, a large-scale dataset for aerial referring expression segmentation containing over 1.5 million referring expressions across 43,514 image patches. This represents a significant scale increase over existing aerial referring segmentation datasets and includes comprehensive coverage of both individual objects and complex group relationships.
-
-\textbf{Automated Pipeline}: We develop a systematic rule-based pipeline for automatically generating referring expressions from existing aerial segmentation datasets, eliminating the manual annotation bottleneck that limits dataset scale in this domain.
-
-\textbf{LLM Enhancement}: We demonstrate the effective application of large language models for enhancing and diversifying automatically generated referring expressions, creating more natural and linguistically diverse descriptions while maintaining spatial and visual accuracy.
-
-\textbf{Multi-object Capability}: Our approach successfully handles complex multi-object scenarios with spatial relationships and group references, extending beyond the single-object focus of previous approaches.
-
-\textbf{Cross-domain Evaluation}: We provide comprehensive evaluation across multiple aerial imagery domains and demonstrate the effectiveness of our approach on both synthetic and real-world aerial referring segmentation tasks.
 % #############################################################################
-\section{Thesis Context and Motivation}
-The rapid advancement of remote sensing technology has made high-resolution aerial imagery increasingly accessible for a wide range of applications. Simultaneously, the development of sophisticated deep learning models for computer vision has enabled unprecedented capabilities in automatic image understanding and object recognition. The convergence of these two technological domains presents significant opportunities for developing intelligent systems that can understand and analyze aerial imagery using natural language interfaces.
+\section{Objectives and Motivation}
 
-Traditional approaches to aerial image analysis rely heavily on manual annotation and predefined object categories, limiting their flexibility and scalability. The emergence of referring expression segmentation offers a paradigm shift toward more intuitive and flexible interaction with visual content, allowing users to specify objects of interest using natural language descriptions that can include spatial relationships, visual properties, and contextual information.
+[Placeholder for objectives and motivation - discussing the challenges of creating new datasets for deep learning, the importance of dataset creation in advancing the field, and specific motivations for aerial referring segmentation datasets]
 
-The unique characteristics of aerial imagery, including diverse scales, complex spatial relationships, and rich contextual information, present both opportunities and challenges for referring expression segmentation. Unlike natural images, aerial scenes often contain numerous objects with intricate spatial arrangements, requiring sophisticated understanding of positional relationships, groupings, and multi-object interactions.
 % #############################################################################
-\section{Organization of the Document}
-This thesis is organized as follows: \Cref{chap:intro} introduces the problem domain and outlines the key contributions of this work. 
-\Cref{chap:back} provides essential background on aerial image segmentation, referring expression datasets, and relevant model architectures.
-\Cref{chap:architecture} details the dataset construction methodology, including rule-based generation and LLM enhancement pipelines.
-\Cref{chap:implement} describes the experimental setup, model architecture, and evaluation methodology.
-\Cref{chap:evaluation} presents comprehensive results including quantitative performance analysis, qualitative evaluation, and ablation studies.
-\Cref{chap:conclusion} summarizes the main contributions, discusses limitations, and outlines directions for future work.
+\section{Contributions}
+
+[Placeholder for contributions listing:
+- AerialD dataset - new largest RRSIS dataset
+- Fully automatic dataset construction - first of its kind
+- LLM-enhanced annotation pipeline with custom fine-tuned model
+- Final segmentation model trained on the dataset]
+% #############################################################################
+\section{Document Structure}
+
+[Placeholder for document structure - overview of how the thesis is organized across chapters]
