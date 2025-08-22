@@ -1,0 +1,80 @@
+; **********************************************************************
+; * Constantes
+; **********************************************************************
+
+ON		EQU	1	; contagem ligada
+OFF		EQU	0	; contagem desligada
+INPUT	EQU	8000H	; endereço do porto de entrada 
+					;(bit 0 = RTC; bit 1 = botão)
+OUTPUT	EQU	8000H	; endereço do porto de saída.
+
+
+; **********************************************************************
+; * Stack 
+; **********************************************************************
+
+PLACE		1000H
+pilha:		TABLE 100H	; espaço reservado para a pilha 
+fim_pilha:				
+
+; **********************************************************************
+
+PLACE		2000H
+
+; Tabela de vectores de interrupção
+
+tab:		WORD	rot0
+
+; **********************************************************************
+; * Programa Principal
+; **********************************************************************
+
+PLACE		0
+
+inicio:
+	MOV	BTE, tab		; incializa BTE	
+	MOV	R9, INPUT		; endereço do porto de entrada
+	MOV	R10, OUTPUT		; endereço do porto de saÌda
+	MOV	SP, fim_pilha
+	MOV	R5, 1			; inicializa estado do processo P1
+	MOV	R6, 1			; inicializa estado do processo P2
+	MOV R4, OFF			; inicializa controle de RTC
+	MOV	R8, 0			; inicializa contador
+	MOV	R7, OFF			; inicialmente não permite contagem
+	EI0					; permite interrupções tipo 0
+	EI					; activa interrupções
+
+ciclo:	
+	CALL	P1			; invoca processo P1
+	CALL	P2			; invoca processo P2
+	JMP		ciclo		; repete ciclo
+
+; **********************************************************************
+;* ROTINAS
+; **********************************************************************
+
+P1:		
+	CMP	R5, 1		; se estado = 1
+	JZ	P1_1
+	CMP	R5, 2		; se estado = 2
+	JZ	P1_2
+sai_P1:	
+	RET				; sai do processo.
+
+
+P1_1:	
+	MOVB	R0, [R9]	; lê porto de entrada
+	BIT	R0, 1
+	JZ	sai_P1		; se botão não carregado, sai do processo
+	MOV	R7, ON		; permite contagem do display
+	MOV	R5, 2		; passa ao estado 2 do P1
+	JMP	sai_P1 	
+				
+P1_2:	
+	MOVB	R0, [R9]	; lê porto de entrada
+	BIT	R0, 1
+	JNZ	sai_P1		; se botão continua carregado, sai do processo
+	MOV	R7, OFF		; caso contrário, desliga contagem do display
+	MOV	R5, 1		; passa ao estado 1 do P1
+	JMP	sai_P1		
+				
