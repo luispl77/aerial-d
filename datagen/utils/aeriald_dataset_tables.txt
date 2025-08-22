@@ -1,0 +1,73 @@
+=== Table: Dataset Statistics Summary (tab:dataset_stats) ===
+
+| Metric | Train | Val | Total |
+|--------|-------|-----|-------|
+| Total Patches | 27480 | 9808 | 37288 |
+| Individual Objects with Expressions | 94179 | 34536 | 128715 |
+| Individual Expressions | 646686 | 242668 | 889354 |
+| Groups with Expressions | 96832 | 34162 | 130994 |
+| Group Expressions | 471108 | 162061 | 633169 |
+| Total Samples | 191011 | 68698 | 259709 |
+| Avg. Expressions per Individual Object | 6.87 | 7.03 | 6.91 |
+| Avg. Expressions per Group | 4.87 | 4.74 | 4.83 |
+
+=== Table: Object Category Distribution (tab:category_dist) ===
+
+| Category | Individual Instances | Groups | Instance Expressions | Group Expressions | Source Dataset |
+|----------|---------------------|--------|---------------------|-------------------|----------------|
+| Ship | 11461 | 10402 | 79251 | 49272 | iSAID |
+| Large Vehicle | 17425 | 18496 | 121593 | 95356 | iSAID |
+| Small Vehicle | 41353 | 53682 | 262831 | 282848 | iSAID |
+| Building | 10341 | 3012 | 66038 | 12048 | LoveDA |
+| Storage Tank | 2985 | 3451 | 19537 | 16071 | iSAID |
+| Harbor | 9164 | 6290 | 72248 | 28613 | iSAID |
+| Swimming Pool | 3147 | 1999 | 23355 | 10011 | iSAID |
+| Tennis Court | 3492 | 2364 | 25116 | 9959 | iSAID |
+| Soccer Ball Field | 1781 | 569 | 13939 | 2368 | iSAID |
+| Roundabout | 924 | 278 | 6452 | 1220 | iSAID |
+| Basketball Court | 959 | 636 | 7339 | 2757 | iSAID |
+| Bridge | 3300 | 1267 | 23085 | 5269 | iSAID |
+| Ground Track Field | 1368 | 208 | 9111 | 868 | iSAID |
+| Plane | 10774 | 7260 | 78808 | 32057 | iSAID |
+| Helicopter | 354 | 266 | 2636 | 1144 | iSAID |
+| Water | 8838 | 2917 | 70050 | 11668 | LoveDA |
+| Road | 0 | 3018 | 0 | 12072 | LoveDA |
+| Agriculture | 0 | 2342 | 0 | 9368 | LoveDA |
+| Barren | 0 | 1709 | 0 | 6836 | LoveDA |
+| Baseball Diamond | 1049 | 381 | 7965 | 1576 | iSAID |
+| Forest | 0 | 2850 | 0 | 11400 | LoveDA |
+| Vehicle Pair | 0 | 7597 | 0 | 30388 | iSAID |
+
+=== Table: Expression Taxonomy (tab:expression_types) ===
+
+| Feature Combination | Individual Instance Expressions | Group Expressions | Total Count |
+|-------------------|----------------------------------|-------------------|-------------|
+| Category + Position + Size + Relationship | 15893 | 75475 | 91368 |
+| Category + Position + Extreme + Color | 45348 | 0 | 45348 |
+| Category + Position + Size | 14070 | 27777 | 41847 |
+| Category | 3565 | 31984 | 35549 |
+| Category + Position + Color | 34914 | 0 | 34914 |
+| Category + Size | 2800 | 29031 | 31831 |
+| Category + Position | 14559 | 12504 | 27063 |
+| Category + Position + Extreme + Size | 25626 | 0 | 25626 |
+| Category + Position + Extreme + Size + Color | 24026 | 0 | 24026 |
+| Category + Position + Extreme | 22002 | 0 | 22002 |
+| Category + Position + Color + Relationship | 21941 | 0 | 21941 |
+| Category + Position + Relationship | 10955 | 10832 | 21787 |
+| Category + Position + Size + Color | 21146 | 0 | 21146 |
+| Category + Position + Size + Color + Relationship | 18779 | 0 | 18779 |
+| Category + Color | 11384 | 0 | 11384 |
+| Category + Position + Extreme + Color + Relationship | 8872 | 0 | 8872 |
+| Category + Size + Color | 6580 | 0 | 6580 |
+| Category + Position + Extreme + Size + Color + Relationship | 5946 | 0 | 5946 |
+| Category + Position + Extreme + Size + Relationship | 5474 | 0 | 5474 |
+| Category + Position + Extreme + Relationship | 4711 | 0 | 4711 |
+
+=== Table: LLM Enhancement Stats (tab:llm_enhancement_stats) ===
+
+| Expression Type | Train | Val | Total |
+|-----------------|-------|-----|-------|
+| Rule-Based Expressions | 371360 | 134834 | 506194 |
+| LLM Enhanced (Language Variations) | 364396 | 132499 | 496895 |
+| LLM Unique (Visual Details) | 382038 | 137396 | 519434 |
+| Total Expressions | 1117794 | 404729 | 1522523 |
