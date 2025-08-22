@@ -9,6 +9,8 @@ import argparse
 import random  # Add random import
 import numpy as np
 import pycocotools.mask as mask_util  # Add for RLE decoding
+from PIL import Image, ImageDraw, ImageFont
+import re
 
 app = Flask(__name__)
 
@@ -494,6 +496,32 @@ def index():
                 background-color: #4CAF50;
                 color: white;
             }
+            .download-btn {
+                background-color: #2196F3;
+                color: white;
+                border: none;
+                padding: 4px 8px;
+                border-radius: 3px;
+                cursor: pointer;
+                font-size: 0.8em;
+                margin-left: 10px;
+                text-decoration: none;
+                display: inline-block;
+            }
+            .download-btn:hover {
+                background-color: #1976D2;
+                color: white;
+                text-decoration: none;
+            }
+            .expression-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 8px;
+                padding: 5px;
+                background-color: rgba(255,255,255,0.5);
+                border-radius: 3px;
+            }
         </style>
     </head>
     <body>
@@ -541,7 +569,13 @@ def index():
                     <h3>Original Rule-Based Expressions:</h3>
                     <ol>
                         {% for expr in item['expressions'] %}
-                        <li>{{ expr }}</li>
+                        <li>
+                            <div class="expression-item">
+                                <span>{{ expr }}</span>
+                                <a href="/download/{{ patch_idx }}/{{ loop.index0 }}?split={{ split }}&image_id={{ image_id }}&item_idx={{ item_idx }}&type={{ item_type }}&expr_type=original" 
+                                   class="download-btn">📥 Download</a>
+                            </div>
+                        </li>
                         {% endfor %}
                     </ol>
                 </div>
@@ -552,7 +586,13 @@ def index():
                     <h3>Enhanced Expressions:</h3>
                     <ol>
                         {% for expr in item['enhanced_expressions'] %}
-                        <li>{{ expr }}</li>
+                        <li>
+                            <div class="expression-item">
+                                <span>{{ expr }}</span>
+                                <a href="/download/{{ patch_idx }}/{{ loop.index0 }}?split={{ split }}&image_id={{ image_id }}&item_idx={{ item_idx }}&type={{ item_type }}&expr_type=enhanced" 
+                                   class="download-btn">📥 Download</a>
+                            </div>
+                        </li>
                         {% endfor %}
                     </ol>
                 </div>
@@ -563,7 +603,13 @@ def index():
                     <h3>Unique Expressions:</h3>
                     <ol>
                         {% for expr in item['unique_expressions'] %}
-                        <li>{{ expr }}</li>
+                        <li>
+                            <div class="expression-item">
+                                <span>{{ expr }}</span>
+                                <a href="/download/{{ patch_idx }}/{{ loop.index0 }}?split={{ split }}&image_id={{ image_id }}&item_idx={{ item_idx }}&type={{ item_type }}&expr_type=unique" 
+                                   class="download-btn">📥 Download</a>
+                            </div>
+                        </li>
                         {% endfor %}
                     </ol>
                 </div>
@@ -725,6 +771,222 @@ def image(patch_idx):
         io.BytesIO(buffer.tobytes()),
         mimetype='image/png'
     )
+
+@app.route('/download/<int:patch_idx>/<int:expr_idx>')
+def download_thesis_image(patch_idx, expr_idx):
+    """Download a thesis-ready image with expression, image, and mask"""
+    item_type = request.args.get('type', 'all')
+    split = request.args.get('split', 'train')
+    image_id = request.args.get('image_id')
+    item_idx = int(request.args.get('item_idx', 0))
+    expr_type = request.args.get('expr_type', 'original')  # original, enhanced, unique
+    
+    if not image_id:
+        return "Image ID not specified", 404
+    
+    # Get patches for selected image
+    patches = get_patches_for_image(image_id, split)
+    if not patches:
+        return "No patches found for selected image", 404
+    
+    # Get items from current patch
+    current_patch = patches[patch_idx % len(patches)]
+    items = read_single_annotation(current_patch, split)
+    if not items:
+        return "No items found in selected patch", 404
+    
+    # Filter items based on type
+    if item_type == 'instance':
+        items = [item for item in items if item.get('type') == 'instance']
+    elif item_type == 'group':
+        items = [item for item in items if item.get('type') == 'group']
+    
+    if not items:
+        return "No items found with selected filter", 404
+    
+    # Get current item
+    item_idx = item_idx % len(items)
+    item = items[item_idx]
+    
+    # Get the specific expression based on type and index
+    expressions = []
+    if expr_type == 'enhanced':
+        expressions = item.get('enhanced_expressions', [])
+    elif expr_type == 'unique':
+        expressions = item.get('unique_expressions', [])
+    else:
+        expressions = item.get('expressions', [])
+    
+    if expr_idx >= len(expressions):
+        return "Expression index out of range", 404
+    
+    expression = expressions[expr_idx]
+    
+    # Load and process the image
+    img = cv2.imread(item['image_path'])
+    if img is None:
+        return "Image not found", 404
+    
+    # Create thesis-ready composite image
+    composite_img = create_thesis_composite(img, item, expression, current_patch, split, expr_type)
+    
+    # Generate filename
+    safe_expr = re.sub(r'[^a-zA-Z0-9\-_\s]', '', expression)[:50]
+    safe_expr = re.sub(r'\s+', '_', safe_expr)
+    
+    object_type = "group" if item['type'] == 'group' else "instance"
+    object_id = item.get('group_id', item.get('obj_id', 'unknown'))
+    
+    filename = f"thesis_{image_id}_{current_patch.replace('.xml', '')}_{object_type}_{object_id}_{expr_type}_{safe_expr}.png"
+    
+    # Convert to bytes
+    _, buffer = cv2.imencode('.png', composite_img)
+    
+    return send_file(
+        io.BytesIO(buffer.tobytes()),
+        mimetype='image/png',
+        as_attachment=True,
+        download_name=filename
+    )
+
+def create_thesis_composite(img, item, expression, patch_name, split, expr_type):
+    """Create a thesis-ready composite image with original image, mask image, and expression"""
+    
+    # Parse XML file for mask operations
+    tree = ET.parse(os.path.join(ANNOTATIONS_DIR, split, 'annotations', patch_name))
+    root = tree.getroot()
+    
+    # Create a dictionary of object IDs to their segmentation data
+    seg_data_dict = {}
+    for obj in root.findall('object'):
+        obj_id = obj.find('id').text
+        seg_elem = obj.find('segmentation')
+        if seg_elem is not None:
+            try:
+                seg_data = eval(seg_elem.text)
+                if isinstance(seg_data, dict) and 'size' in seg_data and 'counts' in seg_data:
+                    seg_data_dict[obj_id] = seg_data
+            except Exception as e:
+                print(f"Error processing mask for object {obj_id}: {e}")
+
+    def create_mask_image(img_shape, seg_data):
+        """Create a black image with white mask"""
+        try:
+            rle = {'size': seg_data['size'], 'counts': seg_data['counts'].encode('utf-8')}
+            mask = mask_util.decode(rle)
+            
+            # Create black image
+            mask_img = np.zeros(img_shape, dtype=np.uint8)
+            # Set mask areas to white
+            mask_img[mask == 1] = [255, 255, 255]
+            
+            return mask_img
+        except Exception as e:
+            print(f"Error creating mask image: {e}")
+            return np.zeros(img_shape, dtype=np.uint8)
+    
+    # Original image (no modifications)
+    original_img = img.copy()
+    img_height, img_width = original_img.shape[:2]
+    
+    # Create mask image (black with white mask)
+    mask_img = np.zeros_like(original_img)
+    
+    if item['type'] == 'instance':
+        # Create mask for instance
+        if item['obj_id'] in seg_data_dict:
+            mask_img = create_mask_image(original_img.shape, seg_data_dict[item['obj_id']])
+    else:
+        # For groups, use group mask if available
+        if item.get('group_segmentation'):
+            try:
+                mask_img = create_mask_image(original_img.shape, item['group_segmentation'])
+            except Exception as e:
+                print(f"Error creating group mask image: {e}")
+                # Fallback to combining individual member masks
+                combined_mask = np.zeros((img_height, img_width), dtype=np.uint8)
+                for member_id in item.get('member_ids', []):
+                    if member_id in seg_data_dict:
+                        try:
+                            rle = {'size': seg_data_dict[member_id]['size'], 
+                                   'counts': seg_data_dict[member_id]['counts'].encode('utf-8')}
+                            member_mask = mask_util.decode(rle)
+                            combined_mask = np.logical_or(combined_mask, member_mask).astype(np.uint8)
+                        except Exception as e:
+                            print(f"Error processing member mask {member_id}: {e}")
+                
+                # Create black image with white combined mask
+                mask_img = np.zeros_like(original_img)
+                mask_img[combined_mask == 1] = [255, 255, 255]
+    
+    # Convert images to PIL
+    original_pil = Image.fromarray(cv2.cvtColor(original_img, cv2.COLOR_BGR2RGB))
+    mask_pil = Image.fromarray(cv2.cvtColor(mask_img, cv2.COLOR_BGR2RGB))
+    
+    # Create composite layout: original image | mask image
+    #                         expression text below both
+    gap = 10  # Gap between images
+    composite_width = img_width * 2 + gap
+    
+    # Calculate text height based on wrapping
+    try:
+        temp_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 24)
+    except:
+        temp_font = ImageFont.load_default()
+    
+    # Pre-calculate wrapped lines to determine needed height
+    max_chars_per_line = 80  # Adjusted for readability with larger font
+    wrapped_lines = []
+    if len(expression) > max_chars_per_line:
+        words = expression.split()
+        current_line = ""
+        for word in words:
+            if len(current_line + word + " ") <= max_chars_per_line:
+                current_line += word + " "
+            else:
+                if current_line:
+                    wrapped_lines.append(current_line.strip())
+                current_line = word + " "
+        if current_line:
+            wrapped_lines.append(current_line.strip())
+    else:
+        wrapped_lines = [expression]
+    
+    # Calculate text height (30px per line + padding)
+    text_height = len(wrapped_lines) * 30 + 40
+    composite_height = img_height + text_height
+    
+    # Create white background for composite
+    composite = Image.new('RGB', (composite_width, composite_height), 'white')
+    
+    # Paste original image on the left
+    composite.paste(original_pil, (0, 0))
+    
+    # Paste mask image on the right
+    composite.paste(mask_pil, (img_width + gap, 0))
+    
+    # Add expression text below both images
+    draw = ImageDraw.Draw(composite)
+    
+    # Try to use a decent font, fall back to default if needed
+    try:
+        text_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 24)
+    except:
+        text_font = ImageFont.load_default()
+    
+    # Center the expression text
+    y_offset = img_height + 20
+    
+    # Render each wrapped line
+    for line in wrapped_lines:
+        bbox = draw.textbbox((0, 0), line, font=text_font)
+        text_width = bbox[2] - bbox[0]
+        x_centered = (composite_width - text_width) // 2
+        draw.text((x_centered, y_offset), line, fill='black', font=text_font)
+        y_offset += 30  # Spacing between lines
+    
+    # Convert back to OpenCV format
+    return cv2.cvtColor(np.array(composite), cv2.COLOR_RGB2BGR)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Rule-Based Expression Viewer')

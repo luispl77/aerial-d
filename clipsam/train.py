@@ -1134,8 +1134,10 @@ def main():
     else:
         # Create new model for fresh training
         model_name = f"clip_sam_{run_id}_epochs{args.epochs}_bs{args.batch_size}x{grad_accum_steps}_lr{args.lr}"
-        checkpoint_dir = os.path.join('./models', model_name)
-        vis_dir = os.path.join('./visualizations', model_name)
+        # Use absolute paths to avoid any path resolution issues
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        checkpoint_dir = os.path.join(base_dir, 'models', model_name)
+        vis_dir = os.path.join(base_dir, 'visualizations', model_name)
         
         # Create directories if they don't exist
         os.makedirs(checkpoint_dir, exist_ok=True)
