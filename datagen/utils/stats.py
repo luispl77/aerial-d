@@ -58,7 +58,7 @@ def analyze_expression_features(expression_text):
         'harbor', 'swimming pool', 'tennis court', 'soccer ball field', 
         'roundabout', 'basketball court', 'bridge', 'ground track field', 
         'plane', 'helicopter', 'water', 'barren land', 'agricultural area', 
-        'forest area', 'road'
+        'agricultural land', 'forest area', 'road', 'baseball diamond'
     ]
     for keyword in category_keywords:
         if keyword in expr_lower:
@@ -180,6 +180,12 @@ def analyze_single_xml(xml_file_path):
                 if expr_type == 'original':
                     features = analyze_expression_features(expr.text)
                     feature_combo = '_'.join([k for k, v in features.items() if v])
+                    
+                    # Debug: Print expressions without category
+                    if not features['category']:
+                        print(f"DEBUG - Individual expression WITHOUT category: '{expr.text}'")
+                        print(f"  Features detected: {[k for k, v in features.items() if v]}")
+                    
                     if feature_combo:
                         if feature_combo not in file_metrics['expression_taxonomy']:
                             file_metrics['expression_taxonomy'][feature_combo] = {'individual': 0, 'group': 0, 'total': 0}
@@ -232,6 +238,12 @@ def analyze_single_xml(xml_file_path):
                         if expr_type == 'original':
                             features = analyze_expression_features(expr.text)
                             feature_combo = '_'.join([k for k, v in features.items() if v])
+                            
+                            # Debug: Print expressions without category
+                            if not features['category']:
+                                print(f"DEBUG - Group expression WITHOUT category: '{expr.text}'")
+                                print(f"  Features detected: {[k for k, v in features.items() if v]}")
+                            
                             if feature_combo:
                                 if feature_combo not in file_metrics['expression_taxonomy']:
                                     file_metrics['expression_taxonomy'][feature_combo] = {'individual': 0, 'group': 0, 'total': 0}

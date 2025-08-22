@@ -42,29 +42,18 @@
 
 | Feature Combination | Individual Instance Expressions | Group Expressions | Total Count |
 |-------------------|----------------------------------|-------------------|-------------|
-| Category + Position + Relationship | 25385 | 86283 | 111668 |
-| Category + Position | 26309 | 40197 | 66506 |
-| Category | 5074 | 58421 | 63495 |
-| Category + Position + Color | 57462 | 0 | 57462 |
-| Category + Position + Color + Relationship | 41984 | 0 | 41984 |
-| Category + Extreme + Color | 35132 | 0 | 35132 |
-| Category + Position + Extreme + Color | 35132 | 0 | 35132 |
-| Category + Extreme | 22883 | 0 | 22883 |
-| Category + Position + Extreme | 22883 | 0 | 22883 |
-| Category + Color | 18702 | 0 | 18702 |
-| Category + Position + Extreme + Color + Relationship | 15100 | 0 | 15100 |
-| Category + Position + Extreme + Relationship | 9744 | 0 | 9744 |
-| Position + Color | 790 | 0 | 790 |
-| Color | 470 | 0 | 470 |
-| Extreme + Color | 439 | 0 | 439 |
-| Position + Extreme + Color | 439 | 0 | 439 |
-| Position | 128 | 84 | 212 |
-| Position + Color + Relationship | 181 | 0 | 181 |
-| Position + Extreme + Color + Relationship | 142 | 0 | 142 |
-| Extreme | 47 | 0 | 47 |
-| Position + Extreme | 47 | 0 | 47 |
-| Position + Relationship | 18 | 24 | 42 |
-| Position + Extreme + Relationship | 17 | 0 | 17 |
+| Category + Position + Relationship | 25403 | 86307 | 111710 |
+| Category + Position | 26437 | 40281 | 66718 |
+| Category | 5157 | 61015 | 66172 |
+| Category + Position + Color | 58252 | 0 | 58252 |
+| Category + Position + Color + Relationship | 42165 | 0 | 42165 |
+| Category + Position + Extreme + Color | 35571 | 0 | 35571 |
+| Category + Extreme + Color | 35571 | 0 | 35571 |
+| Category + Extreme | 22930 | 0 | 22930 |
+| Category + Position + Extreme | 22930 | 0 | 22930 |
+| Category + Color | 19172 | 0 | 19172 |
+| Category + Position + Extreme + Color + Relationship | 15242 | 0 | 15242 |
+| Category + Position + Extreme + Relationship | 9761 | 0 | 9761 |
 
 === Table: LLM Enhancement Stats (tab:llm_enhancement_stats) ===
 
