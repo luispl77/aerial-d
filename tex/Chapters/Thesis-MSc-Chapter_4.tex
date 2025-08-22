@@ -203,14 +203,14 @@ The completed AerialD dataset represents a comprehensive resource for aerial ref
 \toprule
 \textbf{Metric} & \textbf{Train} & \textbf{Val} & \textbf{Total} \\
 \midrule
-Total Patches & 32,460 & 11,054 & 43,514 \\
+Total Patches & 27,480 & 9,808 & 37,288 \\
 Individual Objects with Expressions & 94,179 & 34,536 & 128,715 \\
-Individual Expressions & 651,098 & 244,210 & 895,308 \\
-Groups with Expressions & 99,986 & 34,216 & 134,202 \\
-Group Expressions & 487,214 & 163,472 & 650,686 \\
-Total Samples & 1,138,312 & 407,682 & 1,545,994 \\
-Avg. Expressions per Individual Object & 6.91 & 7.07 & 6.96 \\
-Avg. Expressions per Group & 4.87 & 4.78 & 4.85 \\
+Individual Expressions & 646,686 & 242,668 & 889,354 \\
+Groups with Expressions & 96,832 & 34,162 & 130,994 \\
+Group Expressions & 471,108 & 162,061 & 633,169 \\
+Total Samples & 191,011 & 68,698 & 259,709 \\
+Avg. Expressions per Individual Object & 6.87 & 7.03 & 6.91 \\
+Avg. Expressions per Group & 4.87 & 4.74 & 4.83 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -225,27 +225,28 @@ Avg. Expressions per Group & 4.87 & 4.78 & 4.85 \\
 \toprule
 \textbf{Category} & \textbf{Individual Instances} & \textbf{Groups} & \textbf{Instance Expressions} & \textbf{Group Expressions} & \textbf{Source Dataset} \\
 \midrule
-Ship & -- & -- & -- & -- & iSAID \\
-Large Vehicle & -- & -- & -- & -- & iSAID \\
-Small Vehicle & -- & -- & -- & -- & iSAID \\
-Building & -- & -- & -- & -- & iSAID \\
-Storage Tank & -- & -- & -- & -- & iSAID \\
-Harbor & -- & -- & -- & -- & iSAID \\
-Swimming Pool & -- & -- & -- & -- & iSAID \\
-Tennis Court & -- & -- & -- & -- & iSAID \\
-Soccer Ball Field & -- & -- & -- & -- & iSAID \\
-Roundabout & -- & -- & -- & -- & iSAID \\
-Basketball Court & -- & -- & -- & -- & iSAID \\
-Bridge & -- & -- & -- & -- & iSAID \\
-Ground Track Field & -- & -- & -- & -- & iSAID \\
-Plane & -- & -- & -- & -- & iSAID \\
-Helicopter & -- & -- & -- & -- & iSAID \\
-Building & -- & -- & -- & -- & LoveDA \\
-Water & -- & -- & -- & -- & LoveDA \\
-Barren Land & -- & -- & -- & -- & LoveDA \\
-Agricultural Area & -- & -- & -- & -- & LoveDA \\
-Forest Area & -- & -- & -- & -- & LoveDA \\
-Road & -- & -- & -- & -- & LoveDA \\
+Ship & 11,461 & 10,402 & 79,251 & 49,272 & iSAID \\
+Large Vehicle & 17,425 & 18,496 & 121,593 & 95,356 & iSAID \\
+Small Vehicle & 41,353 & 53,682 & 262,831 & 282,848 & iSAID \\
+Storage Tank & 2,985 & 3,451 & 19,537 & 16,071 & iSAID \\
+Harbor & 9,164 & 6,290 & 72,248 & 28,613 & iSAID \\
+Swimming Pool & 3,147 & 1,999 & 23,355 & 10,011 & iSAID \\
+Tennis Court & 3,492 & 2,364 & 25,116 & 9,959 & iSAID \\
+Soccer Ball Field & 1,781 & 569 & 13,939 & 2,368 & iSAID \\
+Roundabout & 924 & 278 & 6,452 & 1,220 & iSAID \\
+Basketball Court & 959 & 636 & 7,339 & 2,757 & iSAID \\
+Bridge & 3,300 & 1,267 & 23,085 & 5,269 & iSAID \\
+Ground Track Field & 1,368 & 208 & 9,111 & 868 & iSAID \\
+Plane & 10,774 & 7,260 & 78,808 & 32,057 & iSAID \\
+Helicopter & 354 & 266 & 2,636 & 1,144 & iSAID \\
+Baseball Diamond & 1,049 & 381 & 7,965 & 1,576 & iSAID \\
+Vehicle Pair & 0 & 7,597 & 0 & 30,388 & iSAID \\
+Building & 10,341 & 3,012 & 66,038 & 12,048 & LoveDA \\
+Water & 8,838 & 2,917 & 70,050 & 11,668 & LoveDA \\
+Road & 0 & 3,018 & 0 & 12,072 & LoveDA \\
+Agriculture & 0 & 2,342 & 0 & 9,368 & LoveDA \\
+Barren & 0 & 1,709 & 0 & 6,836 & LoveDA \\
+Forest & 0 & 2,850 & 0 & 11,400 & LoveDA \\
 \bottomrule
 \end{tabular}%
 }
@@ -263,35 +264,24 @@ Road & -- & -- & -- & -- & LoveDA \\
 \midrule
 \multicolumn{8}{l}{\textbf{Individual Instance Expressions}} \\
 \midrule
-\checkmark & & & & & & -- & "the ship" \\
-\checkmark & \checkmark & & & & & -- & "the ship in the bottom right" \\
-\checkmark & \checkmark & & & & \checkmark & -- & "the ship in the bottom right that is to the left of a harbor" \\
-\checkmark & & \checkmark & & & & -- & "the topmost ship" \\
-\checkmark & \checkmark & \checkmark & & & & -- & "the topmost ship in the top left" \\
-\checkmark & \checkmark & \checkmark & & & \checkmark & -- & "the topmost ship in the top left that is above a building" \\
-\checkmark & \checkmark & & \checkmark & & & -- & "the largest ship in the bottom right" \\
-\checkmark & \checkmark & & \checkmark & & \checkmark & -- & "the largest ship in the bottom right that is above a harbor" \\
-\checkmark & \checkmark & \checkmark & \checkmark & & & -- & "the largest topmost ship in the top left" \\
-\checkmark & \checkmark & \checkmark & \checkmark & & \checkmark & -- & "the largest topmost ship in the top left that is above a building" \\
-\checkmark & & & & \checkmark & & -- & "the dark ship" \\
-\checkmark & \checkmark & & & \checkmark & & -- & "the dark ship in the bottom right" \\
-\checkmark & \checkmark & & & \checkmark & \checkmark & -- & "the dark ship in the bottom right that is to the left of a harbor" \\
-\checkmark & & \checkmark & & \checkmark & & -- & "the dark topmost ship" \\
-\checkmark & \checkmark & \checkmark & & \checkmark & & -- & "the dark topmost ship in the top left" \\
-\checkmark & \checkmark & \checkmark & & \checkmark & \checkmark & -- & "the dark topmost ship in the top left that is above a building" \\
-\checkmark & \checkmark & & \checkmark & \checkmark & & -- & "the dark largest ship in the bottom right" \\
-\checkmark & \checkmark & & \checkmark & \checkmark & \checkmark & -- & "the dark largest ship in the bottom right that is above a harbor" \\
-\checkmark & \checkmark & \checkmark & \checkmark & \checkmark & & -- & "the dark largest topmost ship in the top left" \\
-\checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & -- & "the dark largest topmost ship in the top left that is above a building" \\
+\checkmark & & & & & & 5,157 & "the ship" \\
+\checkmark & \checkmark & & & & & 26,437 & "the ship in the bottom right" \\
+\checkmark & \checkmark & & & & \checkmark & 25,403 & "the ship in the bottom right that is to the left of a harbor" \\
+\checkmark & & \checkmark & & & & 22,930 & "the topmost ship" \\
+\checkmark & \checkmark & \checkmark & & & & 22,930 & "the topmost ship in the top left" \\
+\checkmark & \checkmark & \checkmark & & & \checkmark & 9,761 & "the topmost ship in the top left that is above a building" \\
+\checkmark & & & & \checkmark & & 19,172 & "the dark ship" \\
+\checkmark & \checkmark & & & \checkmark & & 58,252 & "the dark ship in the bottom right" \\
+\checkmark & \checkmark & & & \checkmark & \checkmark & 42,165 & "the dark ship in the bottom right that is to the left of a harbor" \\
+\checkmark & & \checkmark & & \checkmark & & 35,571 & "the dark topmost ship" \\
+\checkmark & \checkmark & \checkmark & & \checkmark & & 35,571 & "the dark topmost ship in the top left" \\
+\checkmark & \checkmark & \checkmark & & \checkmark & \checkmark & 15,242 & "the dark topmost ship in the top left that is above a building" \\
 \midrule
 \multicolumn{8}{l}{\textbf{Group Expressions}} \\
 \midrule
-\checkmark & \checkmark & & & & & -- & "the group of 3 ships in the center" \\
-\checkmark & \checkmark & \checkmark & & & & -- & "the topmost group of 3 ships in the center" \\
-\checkmark & \checkmark & & & & \checkmark & -- & "the group of 3 ships in the center that is above a group of 2 buildings" \\
-\checkmark & \checkmark & & & & \checkmark & -- & "the ship in the bottom right that is to the left of a group of 2 harbors" \\
-\checkmark & & & & & & -- & "all buildings in the image" \\
-\checkmark & & & & & & -- & "all small and large vehicles in the image" \\
+\checkmark & \checkmark & & & & & 40,281 & "the group of 3 ships in the center" \\
+\checkmark & \checkmark & & & & \checkmark & 86,307 & "the group of 3 ships in the center that is above a group of 2 buildings" \\
+\checkmark & & & & & & 61,015 & "all buildings in the image" \\
 \bottomrule
 \end{tabular}%
 }
@@ -306,11 +296,11 @@ Road & -- & -- & -- & -- & LoveDA \\
 \toprule
 \textbf{Expression Source} & \textbf{Train} & \textbf{Val} & \textbf{Total} \\
 \midrule
-Rule-Based Expressions & -- & -- & -- \\
-LLM Enhanced (Language Variations) & -- & -- & -- \\
-LLM Unique (Visual Details) & -- & -- & -- \\
+Rule-Based Expressions & 371,360 & 134,834 & 506,194 \\
+LLM Enhanced (Language Variations) & 364,396 & 132,499 & 496,895 \\
+LLM Unique (Visual Details) & 382,038 & 137,396 & 519,434 \\
 \midrule
-\textbf{Total Expressions} & \textbf{--} & \textbf{--} & \textbf{--} \\
+\textbf{Total Expressions} & \textbf{1,117,794} & \textbf{404,729} & \textbf{1,522,523} \\
 \bottomrule
 \end{tabular}
 \end{table}
