@@ -54,35 +54,67 @@ Overview of datasets used for aerial imagery analysis and referring segmentation
 
 \begin{table}[htbp]
 \centering
-\caption{Remote Sensing Dataset Comparison}
-\label{tab:dataset_comparison}
-\begin{tabular}{@{}lllll@{}}
+\caption{Aerial Referring Segmentation (RRSIS) Dataset Comparison}
+\label{tab:rrsis_comparison}
+\begin{tabular}{@{}llll@{}}
 \toprule
-\textbf{Feature} & \textbf{RefSegRS} & \textbf{iSAID} & \textbf{RRSIS-D} & \textbf{NWPU-Refer} \\
+\textbf{Feature} & \textbf{RefSegRS} & \textbf{RRSIS-D} & \textbf{NWPU-Refer} \\
 \midrule
-Size & 4,420 triplets & 655,451 instances & 17,402 triplets & 15,003 images \\
-Source & SkyScapes & DOTA (re-ann.) & RSVGD & Multi-source global \\
-Annotation & Manual & Professional & Semi-auto (SAM) & Manual \\
-Resolution & Limited & High res. & 800×800 fixed & 1024-2048px \\
-Focus & RRSIS & Instance Seg. & RRSIS & RRSIS \\
-Categories & - & 15 & 20 & 32 \\
-Attributes & 3 & - & 7 & 6 dimensions \\
+Size & 4,420 triplets & 17,402 triplets & 49,745 triplets \\
+Source & SkyScapes & RSVGD & Multi-source global \\
+Annotation & Manual & Semi-auto (SAM) & Manual \\
+Resolution & Limited & 800×800 fixed & 1024-2048px \\
+Focus & RRSIS & RRSIS & RRSIS \\
+Categories & - & 20 & 32 \\
+Attributes & 3 & 7 & 6 dimensions \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \begin{table}[htbp]
 \centering
-\caption{Dataset Split Statistics}
-\label{tab:dataset_splits}
+\caption{Source Aerial Dataset Comparison}
+\label{tab:source_comparison}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Feature} & \textbf{iSAID} & \textbf{LoveDA} \\
+\midrule
+Size & 655,451 instances & 5,987 images \\
+Source & DOTA (re-ann.) & Spaceborne (0.3m) \\
+Annotation & Professional & Manual \\
+Resolution & High res. & 1024×1024px \\
+Focus & Instance Seg. & Land-cover Seg. + UDA \\
+Categories & 15 & 7 \\
+Attributes & - & Domain labels \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{RRSIS Dataset Split Statistics}
+\label{tab:rrsis_splits}
 \begin{tabular}{@{}llllll@{}}
 \toprule
 \textbf{Dataset} & \textbf{Total} & \textbf{Training} & \textbf{Validation} & \textbf{Test} & \textbf{Unit} \\
 \midrule
 RefSegRS & 4,420 & 2,172 (49.1\%) & 431 (9.8\%) & 1,817 (41.1\%) & expressions \\
-iSAID & 2,806 & 1,403 (50.0\%) & 468 (16.7\%) & 935 (33.3\%) & images \\
 RRSIS-D & 17,402 & 8,701 (50.0\%) & 3,480 (20.0\%) & 5,221 (30.0\%) & triplets \\
 NWPU-Refer & 49,745 & 34,821 (70.0\%) & 4,974 (10.0\%) & 9,950 (20.0\%) & triplets \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Source Dataset Split Statistics}
+\label{tab:source_splits}
+\begin{tabular}{@{}llllll@{}}
+\toprule
+\textbf{Dataset} & \textbf{Total} & \textbf{Training} & \textbf{Validation} & \textbf{Test} & \textbf{Unit} \\
+\midrule
+iSAID & 2,806 & 1,403 (50.0\%) & 468 (16.7\%) & 935 (33.3\%) & images \\
+LoveDA & 5,987 & 2,522 (42.1\%) & 1,669 (27.9\%) & 1,796 (30.0\%) & images \\
 \bottomrule
 \end{tabular}
 \end{table}
