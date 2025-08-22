@@ -40,9 +40,9 @@ def get_source_dataset(filename):
         return 'Unknown'
 
 def analyze_expression_features(expression_text):
-    """Analyze expression to determine feature types"""
+    """Analyze expression to determine feature types using substring matching based on actual pipeline rules"""
     features = {
-        'category': True,  # All expressions refer to categorized objects, so always True
+        'category': False,
         'position': False,
         'extreme': False,
         'size': False,
@@ -52,34 +52,68 @@ def analyze_expression_features(expression_text):
     
     expr_lower = expression_text.lower()
     
-    # Position keywords
-    position_words = ['top', 'bottom', 'left', 'right', 'center', 'middle', 'upper', 'lower', 
-                     'corner', 'side', 'north', 'south', 'east', 'west']
-    if any(word in expr_lower for word in position_words):
-        features['position'] = True
+    # Category keywords - exact object classes from iSAID and LoveDA datasets
+    category_keywords = [
+        'small vehicle', 'large vehicle', 'ship', 'building', 'storage tank', 
+        'harbor', 'swimming pool', 'tennis court', 'soccer ball field', 
+        'roundabout', 'basketball court', 'bridge', 'ground track field', 
+        'plane', 'helicopter', 'water', 'barren land', 'agricultural area', 
+        'forest area', 'road'
+    ]
+    for keyword in category_keywords:
+        if keyword in expr_lower:
+            features['category'] = True
+            break
     
-    # Extreme keywords
-    extreme_words = ['largest', 'smallest', 'biggest', 'tiniest', 'most', 'least', 'first', 'last',
-                    'leftmost', 'rightmost', 'topmost', 'bottommost', 'northernmost', 'southernmost']
-    if any(word in expr_lower for word in extreme_words):
-        features['extreme'] = True
+    # Position keywords - from grid_position system (3x3 grid)
+    position_keywords = [
+        'in the top left', 'in the top center', 'in the top right',
+        'in the center left', 'in the center', 'in the center right', 
+        'in the bottom left', 'in the bottom center', 'in the bottom right'
+    ]
+    for keyword in position_keywords:
+        if keyword in expr_lower:
+            features['position'] = True
+            break
     
-    # Size keywords
-    size_words = ['large', 'small', 'big', 'tiny', 'huge', 'massive', 'little']
-    if any(word in expr_lower for word in size_words):
-        features['size'] = True
+    # Extreme keywords - from extreme_position assignments
+    extreme_keywords = [
+        'topmost', 'bottommost', 'leftmost', 'rightmost'
+    ]
+    for keyword in extreme_keywords:
+        if keyword in expr_lower:
+            features['extreme'] = True
+            break
     
-    # Color keywords
-    color_words = ['white', 'black', 'red', 'blue', 'green', 'yellow', 'gray', 'grey', 'brown',
-                   'light', 'dark', 'bright', 'pale']
-    if any(word in expr_lower for word in color_words):
-        features['color'] = True
+    # Size keywords - from size_attribute assignments (largest/smallest only)
+    size_keywords = [
+        'largest', 'smallest'
+    ]
+    for keyword in size_keywords:
+        if keyword in expr_lower:
+            features['size'] = True
+            break
     
-    # Relationship keywords
-    relationship_words = ['to the', 'next to', 'near', 'close to', 'adjacent', 'beside', 'between',
-                         'above', 'below', 'left of', 'right of', 'in front of', 'behind']
-    if any(phrase in expr_lower for phrase in relationship_words):
-        features['relationship'] = True
+    # Color keywords - from color detection system
+    color_keywords = [
+        'light', 'dark', 'red', 'orange', 'yellow', 'green', 'cyan', 
+        'blue', 'purple', 'magenta'
+    ]
+    for keyword in color_keywords:
+        if keyword in expr_lower:
+            features['color'] = True
+            break
+    
+    # Relationship keywords - from relationship direction system
+    relationship_keywords = [
+        'that is to the left of', 'that is to the bottom left of', 'that is below',
+        'that is to the bottom right of', 'that is to the right of', 
+        'that is to the top right of', 'that is above', 'that is to the top left of'
+    ]
+    for keyword in relationship_keywords:
+        if keyword in expr_lower:
+            features['relationship'] = True
+            break
     
     return features
 
