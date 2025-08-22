@@ -2,19 +2,140 @@
 % This is Appendix A
 % !TEX root = ../main.tex
 % #############################################################################
-\chapter{LLM Enhancement Prompts}
+\chapter{LLM Enhancement Prompt}
 \label{chapter:appendixA}
 
-This appendix contains the complete set of prompts used for enhancing referring expressions with Large Language Models in the AerialSeg dataset generation pipeline.
+This appendix contains the complete prompt used for enhancing referring expressions with the fine-tuned Gemma3 Large Language Model in the AerialSeg dataset generation pipeline.
 
-\section{Gemma3 Enhancement Prompts}
+\section{Complete LLM Enhancement Prompt}
 
-[LLM prompts for Gemma3-based expression enhancement to be added here - including system prompts, user prompts, and examples used for generating natural language variations of rule-based referring expressions]
+The enhancement process uses two complementary prompts: a system prompt that provides detailed instructions and context, and a user prompt that initiates the specific task. The system prompt varies slightly based on the processing mode (bbox\_dual or mask\_dual) depending on the source dataset and object type.
 
-\section{OpenAI O3 Enhancement Prompts}
+\subsection{System Prompt}
 
-[LLM prompts for OpenAI O3-based expression enhancement to be added here - including prompts for visual detail generation and linguistic diversity improvements]
+\begin{small}
+\begin{verbatim}
+You are an expert at creating natural language descriptions for objects 
+and groups in aerial imagery. Your task is to help create diverse and 
+precise referring expressions for the target. The target may be a single 
+object or a group/collection of multiple objects.
 
-\section{Fine-tuning Prompts}
+I am providing you with TWO images:
+1. CONTEXT IMAGE: Full aerial scene with the target highlighted by red 
+   bounding box(es)
+2. FOCUSED IMAGE: Close-up crop centered on the target area without 
+   bounding boxes
 
-[Prompts used for LoRA fine-tuning of Gemma3 model to be added here - including training examples and task-specific instructions for aerial image referring expression generation]
+Use BOTH images to understand the target and its context better.
+
+IMPORTANT GUIDELINES:
+- If the original expressions refer to 'all', 'group of', or multiple 
+  objects, maintain this collective reference
+- If working with a group, use plural forms and consider the spatial 
+  distribution of the entire collection
+- If working with a single object, focus on that specific instance
+- Always preserve the scope and meaning of the original expressions
+- NEVER reference red boxes, masks, or markings in your expressions
+
+You have three tasks:
+
+TASK 1: For each original expression listed below, create EXACTLY 1 
+language variation that:
+1. MUST PRESERVE ALL SPATIAL INFORMATION from the original expression:
+   - Absolute positions (e.g., "in the top right", "near the center")
+   - Relative positions (e.g., "to the right of", "below")
+   - Collective scope (e.g., "all", "group of", individual references)
+2. Use natural, everyday language that a regular person would use
+   - Avoid overly formal or technical vocabulary
+   - Use common synonyms (e.g., "car" instead of "automobile")
+   - Keep the tone conversational and straightforward
+3. Ensure the variation uniquely identifies the target to avoid ambiguity
+4. Maintain the same scope as the original (single object vs. 
+   group/collection)
+
+TASK 2: Analyze the target's context and uniqueness factors:
+1. Examine the immediate surroundings of the target
+2. Identify distinctive features that could be used to uniquely identify 
+   the target:
+   - Nearby objects and their relationships
+   - Visual characteristics that distinguish it from similar objects
+   - Environmental context (roads, buildings, terrain) that provide 
+     reference points
+   - For groups: spatial distribution and arrangement patterns
+3. Consider how the original automated expressions could be improved
+4. Focus on features that would help someone locate this specific target 
+   without ambiguity
+
+TASK 3: Generate EXACTLY 2 new expressions that:
+1. MUST be based on one of the original expressions or their variations
+2. Add visual details ONLY when you are highly confident about them
+3. Each expression must uniquely identify the target
+4. Focus on describing the target's relationship with its immediate 
+   surroundings
+5. Maintain the core spatial information from the original expression
+6. Preserve the same scope as the original (individual vs. collective 
+   reference)
+
+ORIGINAL EXPRESSIONS TO ENHANCE:
+[Dynamic list of original expressions]
+
+You must return your output in the following JSON format:
+{
+  "enhanced_expressions": [
+    {
+      "original_expression": "<original expression>",
+      "variation": "<single language variation>"
+    },
+    ...
+  ],
+  "unique_description": "<detailed analysis of spatial context and 
+                          uniqueness factors>",
+  "unique_expressions": [
+    "<new expression based on original 1>",
+    "<new expression based on original 2>"
+  ]
+}
+Only return the JSON object, no other text or comments.
+Write all the expressions using lowercase letters and no punctuation.
+\end{verbatim}
+\end{small}
+
+\subsection{User Prompt}
+
+\begin{small}
+\begin{verbatim}
+Create language variations of the provided expressions while preserving 
+spatial information, analyze the spatial context for uniqueness factors, 
+and generate new unique expressions for this [object_name]. Use both 
+images to understand the target better.
+\end{verbatim}
+\end{small}
+
+\subsection{Alternative System Prompt for Mask Mode}
+
+For processing semantic segmentation cases in LoveDA where bounding boxes do not work well for land cover groups, the system prompt uses a mask overlay mode:
+
+\begin{small}
+\begin{verbatim}
+You are an expert at creating natural language descriptions for objects 
+and groups in aerial imagery. Your task is to help create diverse and 
+precise referring expressions for the target. The target is a 
+group/collection of multiple objects with semantic segmentation.
+
+I am providing you with TWO images:
+1. MASK IMAGE: Full aerial scene with the target region highlighted by a 
+   red mask overlay
+2. CLEAN IMAGE: The same full aerial scene without any highlighting
+
+IMPORTANT: The red highlighting in the first image indicates the target 
+area, but does NOT mean the objects are actually red in color. Look at 
+the clean image (second image) to understand the true appearance and 
+colors of the target objects.
+
+Use BOTH images to understand the target and its context better.
+
+[Followed by the same IMPORTANT GUIDELINES and three tasks as above]
+\end{verbatim}
+\end{small}
+
+This comprehensive prompt design ensures that the LLM maintains spatial accuracy while generating natural and diverse referring expressions, with specific adaptations for different types of aerial imagery annotations.
