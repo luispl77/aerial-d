@@ -1,0 +1,35 @@
+=== Source Dataset Metrics Report ===
+
+=== iSAID Dataset ===
+
+TRAIN Split:
+  Images: 0
+  Instances: 0
+
+VAL Split:
+  Images: 0
+  Instances: 0
+
+TOTAL iSAID:
+  Images: 0
+  Instances: 0
+
+=== LoveDA Dataset ===
+
+TRAIN Split:
+  Images: 2,522
+  Note: LoveDA uses semantic segmentation (no individual instances)
+
+VAL Split:
+  Images: 1,669
+  Note: LoveDA uses semantic segmentation (no individual instances)
+
+TOTAL LoveDA:
+  Images: 4,191
+  Note: All images are 1024x1024 pixels
+
+=== Summary ===
+Total source images: 4,191
+  iSAID: 0 images (0.0%)
+  LoveDA: 4,191 images (100.0%)
+Total instances (iSAID only): 0
