@@ -434,7 +434,7 @@ def main():
     #           ├── images/
     #           └── annotations/
     
-    dataset_path = "dataset/patches_rules_expressions_unique"
+    dataset_path = "/cfs/home/u035679/datasets/aeriald"
     
     print(f"Analyzing dataset at: {dataset_path}")
     
@@ -442,15 +442,16 @@ def main():
     metrics = DatasetMetrics(dataset_path)
     metrics.analyze_dataset()
     
-    # Generate report
-    report_path = os.path.join(dataset_path, "dataset_metrics_report.txt")
+    # Generate report (save to same directory as this script)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    report_path = os.path.join(script_dir, "dataset_metrics_report.txt")
     report = metrics.generate_report(report_path)
     print("\nReport Preview:")
     print("=" * 50)
     print(report[:500] + "...\n")  # Show first 500 characters of report
     
-    # Generate visualizations
-    plots_dir = os.path.join(dataset_path, "dataset_metrics_plots")
+    # Generate visualizations (save to same directory as this script)
+    plots_dir = os.path.join(script_dir, "dataset_metrics_plots")
     metrics.plot_distributions(plots_dir)
 
 if __name__ == "__main__":
