@@ -131,51 +131,6 @@ The expression generation phase synthesizes comprehensive linguistic description
 
 Final processing ensures expression uniqueness and linguistic quality through systematic standardization and deduplication. The system normalizes category names and handles plural forms consistently, collapses single-instance groups into singular references, and removes any expression text that appears multiple times within a patch. This strict deduplication policy eliminates all occurrences of duplicated phrases, preventing ambiguous references that would compromise referring expression quality.
 
-% Expression taxonomy table
-\begin{table}[H]
-\centering
-\caption{Complete Taxonomy of Generated Expression Types}
-\label{tab:expression_types}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{@{}ccccccl@{}}
-\toprule
-\textbf{Category} & \textbf{Position} & \textbf{Extreme} & \textbf{Size} & \textbf{Color} & \textbf{Relationship} & \textbf{Example} \\
-\midrule
-\multicolumn{7}{l}{\textbf{Individual Instance Expressions}} \\
-\midrule
-\checkmark & & & & & & "the ship" \\
-\checkmark & \checkmark & & & & & "the ship in the bottom right" \\
-\checkmark & \checkmark & & & & \checkmark & "the ship in the bottom right that is to the left of a harbor" \\
-\checkmark & & \checkmark & & & & "the topmost ship" \\
-\checkmark & \checkmark & \checkmark & & & & "the topmost ship in the top left" \\
-\checkmark & \checkmark & \checkmark & & & \checkmark & "the topmost ship in the top left that is above a building" \\
-\checkmark & \checkmark & & \checkmark & & & "the largest ship in the bottom right" \\
-\checkmark & \checkmark & & \checkmark & & \checkmark & "the largest ship in the bottom right that is above a harbor" \\
-\checkmark & \checkmark & \checkmark & \checkmark & & & "the largest topmost ship in the top left" \\
-\checkmark & \checkmark & \checkmark & \checkmark & & \checkmark & "the largest topmost ship in the top left that is above a building" \\
-\checkmark & & & & \checkmark & & "the dark ship" \\
-\checkmark & \checkmark & & & \checkmark & & "the dark ship in the bottom right" \\
-\checkmark & \checkmark & & & \checkmark & \checkmark & "the dark ship in the bottom right that is to the left of a harbor" \\
-\checkmark & & \checkmark & & \checkmark & & "the dark topmost ship" \\
-\checkmark & \checkmark & \checkmark & & \checkmark & & "the dark topmost ship in the top left" \\
-\checkmark & \checkmark & \checkmark & & \checkmark & \checkmark & "the dark topmost ship in the top left that is above a building" \\
-\checkmark & \checkmark & & \checkmark & \checkmark & & "the dark largest ship in the bottom right" \\
-\checkmark & \checkmark & & \checkmark & \checkmark & \checkmark & "the dark largest ship in the bottom right that is above a harbor" \\
-\checkmark & \checkmark & \checkmark & \checkmark & \checkmark & & "the dark largest topmost ship in the top left" \\
-\checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & "the dark largest topmost ship in the top left that is above a building" \\
-\midrule
-\multicolumn{7}{l}{\textbf{Group Expressions}} \\
-\midrule
-\checkmark & \checkmark & & & & & "the group of 3 ships in the center" \\
-\checkmark & \checkmark & \checkmark & & & & "the topmost group of 3 ships in the center" \\
-\checkmark & \checkmark & & & & \checkmark & "the group of 3 ships in the center that is above a group of 2 buildings" \\
-\checkmark & \checkmark & & & & \checkmark & "the ship in the bottom right that is to the left of a group of 2 harbors" \\
-\checkmark & & & & & & "all buildings in the image" \\
-\checkmark & & & & & & "all small and large vehicles in the image" \\
-\bottomrule
-\end{tabular}%
-}
-\end{table}
 
 % #############################################################################
 \section{LLM Expression Generation}
@@ -290,53 +245,53 @@ Water & -- & -- & -- & -- & LoveDA \\
 Barren Land & -- & -- & -- & -- & LoveDA \\
 Agricultural Area & -- & -- & -- & -- & LoveDA \\
 Forest Area & -- & -- & -- & -- & LoveDA \\
-Road & -- & -- & -- & -- & DeepGlobe \\
+Road & -- & -- & -- & -- & LoveDA \\
 \bottomrule
 \end{tabular}%
 }
 \end{table}
 
-% Expression type distribution table
+% Expression taxonomy table with counts
 \begin{table}[H]
 \centering
-\caption{Expression Type Distribution}
-\label{tab:expression_type_dist}
+\caption{Complete Taxonomy of Generated Expression Types}
+\label{tab:expression_types}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{@{}ccccccr@{}}
+\begin{tabular}{@{}ccccccrl@{}}
 \toprule
-\textbf{Category} & \textbf{Position} & \textbf{Extreme} & \textbf{Size} & \textbf{Color} & \textbf{Relationship} & \textbf{Total Count} \\
+\textbf{Category} & \textbf{Position} & \textbf{Extreme} & \textbf{Size} & \textbf{Color} & \textbf{Relationship} & \textbf{Total Count} & \textbf{Example} \\
 \midrule
-\multicolumn{7}{l}{\textbf{Rule-Based Individual Instance Expressions}} \\
+\multicolumn{8}{l}{\textbf{Individual Instance Expressions}} \\
 \midrule
-\checkmark & & & & & & -- \\
-\checkmark & \checkmark & & & & & -- \\
-\checkmark & \checkmark & & & & \checkmark & -- \\
-\checkmark & & \checkmark & & & & -- \\
-\checkmark & \checkmark & \checkmark & & & & -- \\
-\checkmark & \checkmark & \checkmark & & & \checkmark & -- \\
-\checkmark & \checkmark & & \checkmark & & & -- \\
-\checkmark & \checkmark & & \checkmark & & \checkmark & -- \\
-\checkmark & \checkmark & \checkmark & \checkmark & & & -- \\
-\checkmark & \checkmark & \checkmark & \checkmark & & \checkmark & -- \\
-\checkmark & & & & \checkmark & & -- \\
-\checkmark & \checkmark & & & \checkmark & & -- \\
-\checkmark & \checkmark & & & \checkmark & \checkmark & -- \\
-\checkmark & & \checkmark & & \checkmark & & -- \\
-\checkmark & \checkmark & \checkmark & & \checkmark & & -- \\
-\checkmark & \checkmark & \checkmark & & \checkmark & \checkmark & -- \\
-\checkmark & \checkmark & & \checkmark & \checkmark & & -- \\
-\checkmark & \checkmark & & \checkmark & \checkmark & \checkmark & -- \\
-\checkmark & \checkmark & \checkmark & \checkmark & \checkmark & & -- \\
-\checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & -- \\
+\checkmark & & & & & & -- & "the ship" \\
+\checkmark & \checkmark & & & & & -- & "the ship in the bottom right" \\
+\checkmark & \checkmark & & & & \checkmark & -- & "the ship in the bottom right that is to the left of a harbor" \\
+\checkmark & & \checkmark & & & & -- & "the topmost ship" \\
+\checkmark & \checkmark & \checkmark & & & & -- & "the topmost ship in the top left" \\
+\checkmark & \checkmark & \checkmark & & & \checkmark & -- & "the topmost ship in the top left that is above a building" \\
+\checkmark & \checkmark & & \checkmark & & & -- & "the largest ship in the bottom right" \\
+\checkmark & \checkmark & & \checkmark & & \checkmark & -- & "the largest ship in the bottom right that is above a harbor" \\
+\checkmark & \checkmark & \checkmark & \checkmark & & & -- & "the largest topmost ship in the top left" \\
+\checkmark & \checkmark & \checkmark & \checkmark & & \checkmark & -- & "the largest topmost ship in the top left that is above a building" \\
+\checkmark & & & & \checkmark & & -- & "the dark ship" \\
+\checkmark & \checkmark & & & \checkmark & & -- & "the dark ship in the bottom right" \\
+\checkmark & \checkmark & & & \checkmark & \checkmark & -- & "the dark ship in the bottom right that is to the left of a harbor" \\
+\checkmark & & \checkmark & & \checkmark & & -- & "the dark topmost ship" \\
+\checkmark & \checkmark & \checkmark & & \checkmark & & -- & "the dark topmost ship in the top left" \\
+\checkmark & \checkmark & \checkmark & & \checkmark & \checkmark & -- & "the dark topmost ship in the top left that is above a building" \\
+\checkmark & \checkmark & & \checkmark & \checkmark & & -- & "the dark largest ship in the bottom right" \\
+\checkmark & \checkmark & & \checkmark & \checkmark & \checkmark & -- & "the dark largest ship in the bottom right that is above a harbor" \\
+\checkmark & \checkmark & \checkmark & \checkmark & \checkmark & & -- & "the dark largest topmost ship in the top left" \\
+\checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & -- & "the dark largest topmost ship in the top left that is above a building" \\
 \midrule
-\multicolumn{7}{l}{\textbf{Rule-Based Group Expressions}} \\
+\multicolumn{8}{l}{\textbf{Group Expressions}} \\
 \midrule
-\checkmark & \checkmark & & & & & -- \\
-\checkmark & \checkmark & \checkmark & & & & -- \\
-\checkmark & \checkmark & & & & \checkmark & -- \\
-\checkmark & \checkmark & & & & \checkmark & -- \\
-\checkmark & & & & & & -- \\
-\checkmark & & & \checkmark & & & -- \\
+\checkmark & \checkmark & & & & & -- & "the group of 3 ships in the center" \\
+\checkmark & \checkmark & \checkmark & & & & -- & "the topmost group of 3 ships in the center" \\
+\checkmark & \checkmark & & & & \checkmark & -- & "the group of 3 ships in the center that is above a group of 2 buildings" \\
+\checkmark & \checkmark & & & & \checkmark & -- & "the ship in the bottom right that is to the left of a group of 2 harbors" \\
+\checkmark & & & & & & -- & "all buildings in the image" \\
+\checkmark & & & & & & -- & "all small and large vehicles in the image" \\
 \bottomrule
 \end{tabular}%
 }
