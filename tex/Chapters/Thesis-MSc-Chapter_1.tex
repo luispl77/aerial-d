@@ -7,22 +7,34 @@
 \cleardoublepage
 % The following line allows to ref this chapter
 \label{chap:intro}
-[Introduction overview placeholder - aerial image analysis, open-vocabulary segmentation, and natural language processing integration]
+The rapid advancement of computer vision technologies has revolutionized remote sensing and aerial imagery analysis. As unmanned aerial vehicles (UAVs) and satellite imaging become more accessible, the volume of aerial data continues to grow exponentially, presenting opportunities for automated analysis across diverse applications from urban planning to disaster response.
+
+Traditional segmentation approaches rely on predefined, closed-vocabulary systems that restrict analysis to a fixed set of object categories. This rigidity limits their real-world applicability where the diversity of objects and analytical requirements far exceeds any predefined taxonomy. This thesis addresses these limitations by exploring open-vocabulary semantic segmentation in aerial imagery, where models can segment objects described through unrestricted natural language expressions.
 
 % #############################################################################
 \section{Objectives and Motivation}
 
-[Placeholder for objectives and motivation - discussing the challenges of creating new datasets for deep learning, the importance of dataset creation in advancing the field, and specific motivations for aerial referring segmentation datasets]
+The motivation for developing open-vocabulary segmentation capabilities stems from the need for more general-purpose models that can adapt to diverse analytical requirements without requiring retraining. Current closed-vocabulary systems become ineffective when analysts need to identify objects or regions not included in the original training taxonomy.
+
+However, realizing this vision requires addressing a fundamental challenge: the scarcity of suitable training data. Most existing aerial imagery datasets provide semantic or instance segmentation annotations with predefined class labels, but lack the rich, descriptive language expressions necessary for training open-vocabulary models. While some recent work has explored referring segmentation in aerial imagery, these efforts remain limited in scale and scope.
+
+Traditional dataset construction approaches rely heavily on manual annotation processes, which are time-consuming, expensive, and inherently limited in the quantity and diversity of expressions that can be practically generated.
 
 % #############################################################################
 \section{Contributions}
 
-[Placeholder for contributions listing:
-- AerialD dataset - new largest RRSIS dataset
-- Fully automatic dataset construction - first of its kind
-- LLM-enhanced annotation pipeline with custom fine-tuned model
-- Final segmentation model trained on the dataset]
+This thesis makes several significant contributions to the field of open-vocabulary aerial image segmentation:
+
+We introduce AerialD, the first fully automatically created dataset for open-vocabulary segmentation in aerial imagery, containing over 1.5 million expressions. This dataset contains multiple targets per image that can include individual objects, groups of objects, or entire semantic categories, each associated with multiple rich, varied expressions.
+
+We develop the first fully automatic pipeline for creating open-vocabulary referring segmentation datasets from existing semantic and instance segmentation datasets. Our method transforms datasets that originally contained no referring expressions into comprehensive resources suitable for training language-grounded vision models, eliminating the need for time-consuming manual annotation labor.
+
+Our approach employs a novel two-stage process combining rule-based extraction with large language model (LLM) enhancement. The first stage establishes spatial relationships, size comparisons, and color characteristics for each target. The second stage leverages LLMs to generate expressions with rich, varied language and unrestricted visual details.
+
+This work demonstrates the viability of using large language models as automated annotators for creating massive datasets for novel tasks where no suitable training data previously existed, establishing a new paradigm for rapid dataset creation across diverse computer vision applications. All code is available at \texttt{luispl77/aerialseg} and the AerialD dataset with trained model weights are released on Hugging Face at \texttt{luisml77/aerialseg}.
 % #############################################################################
 \section{Document Structure}
 
-[Placeholder for document structure - overview of how the thesis is organized across chapters]
+This thesis is structured in six chapters and one appendix. Chapter 2 provides the fundamental concepts necessary for understanding this work, covering neural networks, transformers, computer vision architectures, image segmentation, and vision-language models including CLIP and large language models. Chapter 3 reviews the related work in aerial image segmentation datasets, vision backbones for segmentation, referring segmentation models, and the application of large language models to vision tasks. 
+
+Chapter 4 details the construction of the AerialD dataset, describing the source datasets used, the rule-based expression generation process, LLM-based enhancement techniques, model distillation, and final dataset statistics. Chapter 5 presents the evaluation methodology, including the model architecture used for experiments, experimental setup, results on the AerialD dataset and other referring expression segmentation datasets, and ablation studies analyzing different components of our approach. Chapter 6 concludes the thesis by summarizing key findings and contributions while outlining potential directions for future research. Appendix A contains the complete prompts used for LLM enhancement during dataset construction.
