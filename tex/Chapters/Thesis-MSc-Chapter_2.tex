@@ -106,7 +106,7 @@ The transformer block combines self-attention with feed-forward layers and resid
 \mathbf{H}'' = \text{FFN}(\text{LayerNorm}(\mathbf{H}')) + \mathbf{H}',
 \end{equation}
 
-where $\mathbf{H}$ represents the input hidden states and FFN denotes the feed-forward network. Multiple transformer blocks can be stacked to create deeper models that capture increasingly complex patterns in the input sequences.
+where $\mathbf{H}$ represents the input hidden states and FFN denotes the feed-forward network. Multiple transformer blocks can be stacked to create deeper models that capture increasingly complex patterns in the input sequences. The output token embeddings from the final transformer layer can then be used for downstream tasks by attaching task-specific heads, such as classification layers for sentiment analysis or language modeling heads for text generation.
 
 \begin{figure}[tb]
 \centering
@@ -118,12 +118,24 @@ where $\mathbf{H}$ represents the input hidden states and FFN denotes the feed-f
 % #############################################################################
 \section{Transformers for Computer Vision}
 
-Application of transformer architectures to computer vision tasks and visual understanding.
+The success of transformers in natural language processing led to their adaptation for computer vision tasks, demonstrating the versatility of the self-attention mechanism across different modalities. Vision Transformers (ViTs) extend the transformer architecture to images by treating image patches as sequences of tokens, similar to how text transformers process word sequences.
 
-\begin{figure}[htbp]
+The Vision Transformer architecture begins by dividing an input image into fixed-size square patches, as illustrated in Figure~\ref{fig:vit}. For an image of size $H \times W \times C$, where $H$ and $W$ are the height and width, and $C$ is the number of channels, the image is divided into $N = \frac{HW}{P^2}$ patches of size $P \times P$. Each patch is then flattened and linearly projected to create patch embeddings:
+
+\begin{equation}
+\mathbf{x}_p^{(i)} = \text{Linear}(\text{Flatten}(\mathbf{I}_p^{(i)})),
+\end{equation}
+
+where $\mathbf{I}_p^{(i)}$ represents the $i$-th patch and $\mathbf{x}_p^{(i)} \in \mathbb{R}^D$ is the corresponding patch embedding with dimension $D$.
+
+Similar to text transformers, positional embeddings are added to patch embeddings to preserve spatial information about the patch locations within the original image. The sequence of patch embeddings is then processed through standard transformer blocks, applying self-attention mechanisms to capture relationships between different spatial regions of the image. This approach allows the model to learn which parts of the image are most relevant for the given task, whether it be classification, object detection, or feature extraction.
+
+The output patch embeddings from the final transformer layer provide rich spatial representations that can be utilized for various computer vision tasks by attaching appropriate task-specific heads, such as classification heads for image categorization or detection heads for object localization. The Vision Transformer demonstrates that the same architectural principles underlying text transformers can be successfully applied to visual data, reinforcing the universal applicability of self-attention mechanisms across multiple modalities including text, vision, and other sequential data types.
+
+\begin{figure}[tb]
 \centering
-\includegraphics[width=0.8\textwidth]{Images/vit.png}
-\caption{Vision Transformer (ViT) architecture for image classification and feature extraction.}
+\includegraphics[width=0.9\textwidth]{Images/vit.png}
+\caption{Vision Transformer (ViT) architecture for image classification and feature extraction. The input image is divided into square patches, which are then linearly projected and processed through transformer blocks, similar to how text transformers handle word tokens.}
 \label{fig:vit}
 \end{figure}
 
