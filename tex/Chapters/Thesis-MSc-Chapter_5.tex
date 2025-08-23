@@ -20,7 +20,11 @@ We implemented this architecture from scratch in PyTorch, faithfully following t
 % #############################################################################
 \section{Experimental Setup}
 
-This section describes the training configuration and experimental setup for evaluating the RSRefSeg model on the AerialD dataset.
+Our training configuration uses a batch size of 4 with gradient accumulation steps of 2, resulting in an effective batch size of 8 samples. The model employs LoRA fine-tuning for parameter-efficient adaptation, targeting the query and value projection layers in both the SigLIP2 vision encoder and SAM vision encoder, and the query, key, value, and output projection layers in the text encoder. We use the google/siglip2-so400m-patch14-384 model for vision-language encoding and facebook/sam-vit-base for mask generation. Training uses AdamW optimizer with an initial learning rate of 1e-4, weight decay of 0.01, and polynomial learning rate decay with power factor 0.9. The pipeline leverages mixed-precision computation for efficiency and applies gradient clipping with maximum norm of 1.0 for stability. All images are resized to 384×384 pixels to match the SigLIP2 input requirements.
+
+Our experimental design centers on training models using the AerialD dataset and evaluating performance through cross-dataset evaluation on three established aerial referring segmentation benchmarks: RefSegRS, RRSIS-D, and NWPU-Refer. This cross-evaluation approach validates the generalization capabilities of models trained on our dataset when applied to different aerial imagery domains, annotation styles, and expression patterns.
+
+To understand the individual contributions of different expression types within AerialD, we train various model variants on different subsets of our dataset alongside the complete combined dataset. These variants include models trained exclusively on rule-based expressions, language variation expressions only, unique visual detail expressions only, and the full combined dataset incorporating all expression types. The comparative analysis of these variants, detailed in the ablation studies section, provides insights into how different enhancement strategies affect model performance and generalization across diverse referring expression patterns.
 
 
 % #############################################################################
