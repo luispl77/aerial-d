@@ -139,10 +139,20 @@ The output patch embeddings from the final transformer layer provide rich spatia
 \label{fig:vit}
 \end{figure}
 
+\FloatBarrier
+
 % #############################################################################
 \section{Image Segmentation}
 
-Deep learning approaches for image segmentation tasks and methodologies.
+Image segmentation is a fundamental computer vision task that involves partitioning an image into semantically meaningful regions by classifying each pixel according to its content. At its core, segmentation can be viewed as a dense prediction problem where the model performs pixel-level binary or multi-class classification, determining for each spatial location whether it belongs to a particular object or region of interest.
+
+The segmentation process transforms an input image $\mathbf{I} \in \mathbb{R}^{H \times W \times C}$ into a segmentation mask $\mathbf{M} \in \{0, 1\}^{H \times W}$ for binary segmentation, or $\mathbf{M} \in \{0, 1, \ldots, K\}^{H \times W}$ for multi-class segmentation with $K$ categories. Each pixel $(i, j)$ in the output mask $\mathbf{M}_{i,j}$ represents the predicted class label for the corresponding spatial location in the input image.
+
+Different variations of the segmentation task address distinct aspects of scene understanding, as illustrated in Figure~\ref{fig:segmentation}. Semantic segmentation assigns each pixel to a predefined semantic category, such as "small vehicle," "large vehicle," or "plane," without distinguishing between individual object instances within the same category. This approach provides a comprehensive understanding of scene composition but treats all objects of the same class as a single entity.
+
+Instance segmentation extends semantic segmentation by identifying and delineating individual object instances, enabling the model to distinguish between separate objects that belong to the same semantic category. For example, multiple aircraft in an aerial image would be segmented as distinct entities rather than merged into a single "plane" region. This capability is crucial for applications requiring precise object counting and individual object analysis.
+
+Referring instance segmentation represents the most sophisticated variant, combining instance-level precision with natural language understanding. This task requires the model to segment a specific object instance based on a natural language description or prompt, such as "large vehicle in between two planes." The model must simultaneously understand the linguistic description and identify the corresponding visual region, bridging the gap between language and vision modalities. This approach enables more intuitive human-computer interaction and supports complex queries that cannot be addressed through traditional category-based segmentation methods.
 
 \begin{figure}[htbp]
 \centering
