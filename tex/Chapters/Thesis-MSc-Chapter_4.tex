@@ -61,7 +61,6 @@ Our rule-based pipeline systematically transforms aerial segmentation datasets i
 Category & "plane" \\
 Grid Position & "in the top right" \\
 Extreme Position & None \\
-Size Comparison & None \\
 Color Classification & "light" \\
 Directional Relations & "to the bottom right of a plane" \\
 & "to the top right of a plane" \\
@@ -258,30 +257,30 @@ Forest & 0 & 2,850 & 0 & 11,400 & LoveDA \\
 \caption{Complete Taxonomy of Generated Expression Types}
 \label{tab:expression_types}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{@{}ccccccrl@{}}
+\begin{tabular}{@{}cccccrl@{}}
 \toprule
-\textbf{Category} & \textbf{Position} & \textbf{Extreme} & \textbf{Size} & \textbf{Color} & \textbf{Relationship} & \textbf{Total Count} & \textbf{Example} \\
+\textbf{Category} & \textbf{Position} & \textbf{Extreme} & \textbf{Color} & \textbf{Relationship} & \textbf{Total Count} & \textbf{Example} \\
 \midrule
-\multicolumn{8}{l}{\textbf{Individual Instance Expressions}} \\
+\multicolumn{7}{l}{\textbf{Individual Instance Expressions}} \\
 \midrule
-\checkmark & & & & & & 5,157 & "the ship" \\
-\checkmark & \checkmark & & & & & 26,437 & "the ship in the bottom right" \\
-\checkmark & \checkmark & & & & \checkmark & 25,403 & "the ship in the bottom right that is to the left of a harbor" \\
-\checkmark & & \checkmark & & & & 22,930 & "the topmost ship" \\
-\checkmark & \checkmark & \checkmark & & & & 22,930 & "the topmost ship in the top left" \\
-\checkmark & \checkmark & \checkmark & & & \checkmark & 9,761 & "the topmost ship in the top left that is above a building" \\
-\checkmark & & & & \checkmark & & 19,172 & "the dark ship" \\
-\checkmark & \checkmark & & & \checkmark & & 58,252 & "the dark ship in the bottom right" \\
-\checkmark & \checkmark & & & \checkmark & \checkmark & 42,165 & "the dark ship in the bottom right that is to the left of a harbor" \\
-\checkmark & & \checkmark & & \checkmark & & 35,571 & "the dark topmost ship" \\
-\checkmark & \checkmark & \checkmark & & \checkmark & & 35,571 & "the dark topmost ship in the top left" \\
-\checkmark & \checkmark & \checkmark & & \checkmark & \checkmark & 15,242 & "the dark topmost ship in the top left that is above a building" \\
+\checkmark & & & & & 5,157 & "the ship" \\
+\checkmark & \checkmark & & & & 26,437 & "the ship in the bottom right" \\
+\checkmark & \checkmark & & & \checkmark & 25,403 & "the ship in the bottom right that is to the left of a harbor" \\
+\checkmark & & \checkmark & & & 22,930 & "the topmost ship" \\
+\checkmark & \checkmark & \checkmark & & & 22,930 & "the topmost ship in the top left" \\
+\checkmark & \checkmark & \checkmark & & \checkmark & 9,761 & "the topmost ship in the top left that is above a building" \\
+\checkmark & & & \checkmark & & 19,172 & "the dark ship" \\
+\checkmark & \checkmark & & \checkmark & & 58,252 & "the dark ship in the bottom right" \\
+\checkmark & \checkmark & & \checkmark & \checkmark & 42,165 & "the dark ship in the bottom right that is to the left of a harbor" \\
+\checkmark & & \checkmark & \checkmark & & 35,571 & "the dark topmost ship" \\
+\checkmark & \checkmark & \checkmark & \checkmark & & 35,571 & "the dark topmost ship in the top left" \\
+\checkmark & \checkmark & \checkmark & \checkmark & \checkmark & 15,242 & "the dark topmost ship in the top left that is above a building" \\
 \midrule
-\multicolumn{8}{l}{\textbf{Group Expressions}} \\
+\multicolumn{7}{l}{\textbf{Group Expressions}} \\
 \midrule
-\checkmark & \checkmark & & & & & 40,281 & "the group of 3 ships in the center" \\
-\checkmark & \checkmark & & & & \checkmark & 86,307 & "the group of 3 ships in the center that is above a group of 2 buildings" \\
-\checkmark & & & & & & 61,015 & "all buildings in the image" \\
+\checkmark & \checkmark & & & & 40,281 & "the group of 3 ships in the center" \\
+\checkmark & \checkmark & & & \checkmark & 86,307 & "the group of 3 ships in the center that is above a group of 2 buildings" \\
+\checkmark & & & & & 61,015 & "all buildings in the image" \\
 \bottomrule
 \end{tabular}%
 }
