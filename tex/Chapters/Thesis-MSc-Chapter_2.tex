@@ -66,12 +66,52 @@ where $\eta$ is the learning rate and $\nabla_\theta \mathcal{L}(\theta_t)$ repr
 % #############################################################################
 \section{Attention and Transformers}
 
-Self-attention mechanisms, encoder-decoder architectures, and positional encoding.
+The transformer architecture revolutionized sequence modeling by introducing a self-attention mechanism that enables models to process variable-length sequences more effectively than traditional fixed-size approaches. Unlike multi-layer perceptrons that operate on fixed-dimensional inputs, transformers can handle sequences of arbitrary length and are particularly effective at capturing long-range dependencies in medium to long sequences through the self-attention mechanism, making them suitable for tasks across multiple modalities including natural language, vision, audio, time series, or any sequential data where relationships between distant elements are important.
 
-\begin{figure}[htbp]
+The core innovation of transformers lies in the self-attention mechanism, which allows each element in a sequence to attend to all other elements simultaneously, as illustrated in Figure~\ref{fig:transformer}. For a sequence of input tokens represented as embeddings $\mathbf{X} = [\mathbf{x}_1, \mathbf{x}_2, \ldots, \mathbf{x}_n] \in \mathbb{R}^{n \times d}$, where $n$ is the sequence length and $d$ is the embedding dimension, the self-attention mechanism computes three matrices: queries ($\mathbf{Q}$), keys ($\mathbf{K}$), and values ($\mathbf{V}$):
+
+\begin{equation}
+\mathbf{Q} = \mathbf{X}\mathbf{W}_Q, \quad \mathbf{K} = \mathbf{X}\mathbf{W}_K, \quad \mathbf{V} = \mathbf{X}\mathbf{W}_V,
+\end{equation}
+
+where $\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V \in \mathbb{R}^{d \times d_k}$ are learned parameter matrices. The attention scores $\boldsymbol{\alpha}$ are computed as:
+
+\begin{equation}
+\boldsymbol{\alpha} = \text{softmax}\left(\frac{\mathbf{Q}\mathbf{K}^T}{\sqrt{d_k}}\right),
+\end{equation}
+
+where the scaling factor $\sqrt{d_k}$ prevents the softmax function from saturating for large embedding dimensions. The final attention output is then computed as:
+
+\begin{equation}
+\text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \boldsymbol{\alpha}\mathbf{V},
+\end{equation}
+
+where $\boldsymbol{\alpha}$ represents the attention weights that determine how much each value $\mathbf{V}$ contributes to the output.
+
+Since transformers process all positions in parallel, they lack inherent positional information. To address this, positional encodings are added to input embeddings to provide the model with information about token positions. The original transformer uses sinusoidal positional encodings:
+
+\begin{equation}
+PE_{(pos, 2i)} = \sin\left(\frac{pos}{10000^{2i/d}}\right), \quad PE_{(pos, 2i+1)} = \cos\left(\frac{pos}{10000^{2i/d}}\right),
+\end{equation}
+
+where $pos$ is the position index and $i$ is the dimension index. This encoding scheme allows the model to learn relative positions and generalizes to sequences longer than those seen during training.
+
+The transformer block combines self-attention with feed-forward layers and residual connections. Each block applies layer normalization before both the attention and feed-forward operations, following the pre-normalization variant. The complete transformation for a single transformer block can be expressed as:
+
+\begin{equation}
+\mathbf{H}' = \text{Attention}(\text{LayerNorm}(\mathbf{H})) + \mathbf{H},
+\end{equation}
+
+\begin{equation}
+\mathbf{H}'' = \text{FFN}(\text{LayerNorm}(\mathbf{H}')) + \mathbf{H}',
+\end{equation}
+
+where $\mathbf{H}$ represents the input hidden states and FFN denotes the feed-forward network. Multiple transformer blocks can be stacked to create deeper models that capture increasingly complex patterns in the input sequences.
+
+\begin{figure}[tb]
 \centering
-\includegraphics[width=0.8\textwidth]{Images/transformer.png}
-\caption{Transformer architecture with self-attention mechanisms and encoder-decoder structure.}
+\includegraphics[width=0.9\textwidth]{Images/transformer.png}
+\caption{Self-attention mechanism in transformers. The diagram shows how attention scores $\alpha$ are computed for each token, with specific examples of attention weights for tokens "path" and "rocks" relative to other words in the sequence "the stream chose its path through rocks".}
 \label{fig:transformer}
 \end{figure}
 
