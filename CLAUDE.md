@@ -286,4 +286,33 @@ tex/
 - **IST Template**: The thesis uses the official IST (Instituto Superior Técnico) LaTeX template with proper document class and formatting requirements.
 - **Compilation**: Use `pdflatex main.tex` in the `/Users/luispl/Documents/aerialseg/tex/` directory to compile the thesis.
 
+### 10. **Critical Writing Pattern - ALWAYS Follow This Structure**
+
+**NEVER start a paragraph with technical implementation details. ALWAYS follow this pattern:**
+
+1. **Motivation First**: Explain WHY this step is needed
+   - "In order to provide additional spatial context..."
+   - "To enable relationships between different instances..."
+   - "To better localize objects within the scene..."
+
+2. **Problem Statement**: Explain what challenge/limitation this addresses
+   - "However, conventional grid positioning may be insufficient..."
+   - "Objects positioned near boundaries present a challenge..."
+
+3. **Solution Introduction**: Introduce what you're going to do
+   - "...we introduce extreme position detection"
+   - "...the system implements spatial relationship calculation"
+
+4. **Technical Details**: Only AFTER motivation, problem, and solution intro
+   - Specific algorithms, parameters, thresholds, etc.
+
+**Example of WRONG approach**: "Spatial relationship calculation employs an angle-based directional system..."
+
+**Example of CORRECT approach**: "In order to enable complex referring expressions that describe objects relative to other instances, the system implements spatial relationship calculation. This addresses cases where grid positioning alone cannot uniquely identify objects in crowded scenes. The system employs an angle-based directional system..."
+
+**Key reminders:**
+- Spatial directions are: above, below, to the left, to the right (NOT north, northeast, etc.)
+- Always explain thresholds, distances, and filtering criteria in detail
+- Never mention function names - keep it professional
+
 This documentation provides a comprehensive overview for working effectively with the AerialSeg codebase. The project combines computer vision, natural language processing, and web development in a cohesive research framework for aerial image segmentation.
