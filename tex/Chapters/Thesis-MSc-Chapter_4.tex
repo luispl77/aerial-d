@@ -202,7 +202,7 @@ The collected high-quality outputs then serve as training data for fine-tuning G
 % #############################################################################
 \section{Final Dataset Statistics}
 
-The completed AerialD dataset represents a comprehensive resource for aerial referring expression segmentation, combining rule-based generation with LLM enhancement to create diverse and natural language descriptions.
+The completed AerialD dataset represents a comprehensive resource for aerial referring expression segmentation, containing over 1.5 million expressions across diverse object categories and linguistic patterns. As demonstrated in Figure \ref{fig:dataset_examples}, the final dataset showcases the broad range of instances, groups, and semantic categories enhanced through our multi-stage pipeline, with LLM-generated expressions providing rich visual details and contextual references that extend far beyond the original rule-based templates.
 
 % Dataset examples figure
 \begin{figure}[H]
@@ -211,6 +211,8 @@ The completed AerialD dataset represents a comprehensive resource for aerial ref
 \caption{Representative examples from AerialD dataset showing diverse referring expressions with corresponding aerial images and ground truth masks.}
 \label{fig:dataset_examples}
 \end{figure}
+
+Table \ref{tab:dataset_stats} presents the overall dataset composition, revealing 37,288 total patches containing 259,709 annotated samples with expressions. The dataset maintains a balanced distribution between individual objects (128,715 instances with 889,354 expressions) and groups (130,994 groups with 633,169 expressions), with an average of approximately 7 expressions per individual object and 5 expressions per group. The substantial scale demonstrates the comprehensive coverage achieved through our systematic generation pipeline.
 
 % Dataset statistics table
 \begin{table}[H]
@@ -232,6 +234,8 @@ Avg. Expressions per Group & 4.87 & 4.74 & 4.83 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+Category-specific statistics in Table \ref{tab:category_dist} illustrate the diversity across both iSAID and LoveDA source datasets, with small vehicles representing the most abundant category (41,353 individual instances) and specialized categories like helicopters and baseball diamonds providing targeted coverage for specific aerial object types. The distribution encompasses both discrete objects from iSAID and semantic land cover categories from LoveDA, ensuring comprehensive representation of aerial imagery content.
 
 % Category distribution table
 \begin{table}[H]
@@ -270,6 +274,8 @@ Forest & 0 & 2,850 & 0 & 11,400 & LoveDA \\
 }
 \end{table}
 
+Table \ref{tab:expression_types} provides a detailed taxonomy of the 17 distinct expression templates used in rule-based generation, showing how combinations of category, position, extreme positioning, color, and relationship attributes create expressions ranging from simple category references to complex multi-attribute descriptions. The systematic enumeration demonstrates the comprehensive linguistic coverage achieved through combinatorial rule application.
+
 % Expression taxonomy table with counts
 \begin{table}[H]
 \centering
@@ -304,6 +310,8 @@ Forest & 0 & 2,850 & 0 & 11,400 & LoveDA \\
 \end{tabular}%
 }
 \end{table}
+
+Finally, Table \ref{tab:llm_enhancement_stats} quantifies the impact of LLM enhancement, showing that the distillation pipeline successfully tripled the dataset size from the original 506,194 rule-based expressions to 1,522,523 total expressions. The LLM enhancement process contributed nearly equal numbers of language variations (496,895) and unique visual detail expressions (519,434), demonstrating the effectiveness of the two-pronged enhancement strategy in achieving both linguistic diversity and contextual richness.
 
 % LLM enhancement stats table
 \begin{table}[H]
