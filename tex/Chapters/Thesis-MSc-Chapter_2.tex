@@ -164,11 +164,23 @@ Referring instance segmentation represents the most sophisticated variant, combi
 % #############################################################################
 \section{Vision-Language Models}
 
-Multimodal architectures that process both visual and textual information.
+Vision-language models represent a significant advancement in multimodal artificial intelligence, enabling systems to understand and reason about both visual and textual information simultaneously. These architectures bridge the gap between computer vision and natural language processing by learning joint representations that capture semantic relationships across modalities.
 
 \subsection{CLIP and Visual-Language Learning}
 
-Contrastive Language-Image Pre-training model architecture and visual-language learning methodologies.
+Contrastive Language-Image Pre-training (CLIP) introduces a powerful framework for learning visual-textual representations through contrastive learning. The architecture consists of two separate transformer encoders: an image encoder that processes visual input and a text encoder that handles natural language descriptions, as illustrated in Figure~\ref{fig:clip_architecture}.
+
+The core innovation of CLIP lies in its contrastive pre-training methodology, which learns to align image and text embeddings in a shared representation space. During training, the model processes batches of image-text pairs and computes similarity scores between all possible combinations. For a batch of $N$ image-text pairs, CLIP maximizes the cosine similarity between correct pairs while minimizing similarity between incorrect pairs:
+
+\begin{equation}
+\mathcal{L}_{\text{contrastive}} = -\frac{1}{N}\sum_{i=1}^{N} \left[ \log \frac{\exp(\text{sim}(\mathbf{I}_i, \mathbf{T}_i) / \tau)}{\sum_{j=1}^{N} \exp(\text{sim}(\mathbf{I}_i, \mathbf{T}_j) / \tau)} \right],
+\end{equation}
+
+where $\mathbf{I}_i$ and $\mathbf{T}_i$ represent image and text embeddings respectively, $\text{sim}(\cdot, \cdot)$ computes cosine similarity, and $\tau$ is a learned temperature parameter that controls the sharpness of the softmax distribution.
+
+This contrastive objective enables CLIP to achieve remarkable zero-shot classification capabilities. Given a new image and a set of candidate class descriptions, the model can classify the image by computing similarities between the image embedding and text embeddings for each class description, selecting the class with the highest similarity score. This approach eliminates the need for task-specific fine-tuning and demonstrates strong generalization across diverse visual domains.
+
+The learned joint embedding space has proven valuable for numerous downstream vision-language tasks beyond classification. The aligned representations enable applications such as image retrieval using text queries, caption generation, visual question answering, and multimodal reasoning tasks. The versatility of CLIP embeddings stems from their ability to capture semantic relationships that transfer across different tasks and domains, making them fundamental building blocks for modern multimodal systems.
 
 \begin{figure}[htbp]
 \centering
@@ -181,7 +193,23 @@ Contrastive Language-Image Pre-training model architecture and visual-language l
 
 \subsection{Large Language Models}
 
-Foundation models for natural language understanding and generation in multimodal contexts.
+Large Language Models (LLMs) have emerged as powerful foundation models that demonstrate remarkable capabilities in natural language understanding, generation, and reasoning. These models, exemplified by the GPT (Generative Pre-trained Transformer) family, utilize transformer decoder architectures trained on vast text corpora to learn rich linguistic representations and world knowledge.
+
+The GPT architecture employs a causal transformer decoder that generates text autoregressively, predicting the next token in a sequence based on all previous tokens, as illustrated in Figure~\ref{fig:gpt}. The diagram shows the characteristic feedback mechanism where each predicted token is fed back into the sequence for subsequent predictions. For a sequence of tokens $\mathbf{x} = [x_1, x_2, \ldots, x_t]$, the model processes the entire sequence through multiple transformer layers before computing the probability of the next token $x_{t+1}$ through an output MLP:
+
+\begin{equation}
+P(x_{t+1} | x_1, x_2, \ldots, x_t) = \text{softmax}(\mathbf{W}_o \mathbf{h}_t),
+\end{equation}
+
+where $\mathbf{h}_t$ represents the hidden state at position $t$ from the final transformer layer and $\mathbf{W}_o$ is the output projection matrix. The training objective maximizes the likelihood of the training sequences:
+
+\begin{equation}
+\mathcal{L}_{\text{LM}} = -\sum_{i=1}^{T} \log P(x_i | x_1, \ldots, x_{i-1}),
+\end{equation}
+
+where $T$ is the sequence length. This next-token prediction objective, demonstrated in the figure's "Add to sequence" feedback loop, enables LLMs to learn complex linguistic patterns, semantic relationships, and contextual dependencies from large-scale text data.
+
+The versatility of the transformer architecture allows LLMs to process heterogeneous token sequences that extend beyond natural language. In multimodal contexts, the input sequence can include tokens from vision encoders, such as those produced by CLIP's image encoder. Since CLIP's visual representations are aligned with language through contrastive training, LLMs can be trained to understand these visual tokens alongside textual tokens, creating truly multimodal language models. This integration enables the model to process mixed sequences containing both visual and textual information, allowing for sophisticated capabilities such as visual question answering, image captioning with rich contextual descriptions, and instruction-following for complex visual tasks. The extensive world knowledge captured by LLMs during pre-training, combined with their ability to process visual tokens, allows them to provide contextual understanding that goes beyond simple pattern recognition, enabling more nuanced and informative multimodal interactions.
 
 \begin{figure}[htbp]
 \centering
