@@ -13,7 +13,9 @@ This chapter presents the comprehensive evaluation of our open-vocabulary aerial
 % #############################################################################
 \section{Model Architecture}
 
-Our approach is based on the RSRefSeg (Referring Segmentation with Rule-based annotation System) architecture, which combines text and visual understanding for precise object segmentation in aerial imagery.
+Our approach implements the RSRefSeg architecture, as illustrated in Figure \ref{fig:rsrefseg_architecture} from Chapter 3, which combines text and visual understanding for precise object segmentation in aerial imagery. We selected this architecture for its versatility in enabling both referring instance segmentation and semantic segmentation, allowing the model to segment both individual objects and broader semantic regions effectively. The architecture leverages two robust vision foundation models as backbones: SigLIP2 for vision-language encoding and SAM for mask generation, providing a solid foundation built on proven components with strong pre-trained capabilities.
+
+We implemented this architecture from scratch in PyTorch, faithfully following the original RSRefSeg paper design and verified its effectiveness by replicating the reported results on the RRSIS-D dataset. The model employs LoRA (Low-Rank Adaptation) for efficient fine-tuning, enabling parameter-efficient training while maintaining the strong pre-trained representations from the foundation models. This approach allows us to adapt the powerful vision-language capabilities to the specific domain of aerial imagery while minimizing computational requirements during training.
 
 % #############################################################################
 \section{Experimental Setup}
