@@ -27,7 +27,9 @@ AerialSeg is a research project focused on **open-vocabulary segmentation of aer
 │   ├── gemma3_enhance.py     # Gemma3-based enhancement
 │   ├── o3_enhance.py         # OpenAI O3 enhancement
 │   └── utils/                # LLM utility scripts
-├── thesis_tex/               # LaTeX thesis document
+├── tex/                       # LaTeX documents
+│   ├── dissertation/          # Main thesis document
+│   └── article/              # Article/extended abstract document
 └── .git/                     # Git repository
 ```
 
@@ -195,9 +197,10 @@ python o3_enhance.py --dataset_dir ../datagen/dataset
 - `/cfs/home/u035679/aerialseg/datagen/utils/notes.md` - TODOs and development progress
 - Various README files in model directories
 
-### Thesis Document
+### LaTeX Documents
 
-- `/Users/luispl/Documents/aerialseg/tex/main.tex` - Academic thesis in LaTeX (using IST thesis template)
+- `/Users/luispl/Documents/aerialseg/tex/dissertation/main.tex` - Main academic thesis in LaTeX (using IST thesis template)
+- `/Users/luispl/Documents/aerialseg/tex/article/ExtendedAbstract.tex` - Extended abstract article for thesis publication
 
 ## Git Repository
 
@@ -251,31 +254,38 @@ python o3_enhance.py --dataset_dir ../datagen/dataset
 - Each component (datagen, clipsam, llm) has its own requirements.txt
 - Consider using virtual environments for different components
 
-### 8. **Thesis Structure**
+### 8. **LaTeX Document Structure**
 
 ```
 tex/
-├── main.tex                    # Main LaTeX document (entry point)
-├── main.pdf                    # Generated PDF output
-├── istulthesis.cls             # IST thesis class file
-├── Thesis-MSc-*.tex           # IST template components
-├── Images/                     # All figures and images
-│   ├── RSRefSeg.png           # Architecture diagrams
-│   ├── dataset.png            # Dataset visualizations
-│   ├── clipsam.png            # Model architecture
-│   └── *.png, *.pdf, *.jpg    # Other figures
-├── Chapters/                   # Individual chapter files
-│   ├── Thesis-MSc-Chapter_1.tex # Introduction
-│   ├── Thesis-MSc-Chapter_2.tex # Related work
-│   ├── Thesis-MSc-Chapter_3.tex # Dataset construction
-│   ├── Thesis-MSc-Chapter_4.tex # Evaluation setup
-│   ├── Thesis-MSc-Chapter_5.tex # Results and analysis
-│   ├── Thesis-MSc-Chapter_6.tex # Conclusion
-│   ├── Thesis-MSc-Abstract-*.tex # Abstracts (EN/PT)
-│   ├── Thesis-MSc-Acknowledgments.tex # Acknowledgments
-│   └── Thesis-MSc-Appendix*.tex # Appendices
-├── tables_and_code/           # Code listings and tables
-└── Thesis-MSc-Bibliography.bib # References
+├── dissertation/               # Main thesis document
+│   ├── main.tex               # Main LaTeX document (entry point)
+│   ├── main.pdf               # Generated PDF output
+│   ├── istulthesis.cls        # IST thesis class file
+│   ├── Thesis-MSc-*.tex       # IST template components
+│   ├── Images/                # All figures and images
+│   │   ├── RSRefSeg.png       # Architecture diagrams
+│   │   ├── dataset.png        # Dataset visualizations
+│   │   ├── clipsam.png        # Model architecture
+│   │   └── *.png, *.pdf, *.jpg # Other figures
+│   ├── Chapters/              # Individual chapter files
+│   │   ├── Thesis-MSc-Chapter_1.tex # Introduction
+│   │   ├── Thesis-MSc-Chapter_2.tex # Fundamental concepts
+│   │   ├── Thesis-MSc-Chapter_3.tex # Related work
+│   │   ├── Thesis-MSc-Chapter_4.tex # Dataset construction approach
+│   │   ├── Thesis-MSc-Chapter_5.tex # Experiments
+│   │   ├── Thesis-MSc-Chapter_6.tex # Conclusion and future work
+│   │   ├── Thesis-MSc-Abstract-*.tex # Abstracts (EN/PT)
+│   │   ├── Thesis-MSc-Acknowledgments.tex # Acknowledgments
+│   │   └── Thesis-MSc-Appendix*.tex # Appendices
+│   ├── tables_and_code/       # Code listings and tables
+│   └── Thesis-MSc-Bibliography.bib # References
+└── article/                    # Extended abstract article
+    ├── ExtendedAbstract.tex    # Main article document (entry point)
+    ├── ExtendedAbstract.pdf    # Generated PDF output
+    ├── ExtendedAbstract_*.tex  # Article section files
+    ├── images/                 # Article figures
+    └── ExtendedAbstract_ref_db.bib # References
 ```
 
 ### 9. **Thesis Writing Guidelines**
@@ -284,7 +294,9 @@ tex/
 - **Writing Style**: Use descriptive prose instead of bullet points. Provide detailed, flowing descriptions that explain concepts thoroughly in paragraph form.
 - **Technical Accuracy**: Verify pipeline steps, model architectures, and implementation details by examining the actual code files before writing about them.
 - **IST Template**: The thesis uses the official IST (Instituto Superior Técnico) LaTeX template with proper document class and formatting requirements.
-- **Compilation**: Use `pdflatex main.tex` in the `/Users/luispl/Documents/aerialseg/tex/` directory to compile the thesis.
+- **Compilation**: 
+  - Dissertation: Use `pdflatex main.tex` in the `/Users/luispl/Documents/aerialseg/tex/dissertation/` directory
+  - Article: Use `pdflatex ExtendedAbstract.tex` in the `/Users/luispl/Documents/aerialseg/tex/article/` directory
 
 ### 10. **Critical Writing Pattern - ALWAYS Follow This Structure**
 
