@@ -25,12 +25,12 @@ This chapter presents the systematic approach for constructing the AerialD datas
 \toprule
 \multicolumn{2}{c}{\textbf{iSAID Dataset}} \\
 \midrule
-\raisebox{-0.5\height}{\includegraphics[width=3.5cm, height=3.5cm]{./Images/isaid.png}} & 
+\raisebox{-0.5\height}{\includegraphics[width=3.5cm, height=3.5cm]{./../Images/isaid.png}} & 
 \hspace{-0.5cm}\parbox[c]{8cm}{\fontsize{10pt}{12pt}\selectfont Contains \textbf{2,806} high resolution images at varying widths of 800 to 13,000 pixels, spatial resolution of \textbf{0.1m to 4.5m}, with \textbf{655,451} instances across \textbf{15} object classes: \textbf{ships}, \textbf{large vehicles}, \textbf{small vehicles}, \textbf{storage tanks}, \textbf{harbors}, \textbf{swimming pools}, \textbf{tennis courts}, \textbf{soccer ball fields}, \textbf{roundabouts}, \textbf{basketball courts}, \textbf{bridges}, \textbf{ground track fields}, \textbf{planes}, \textbf{helicopters}, and \textbf{baseball diamonds}.} \\[0.5cm]
 \midrule
 \multicolumn{2}{c}{\textbf{LoveDA Dataset}} \\
 \midrule
-\raisebox{-0.5\height}{\includegraphics[width=3.5cm, height=3.5cm]{./Images/loveda_dataset.png}} & 
+\raisebox{-0.5\height}{\includegraphics[width=3.5cm, height=3.5cm]{./../Images/loveda_dataset.png}} & 
 \hspace{-0.5cm}\parbox[c]{8cm}{\fontsize{10pt}{12pt}\selectfont Contains \textbf{5,987} images at 1024 pixel width, spatial resolution of \textbf{0.3m}, across \textbf{6} land cover classes: \textbf{building}, \textbf{road}, \textbf{water}, \textbf{barren}, \textbf{forest}, and \textbf{agriculture}.} \\[0.5cm]
 \bottomrule
 \end{tabular}
@@ -46,7 +46,7 @@ The rule-based expression generation pipeline systematically transforms semantic
 \centering
 \begin{minipage}{0.5\textwidth}
 \centering
-\includegraphics[width=0.7\textwidth]{./Images/rule_based_generation.png}
+\includegraphics[width=0.7\textwidth]{./../Images/rule_based_generation.png}
 \end{minipage}%
 \begin{minipage}{0.5\textwidth}
 \centering
@@ -104,7 +104,7 @@ Having extracted all spatial, visual, and relational attributes for individual i
 \centering
 \begin{minipage}{0.5\textwidth}
 \centering
-\includegraphics[width=0.7\textwidth]{./Images/filter_unique.png}
+\includegraphics[width=0.7\textwidth]{./../Images/filter_unique.png}
 \end{minipage}%
 \begin{minipage}{0.5\textwidth}
 \centering
@@ -156,7 +156,7 @@ As demonstrated in Figure \ref{fig:llm_enhancement_example}, the LLM enhancement
 \centering
 \begin{minipage}{0.5\textwidth}
 \centering
-\includegraphics[width=0.7\textwidth]{./Images/example_group.png}
+\includegraphics[width=0.7\textwidth]{./../Images/example_group.png}
 \end{minipage}%
 \begin{minipage}{0.5\textwidth}
 \centering
@@ -190,7 +190,7 @@ The collected high-quality outputs then serve as training data for fine-tuning G
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.8\textwidth]{./Images/distillation.png}
+\includegraphics[width=0.8\textwidth]{./../Images/distillation.png}
 \caption{Knowledge distillation pipeline for scalable LLM enhancement. A small sample of 500 expressions is processed through OpenAI's O3 model to generate high-quality training targets, which are then used to fine-tune Gemma3 12B via QLora. The fine-tuned model enables cost-effective local inference to enhance the full dataset of 300,000 expressions using vLLM on a single GPU.}
 \label{fig:llm_distillation}
 \end{figure}
@@ -204,7 +204,7 @@ The completed AerialD dataset represents a comprehensive resource for aerial ref
 % Dataset examples figure
 \begin{figure}[H]
 \centering
-\includegraphics[width=\textwidth]{./Images/dataset.png}
+\includegraphics[width=\textwidth]{./../Images/dataset.png}
 \caption{Representative examples from AerialD dataset showing diverse referring expressions with corresponding aerial images and ground truth masks.}
 \label{fig:dataset_examples}
 \end{figure}
