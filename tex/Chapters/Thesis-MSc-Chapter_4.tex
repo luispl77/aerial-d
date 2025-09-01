@@ -3,7 +3,7 @@
 % !TEX root = ../main.tex
 % #############################################################################
 % Change the Name of the Chapter i the following line
-\fancychapter{Dataset Construction}
+\fancychapter{A New Approach For Open-Vocabulary Referring Expression Dataset Generation}
 \cleardoublepage
 % The following line allows to ref this chapter
 \label{chap:implement}
@@ -26,7 +26,7 @@ This chapter presents the systematic approach for constructing the AerialD datas
 \multicolumn{2}{c}{\textbf{iSAID Dataset}} \\
 \midrule
 \raisebox{-0.5\height}{\includegraphics[width=3.5cm, height=3.5cm]{./Images/isaid.png}} & 
-\hspace{-0.5cm}\parbox[c]{8cm}{\fontsize{10pt}{12pt}\selectfont Contains \textbf{2,806} high resolution images at varying widths of 800 to 13,000 pixels, spatial resolution of \textbf{0.1m to 4.5m}, with \textbf{655,451} instances across \textbf{15} object classes including \textbf{ships}, \textbf{large vehicles}, \textbf{small vehicles}, \textbf{planes}, etc.} \\[0.5cm]
+\hspace{-0.5cm}\parbox[c]{8cm}{\fontsize{10pt}{12pt}\selectfont Contains \textbf{2,806} high resolution images at varying widths of 800 to 13,000 pixels, spatial resolution of \textbf{0.1m to 4.5m}, with \textbf{655,451} instances across \textbf{15} object classes: \textbf{ships}, \textbf{large vehicles}, \textbf{small vehicles}, \textbf{storage tanks}, \textbf{harbors}, \textbf{swimming pools}, \textbf{tennis courts}, \textbf{soccer ball fields}, \textbf{roundabouts}, \textbf{basketball courts}, \textbf{bridges}, \textbf{ground track fields}, \textbf{planes}, \textbf{helicopters}, and \textbf{baseball diamonds}.} \\[0.5cm]
 \midrule
 \multicolumn{2}{c}{\textbf{LoveDA Dataset}} \\
 \midrule
@@ -182,10 +182,7 @@ Unique & the set of four big vehicles parked in a single row in the upper center
 \label{fig:llm_enhancement_example}
 \end{figure}
 
-% #############################################################################
-\section{LLM Distillation}
-
-While large language models demonstrate exceptional capabilities for expression enhancement, applying production-grade models directly to our massive dataset presents significant computational and financial challenges. The rule-based generation pipeline produces hundreds of thousands of objects and expressions that require LLM processing and enhancement, creating a dataset scale that would be prohibitively expensive and time-consuming to process using high-quality proprietary models such as OpenAI's GPT-5 or o3. Processing 300,000 targets through these premium APIs could cost hundreds of dollars and require extensive processing time, making direct application economically unfeasible for research-scale dataset construction.
+However, applying production-grade models directly to our massive dataset presents significant computational and financial challenges. The rule-based generation pipeline produces hundreds of thousands of objects and expressions that require LLM processing and enhancement, creating a dataset scale that would be prohibitively expensive and time-consuming to process using high-quality proprietary models such as OpenAI's GPT-5 or o3. Processing 300,000 targets through these premium APIs could cost hundreds of dollars and require extensive processing time, making direct application economically unfeasible for research-scale dataset construction.
 
 To address this scalability challenge, we implement knowledge distillation that transfers the capabilities of large proprietary models to smaller, open-source alternatives that can be deployed locally. As illustrated in Figure \ref{fig:llm_distillation}, our distillation pipeline begins by carefully selecting a small representative subset of 500 objects and targets from our rule-based dataset. We process this curated sample through OpenAI's o3 model, leveraging the highest quality production-grade LLM available to generate optimal expression enhancements that serve as training targets. These 500 high-quality outputs capture the desired enhancement patterns including language variation, visual detail incorporation, and contextual spatial references that we want to replicate across the full dataset.
 
