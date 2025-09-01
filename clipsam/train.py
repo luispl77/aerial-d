@@ -83,6 +83,9 @@ def parse_args():
     # Balanced batch sampling
     parser.add_argument('--balanced_batch_sampling', action='store_true', help='Enable balanced batch sampling for domain adaptation. Only active if --enable_domain_adaptation is also set.')
     
+    # Dataset filtering
+    parser.add_argument('--dataset_filter', type=str, choices=['isaid', 'loveda', 'deepglobe'], help='Train only on samples from a specific dataset (isaid, loveda, or deepglobe)')
+    
     return parser.parse_args()
 
 def save_checkpoint(model, optimizer, epoch, loss, path):
@@ -595,7 +598,7 @@ def find_transformed_image(image_dir, base_filename):
     return None, None
 
 class SimpleDataset:
-    def __init__(self, dataset_root, split='train', input_size=512, use_historic=False, enable_domain_adaptation=False, unique_only=False, one_unique_per_obj=False, use_transformed=False):
+    def __init__(self, dataset_root, split='train', input_size=512, use_historic=False, enable_domain_adaptation=False, unique_only=False, one_unique_per_obj=False, use_transformed=False, dataset_filter=None):
         self.dataset_root = dataset_root
         self.split = split
         self.input_size = input_size
@@ -604,6 +607,7 @@ class SimpleDataset:
         self.unique_only = unique_only
         self.one_unique_per_obj = one_unique_per_obj
         self.use_transformed = use_transformed
+        self.dataset_filter = dataset_filter
         
         # Set paths based on split
         self.ann_dir = os.path.join(dataset_root, split, 'annotations')
@@ -618,8 +622,24 @@ class SimpleDataset:
         ])
         
         # Get list of XML files
-        self.xml_files = [f for f in os.listdir(self.ann_dir) if f.endswith('.xml')]
-        print(f"\nFound {len(self.xml_files)} XML files in {split} split")
+        all_xml_files = [f for f in os.listdir(self.ann_dir) if f.endswith('.xml')]
+        
+        # Apply dataset filter if specified
+        if self.dataset_filter:
+            filtered_xml_files = []
+            for xml_file in all_xml_files:
+                domain_id = get_domain_from_filename(xml_file)
+                if ((self.dataset_filter == 'isaid' and domain_id == 0) or
+                    (self.dataset_filter == 'deepglobe' and domain_id == 1) or
+                    (self.dataset_filter == 'loveda' and domain_id == 2)):
+                    filtered_xml_files.append(xml_file)
+            self.xml_files = filtered_xml_files
+            print(f"\nFound {len(all_xml_files)} total XML files in {split} split")
+            print(f"Filtered to {len(self.xml_files)} XML files for dataset: {self.dataset_filter}")
+        else:
+            self.xml_files = all_xml_files
+            print(f"\nFound {len(self.xml_files)} XML files in {split} split")
+        
         print("Loading and processing XML files...")
         
         # Store images and their objects separately
@@ -940,6 +960,10 @@ def save_run_details(args, run_id, model_name, effective_batch_size, train_datas
         f.write(f"Train on Unique Expressions Only: {args.unique_only}\n")
         if args.unique_only and args.one_unique_per_obj:
             f.write(f"Train on One Unique Expression per Object: Yes\n")
+        if args.dataset_filter:
+            f.write(f"Dataset Filter: {args.dataset_filter} only\n")
+        else:
+            f.write(f"Dataset Filter: All datasets\n")
         f.write(f"Dataset Path: ./aeriald\n")
         f.write(f"Images Path: ./aeriald/patches\n")
         f.write(f"Annotations Path: ./aeriald/patches\n")
@@ -1026,7 +1050,8 @@ def main():
         enable_domain_adaptation=args.enable_domain_adaptation,
         unique_only=args.unique_only,
         one_unique_per_obj=args.one_unique_per_obj,
-        use_transformed=args.use_transformed
+        use_transformed=args.use_transformed,
+        dataset_filter=args.dataset_filter
     )
     
     val_dataset = SimpleDataset(
@@ -1037,7 +1062,8 @@ def main():
         enable_domain_adaptation=args.enable_domain_adaptation,
         unique_only=False,  # Always use all expressions for validation
         one_unique_per_obj=False,
-        use_transformed=args.use_transformed
+        use_transformed=args.use_transformed,
+        dataset_filter=args.dataset_filter
     )
     
     # Initialize train_loader with default settings first
