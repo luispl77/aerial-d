@@ -91,19 +91,19 @@ To evaluate the individual contributions of different expression enhancement str
 \caption{Ablation Study: Expression Type Training Analysis}
 \label{tab:ablation_expression_types}
 {\footnotesize
-\begin{tabular}{@{}p{3.2cm}cccccccc@{}}
+\begin{tabular}{@{}p{3.2cm}ccccccc@{}}
 \toprule
-\textbf{Training Configuration} & \textbf{IoU@0.5} & \textbf{IoU@0.7} & \textbf{IoU@0.9} & \textbf{mIoU} & \textbf{oIoU} & \textbf{Triplets Seen} & \textbf{Unique Triplets} & \textbf{Epochs} \\
+\textbf{Training Configuration} & \textbf{IoU@0.5} & \textbf{IoU@0.7} & \textbf{IoU@0.9} & \textbf{mIoU} & \textbf{oIoU} & \textbf{Unique Triplets} & \textbf{Epochs} \\
 \midrule
-Rule-based Only & -- & -- & -- & -- & -- & 1,518K & 506K & 3 \\
-Language Variations Only & -- & -- & -- & -- & -- & 1,491K & 497K & 3 \\
-Unique Expressions Only & -- & -- & -- & -- & -- & 1,557K & 519K & 3 \\
-Combined All & -- & -- & -- & -- & -- & 1,522K & 1,522K & 1 \\
+Rule-based Only & -- & -- & -- & -- & -- & 506K & 3 \\
+Language Variations Only & -- & -- & -- & -- & -- & 497K & 3 \\
+Unique Expressions Only & -- & -- & -- & -- & -- & 519K & 3 \\
+Combined All & -- & -- & -- & -- & -- & 1,522K & 1 \\
 \bottomrule
 \end{tabular}%
 }
 \end{table}
 
-To ensure fair comparison across different training configurations, we carefully control the total number of training samples each model observes during training, as shown in the "Triplets Seen" column of Table \ref{tab:ablation_expression_types}. Since the combined dataset contains approximately 1.52M expressions, we train the individual subset models for 3 epochs each, resulting in roughly 1.5M samples seen, which closely matches the number of unique samples in the full combined dataset trained for 1 epoch. This methodology prevents comparing "apples to oranges" by ensuring that performance differences arise from data quality and diversity rather than simply the quantity of training samples observed.
+To ensure fair comparison across different training configurations, we carefully control the total number of training samples each model observes during training. Since the combined dataset contains approximately 1.52M expressions, we train the individual subset models for 3 epochs each, resulting in roughly 1.5M samples seen, which closely matches the number of unique samples in the full combined dataset trained for 1 epoch. This methodology prevents comparing "apples to oranges" by ensuring that performance differences arise from data quality and diversity rather than simply the quantity of training samples observed.
 
 The ablation results demonstrate that the combined model, utilizing all expression types, achieves the best performance across all evaluation metrics on the AerialD validation set. This validates our hypothesis that LLM enhancement provides measurable benefits to model performance. The language variation expressions contribute to improved linguistic understanding and generalization to diverse phrasing patterns, while the unique visual detail expressions enhance the model's ability to ground referring expressions in rich contextual information. The superior performance of the combined model confirms that the comprehensive expression diversity achieved through our multi-stage enhancement pipeline translates directly into improved referring segmentation capabilities.
