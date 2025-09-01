@@ -191,7 +191,7 @@ The learned joint embedding space has proven valuable for numerous downstream vi
 \label{fig:clip_architecture}
 \end{figure}
 
-\subsection{Large Language Models}
+\subsection{Large Multimodal Language Models}
 
 Large Language Models (LLMs) have emerged as powerful foundation models that demonstrate remarkable capabilities in natural language understanding, generation, and reasoning. These models, exemplified by the GPT (Generative Pre-trained Transformer) family, utilize transformer decoder architectures trained on vast text corpora to learn rich linguistic representations and world knowledge.
 
@@ -211,9 +211,36 @@ where $T$ is the sequence length. This next-token prediction objective, demonstr
 
 The versatility of the transformer architecture allows LLMs to process heterogeneous token sequences that extend beyond natural language. In multimodal contexts, the input sequence can include tokens from vision encoders, such as those produced by CLIP's image encoder. Since CLIP's visual representations are aligned with language through contrastive training, LLMs can be trained to understand these visual tokens alongside textual tokens, creating truly multimodal language models. This integration enables the model to process mixed sequences containing both visual and textual information, allowing for sophisticated capabilities such as visual question answering, image captioning with rich contextual descriptions, and instruction-following for complex visual tasks. The extensive world knowledge captured by LLMs during pre-training, combined with their ability to process visual tokens, allows them to provide contextual understanding that goes beyond simple pattern recognition, enabling more nuanced and informative multimodal interactions.
 
+Modern implementations of large multimodal language models demonstrate remarkable capabilities in vision-language understanding and generation. [Reference to GPT architecture and autoregressive generation] % \cite{placeholder_gpt}
+
+[Reference to multimodal capabilities in vision-language models] % \cite{placeholder_multimodal}
+
+Open-source models integrate vision encoders with transformer decoder architectures, enabling sophisticated multimodal reasoning while maintaining accessibility for research and development. [Reference to Gemma 3 open source models with SigLIP vision encoder] % \cite{placeholder_gemma3}
+
+Proprietary large-scale models represent the current state-of-the-art in multimodal language modeling, demonstrating advanced capabilities in complex visual reasoning, detailed image analysis, and sophisticated instruction following across multiple domains. [Reference to proprietary API models: O3] % \cite{placeholder_o3}
+
+[Reference to proprietary API models: GPT-5] % \cite{placeholder_gpt5}
+
+[Reference to proprietary API models: Gemini 2.5] % \cite{placeholder_gemini25}
+
+These models leverage massive computational resources and extensive multimodal training datasets to achieve performance levels that approach human-level understanding in many vision-language tasks, setting new benchmarks for what is possible in artificial multimodal intelligence.
+
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.8\textwidth]{Images/gpt.png}
 \caption{GPT autoregressive language model architecture showing the transformer decoder stack with next-token prediction and feedback mechanism.}
 \label{fig:gpt}
 \end{figure}
+
+% #############################################################################
+\section{Overview}
+
+This chapter has introduced the fundamental technical concepts that underpin modern open-vocabulary referring segmentation systems. Neural networks and deep learning provide the computational foundation through multi-layer perceptrons and gradient-based optimization, enabling the learning of complex patterns from data. The transformer architecture, with its self-attention mechanism, revolutionizes sequence modeling by allowing parallel processing and capturing long-range dependencies across different modalities.
+
+The extension of transformers to computer vision through Vision Transformers demonstrates the versatility of attention mechanisms beyond natural language processing. By treating image patches as sequences, ViTs enable the processing of visual information using the same architectural principles that have proven successful for text, laying the groundwork for unified multimodal architectures.
+
+Image segmentation represents a core computer vision task that partitions images into semantically meaningful regions through dense pixel-level prediction. The progression from semantic segmentation through instance segmentation to referring instance segmentation illustrates the evolution toward more sophisticated scene understanding capabilities that combine visual analysis with natural language comprehension.
+
+Vision-language models, exemplified by CLIP, establish the crucial bridge between visual and textual modalities through contrastive learning approaches. By learning aligned representations across modalities, these models enable zero-shot capabilities and provide the foundation for multimodal understanding. Large multimodal language models further extend this concept by integrating visual tokens into autoregressive generation frameworks, enabling sophisticated reasoning about both textual and visual content.
+
+Together, these fundamental concepts create a comprehensive technical foundation for open-vocabulary referring segmentation systems that can understand natural language descriptions and precisely segment corresponding visual regions in aerial imagery. The following chapters build upon these foundations to examine existing approaches and present novel contributions to this challenging problem domain.

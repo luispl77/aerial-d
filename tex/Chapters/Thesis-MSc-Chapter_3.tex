@@ -120,15 +120,19 @@ LoveDA & 5,987 & 2,522 (42.1\%) & 1,669 (27.9\%) & 1,796 (30.0\%) & images \\
 \end{table}
 
 % #############################################################################
-\section{Vision Backbones for Image Segmentation}
+\section{Segmentation Models for Aerial Images}
 
-Foundational vision models used as backbones for segmentation tasks.
+This section examines the landscape of segmentation models specifically designed for or applicable to aerial imagery analysis, encompassing both semantic segmentation approaches and referring segmentation techniques.
 
-[Reference to CLIP vision-language model] % \cite{placeholder_clip}
+\subsection{Semantic Segmentation Models}
 
-[Reference to SigLIP improved vision-language training] % \cite{placeholder_siglip}
+Foundational vision models provide the backbone architectures for aerial image segmentation tasks through powerful feature extraction and mask generation capabilities.
 
-[Reference to SAM segment anything model] % \cite{placeholder_sam}
+Vision-language models such as CLIP establish crucial connections between visual and textual modalities through contrastive learning, enabling zero-shot classification capabilities that transfer effectively to aerial imagery domains. The learned joint embedding spaces capture semantic relationships that prove valuable for understanding aerial scene content and object categories.
+
+SigLIP represents an advancement in vision-language training methodologies, improving upon CLIP's contrastive approach through more efficient training objectives and enhanced representation learning. These improvements translate to better performance on downstream aerial image understanding tasks where precise visual-textual alignment is critical.
+
+The Segment Anything Model (SAM) provides a foundational approach to semantic segmentation through its prompt-based architecture, as illustrated in Figure~\ref{fig:sam_architecture}. SAM's design incorporates an image encoder that processes input imagery into rich feature representations, a prompt encoder that handles various input modalities including points, boxes, and text, and a mask decoder that generates precise segmentation boundaries. This architecture demonstrates remarkable generalization capabilities across diverse image domains, including aerial imagery, where its ability to process multiple prompt types enables flexible segmentation workflows that can adapt to different user requirements and annotation strategies.
 
 \begin{figure}[htbp]
 \centering
@@ -137,18 +141,13 @@ Foundational vision models used as backbones for segmentation tasks.
 \label{fig:sam_architecture}
 \end{figure}
 
-% #############################################################################
-\section{Referring Segmentation Models}
+\subsection{Referring Segmentation Models}
 
-Previous approaches to language-guided segmentation in natural and aerial images.
+Advanced referring segmentation approaches combine semantic understanding with natural language comprehension to enable text-guided segmentation in aerial imagery contexts.
 
-[Reference to LAVT model] % \cite{placeholder_lavt}
+Previous approaches to language-guided segmentation have established important foundations for referring segmentation in natural images. LAVT introduces attention-based fusion mechanisms that align textual and visual features for precise object localization and segmentation. RMSIN advances multi-scale integration strategies that capture objects at different scales and resolutions. FIANet demonstrates the effectiveness of feature interaction architectures that enable sophisticated text-visual reasoning for segmentation tasks.
 
-[Reference to RMSIN model] % \cite{placeholder_rmsin}
-
-[Reference to FIANet model] % \cite{placeholder_fianet}
-
-[Reference to RSRefSeg model] % \cite{placeholder_rsrefseg}
+RSRefSeg represents a specialized approach designed specifically for aerial referring segmentation, as shown in Figure~\ref{fig:rsrefseg_architecture}. The architecture integrates SigLIP2 vision-language encoders with SAM mask decoders through custom prompter networks that process text-guided segmentation requests. The dual-pathway design processes both local token-level and global sentence-level text-visual interactions, generating sparse and dense prompts that enable precise aerial image segmentation guided by natural language descriptions. This architecture addresses the unique challenges of aerial imagery analysis, including varied object scales, complex spatial relationships, and domain-specific terminology requirements.
 
 \begin{figure}[H]
 \centering
@@ -156,25 +155,6 @@ Previous approaches to language-guided segmentation in natural and aerial images
 \caption{RSRefSeg architecture overview showing the integration of SigLIP2 vision-language encoder with SAM mask decoder through custom prompter networks for text-guided segmentation. The dual-pathway design processes both local (token-level) and global (sentence-level) text-visual interactions to generate sparse and dense prompts for precise aerial image segmentation.}
 \label{fig:rsrefseg_architecture}
 \end{figure}
-
-% #############################################################################
-\section{Large Language Models for Vision}
-
-Applications of LLMs to vision tasks and multimodal understanding.
-
-[Reference to GPT architecture and autoregressive generation] % \cite{placeholder_gpt}
-
-[Reference to multimodal capabilities in vision-language models] % \cite{placeholder_multimodal}
-
-[Reference to Gemma 3 open source models with SigLIP vision encoder] % \cite{placeholder_gemma3}
-
-[diagram for Gemma 3 architecture showing Gemma + SigLIP combo for vision capabilities]
-
-[Reference to proprietary API models: O3] % \cite{placeholder_o3}
-
-[Reference to proprietary API models: GPT-5] % \cite{placeholder_gpt5}
-
-[Reference to proprietary API models: Gemini 2.5] % \cite{placeholder_gemini25}
 
 % #############################################################################
 \section{Overview}
