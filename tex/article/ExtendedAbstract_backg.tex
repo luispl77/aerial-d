@@ -1,0 +1,39 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%     File: ExtendedAbstract_backg.tex                               %
+%     Tex Master: ExtendedAbstract.tex                               %
+%                                                                    %
+%     Author: Andre Calado Marta                                     %
+%     Last modified : 27 Dez 2011                                    %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% A Theory section should extend, not repeat, the background to the
+% article already dealt with in the Introduction and lay the
+% foundation for further work.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Background}
+\label{sec:backg}
+
+Place text here...
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Sub-section...}
+
+A generic CFD design problem can be formally described as
+%
+\begin{eqnarray}
+  {\rm Minimize}   && Y({\bf \alpha},{\bf q}({\bf \alpha}))            \nonumber           \\
+  {\rm w.r.t.}     && {\bf \alpha} \,,                                 \label{eq:minimize} \\
+  {\rm subject~to} && {\cal R}({\bf \alpha},{\bf q}({\bf \alpha})) = 0 \nonumber           \\
+                   &&       C ({\bf \alpha},{\bf q}({\bf \alpha})) = 0 \,, \nonumber
+\end{eqnarray}
+%
+where $Y$ is the cost function, ${\bf \alpha}$ is the vector of design variables and ${\bf q}$ is the flow solution, which is typically of function of the design variables, and $C = 0$ represents additional constraints that may or may not involve the flow solution.
+%
+The flow governing equations expressed in the form ${\cal R} = 0$ also appear as a constraint, as the solution ${\bf q}$ must always obey the flow physics.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Sub-section...}
+
+More text...
