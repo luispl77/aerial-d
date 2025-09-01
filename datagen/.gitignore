@@ -1,5 +1,7 @@
 # Dataset
 isaid/
+rrsisd/
+refsegrs
 *.zip
 *.tar
 *.gz
