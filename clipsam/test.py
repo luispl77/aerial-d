@@ -11,6 +11,8 @@ from pycocotools import mask as mask_utils
 from torchmetrics import JaccardIndex
 from tqdm import tqdm
 import random
+import cv2
+import html
 
 from model import SigLipSamSegmentator
 
@@ -28,6 +30,9 @@ def parse_args():
     parser.add_argument('--with_dense_feat', type=bool, default=True, help='Use dense features')
     parser.add_argument('--vis_only', action='store_true', help='Only run visualization without computing metrics')
     parser.add_argument('--dataset_root', type=str, default='./aeriald', help='Root directory of the AERIAL-D dataset')
+    parser.add_argument('--dataset_type', type=str, choices=['aeriald', 'rrsisd', 'refsegrs'], default='aeriald', help='Type of dataset to use for testing')
+    parser.add_argument('--rrsisd_root', type=str, default='../datagen/rrsisd', help='Root directory of the RRSISD dataset')
+    parser.add_argument('--refsegrs_root', type=str, default='../datagen/refsegrs/RefSegRS', help='Root directory of the RefSegRS dataset')
     parser.add_argument('--seed', type=int, default=42, help='Random seed for patch selection')
     
     return parser.parse_args()
@@ -376,6 +381,267 @@ class SimpleDataset:
         
         return image, obj['expression'], mask, obj['image_filename'], obj['type']
 
+
+class RRSISDDataset:
+    def __init__(self, dataset_root, split='val', input_size=480, max_samples=None, seed=42):
+        self.dataset_root = dataset_root
+        self.split = split
+        self.input_size = input_size
+        self.max_samples = max_samples
+        
+        # Set random seed
+        random.seed(seed)
+        
+        # Set paths for RRSISD structure
+        self.ann_dir = os.path.join(dataset_root, 'images', 'rrsisd', 'ann_split')
+        self.image_dir = os.path.join(dataset_root, 'images', 'rrsisd', 'JPEGImages')
+        
+        # Add transform to match model configuration  
+        self.transform = T.Compose([
+            T.Resize((input_size, input_size)),
+            T.ToTensor(),
+            T.Normalize(mean=[0.485, 0.456, 0.406], 
+                       std=[0.229, 0.224, 0.225])
+        ])
+        
+        # Load JSON annotations (contains the correct RLE masks)
+        json_path = os.path.join(dataset_root, 'instances.json')
+        if not os.path.exists(json_path):
+            raise FileNotFoundError(f"JSON file not found at {json_path}")
+            
+        with open(json_path, 'r') as f:
+            json_data = json.load(f)
+        
+        # Create lookup dict from JSON for fast access
+        self.json_annotations = {ann['image_id']: ann for ann in json_data['annotations']}
+        
+        # Get list of XML files and sample them first (like the old approach)
+        all_xml_files = [f for f in os.listdir(self.ann_dir) if f.endswith('.xml')]
+        
+        # Pre-sample XML files for efficiency
+        if self.max_samples is not None and len(all_xml_files) > self.max_samples * 2:
+            random.shuffle(all_xml_files)
+            xml_files_to_process = all_xml_files[:self.max_samples * 5]  # 5x buffer
+        else:
+            xml_files_to_process = all_xml_files
+        
+        print(f"\nProcessing RRSISD {split} split from {len(xml_files_to_process)} sampled XML files...")
+        
+        # Store samples with proper mask loading
+        self.samples = []
+        
+        for xml_file in tqdm(xml_files_to_process, desc=f"Processing RRSISD {split} XML files"):
+            if self.max_samples is not None and len(self.samples) >= self.max_samples:
+                break
+                
+            # Extract image_id from XML filename (e.g., "00001.xml" -> 1)
+            try:
+                image_id = int(xml_file.replace('.xml', ''))
+            except ValueError:
+                continue
+                
+            xml_path = os.path.join(self.ann_dir, xml_file)
+            
+            try:
+                tree = ET.parse(xml_path)
+                root = tree.getroot()
+                
+                # Check if this XML is for the requested split
+                xml_split = root.find('split').text
+                if xml_split != split:
+                    continue
+                
+                # Check if we have JSON annotation for this image
+                if image_id not in self.json_annotations:
+                    continue
+                    
+                ann = self.json_annotations[image_id]
+                image_path = os.path.join(self.image_dir, f"{image_id:05d}.jpg")
+                
+                if not os.path.exists(image_path):
+                    continue
+                
+                # Get JSON bbox coordinates [x1, y1, x2, y2]
+                json_bbox = ann['bbox']
+                
+                # Find matching object in XML by exact bbox match
+                matched_description = None
+                for obj in root.findall('object'):
+                    bbox = obj.find('bndbox')
+                    desc = obj.find('description')
+                    
+                    if bbox is not None and desc is not None and desc.text:
+                        # Get XML bbox coordinates
+                        xmin = int(bbox.find('xmin').text)
+                        ymin = int(bbox.find('ymin').text)
+                        xmax = int(bbox.find('xmax').text)
+                        ymax = int(bbox.find('ymax').text)
+                        xml_bbox = [xmin, ymin, xmax, ymax]
+                        
+                        # Check for exact match
+                        if xml_bbox == json_bbox:
+                            matched_description = desc.text
+                            break
+                
+                if matched_description is None:
+                    # Fallback to generic description
+                    matched_description = "the object in the image"
+                
+                # Get mask from RLE in JSON (this is the correct mask!)
+                rle = ann['segmentation'][0]
+                
+                # Add sample
+                self.samples.append({
+                    'image_path': image_path,
+                    'expression': matched_description,
+                    'segmentation': rle,  # RLE from JSON, not XML
+                    'image_id': image_id,
+                    'bbox': json_bbox
+                })
+                
+            except Exception as e:
+                print(f"Warning: Error processing {xml_file}: {e}")
+                continue
+            if self.max_samples is not None and len(self.samples) >= self.max_samples:
+                break
+        
+        # Final sampling if we still have too many
+        if self.max_samples is not None and len(self.samples) > self.max_samples:
+            random.shuffle(self.samples)
+            self.samples = self.samples[:self.max_samples]
+        
+        print(f"\nRRSISD Dataset statistics:")
+        print(f"- Total valid samples: {len(self.samples)}")
+        if self.max_samples is not None:
+            print(f"- Selected for processing: {len(self.samples)}")
+    
+    def __len__(self):
+        return len(self.samples)
+    
+    def __getitem__(self, idx):
+        sample = self.samples[idx]
+        
+        # Load image
+        image = Image.open(sample['image_path']).convert('RGB')
+        image = self.transform(image)
+        
+        # Decode mask from RLE
+        binary_mask = mask_utils.decode(sample['segmentation'])
+        mask = torch.from_numpy(binary_mask).float()
+        mask = T.Resize((self.input_size, self.input_size), antialias=True)(mask.unsqueeze(0)).squeeze(0)
+        
+        return image, sample['expression'], mask, f"{sample['image_id']:05d}.jpg", 'individual'
+
+
+class RefSegRSDataset:
+    def __init__(self, dataset_root, split='val', input_size=480, max_samples=None, seed=42):
+        self.dataset_root = dataset_root
+        self.split = split
+        self.input_size = input_size
+        self.max_samples = max_samples
+        
+        # Set random seed
+        random.seed(seed)
+        
+        # Set paths for RefSegRS structure
+        self.images_dir = os.path.join(dataset_root, 'images')
+        self.masks_dir = os.path.join(dataset_root, 'masks')
+        
+        # Add transform to match model configuration
+        self.transform = T.Compose([
+            T.Resize((input_size, input_size)),
+            T.ToTensor(),
+            T.Normalize(mean=[0.485, 0.456, 0.406], 
+                       std=[0.229, 0.224, 0.225])
+        ])
+        
+        # Load referring expressions from txt files
+        self.expressions = self._load_expressions(f'output_phrase_{split}.txt')
+        
+        print(f"\nRefSegRS Dataset ({split} split):")
+        print(f"- Total expressions: {len(self.expressions)}")
+        
+        # Convert to list of samples
+        self.samples = []
+        for expr_id, expr_data in self.expressions.items():
+            image_id = expr_data['image_id']
+            expression = expr_data['expression']
+            
+            # Check if both image and mask exist
+            image_path = os.path.join(self.images_dir, f"{image_id}.tif")
+            mask_path = os.path.join(self.masks_dir, f"{image_id}.tif")
+            
+            if os.path.exists(image_path) and os.path.exists(mask_path):
+                self.samples.append({
+                    'expr_id': expr_id,
+                    'image_id': image_id,
+                    'image_path': image_path,
+                    'mask_path': mask_path,
+                    'expression': expression
+                })
+        
+        # If max_samples is specified, randomly sample
+        if self.max_samples is not None and len(self.samples) > self.max_samples:
+            random.shuffle(self.samples)
+            self.samples = self.samples[:self.max_samples]
+        
+        print(f"- Valid samples (with existing files): {len(self.samples)}")
+        if self.max_samples is not None:
+            print(f"- Selected for processing: {len(self.samples)}")
+    
+    def _load_expressions(self, filename):
+        """Load referring expressions from txt file."""
+        expressions = {}
+        txt_path = os.path.join(self.dataset_root, filename)
+        
+        if not os.path.exists(txt_path):
+            print(f"Warning: {txt_path} not found")
+            return expressions
+            
+        with open(txt_path, 'r') as f:
+            for line_num, line in enumerate(f, 1):
+                line = line.strip()
+                if line and ' ' in line:
+                    parts = line.split(' ', 1)
+                    try:
+                        image_id = int(parts[0])
+                        expression = parts[1]
+                        expressions[line_num] = {
+                            'image_id': image_id,
+                            'expression': expression
+                        }
+                    except ValueError:
+                        continue
+        return expressions
+    
+    def __len__(self):
+        return len(self.samples)
+    
+    def __getitem__(self, idx):
+        sample = self.samples[idx]
+        
+        # Load image with PIL to handle .tif format
+        image = Image.open(sample['image_path']).convert('RGB')
+        image = self.transform(image)
+        
+        # Load mask with PIL to handle .tif format
+        mask_pil = Image.open(sample['mask_path'])
+        mask_array = np.array(mask_pil)
+        
+        # Convert to grayscale if needed (RefSegRS masks might be 3-channel)
+        if len(mask_array.shape) == 3:
+            mask_array = cv2.cvtColor(mask_array, cv2.COLOR_RGB2GRAY)
+        
+        # Convert to binary (0 or 1)
+        mask_array = (mask_array > 127).astype(np.uint8)
+        
+        # Convert to tensor and resize
+        mask = torch.from_numpy(mask_array).float()
+        mask = T.Resize((self.input_size, self.input_size), antialias=True)(mask.unsqueeze(0)).squeeze(0)
+        
+        return image, sample['expression'], mask, f"expr{sample['expr_id']}_img{sample['image_id']}", 'individual'
+
+
 def test(model, test_loader, device, output_dir, num_vis=20, vis_only=False):
     model.eval()
     
@@ -526,16 +792,36 @@ def main():
     # Load model
     model = load_model(checkpoint_path, device, args)
     
-    # Create validation dataset
+    # Create validation dataset based on dataset type
     # If in vis_only mode, only load the number of samples we need
     max_samples = args.num_vis if args.vis_only else None
-    val_dataset = SimpleDataset(
-        dataset_root=args.dataset_root,
-        split='val',
-        input_size=args.input_size,
-        max_samples=max_samples,
-        seed=args.seed
-    )
+    
+    if args.dataset_type == 'aeriald':
+        val_dataset = SimpleDataset(
+            dataset_root=args.dataset_root,
+            split='val',
+            input_size=args.input_size,
+            max_samples=max_samples,
+            seed=args.seed
+        )
+    elif args.dataset_type == 'rrsisd':
+        val_dataset = RRSISDDataset(
+            dataset_root=args.rrsisd_root,
+            split='val',  # Not used for RRSISD but kept for compatibility
+            input_size=args.input_size,
+            max_samples=max_samples,
+            seed=args.seed
+        )
+    elif args.dataset_type == 'refsegrs':
+        val_dataset = RefSegRSDataset(
+            dataset_root=args.refsegrs_root,
+            split='val',
+            input_size=args.input_size,
+            max_samples=max_samples,
+            seed=args.seed
+        )
+    else:
+        raise ValueError(f"Unknown dataset type: {args.dataset_type}")
     
     val_loader = torch.utils.data.DataLoader(
         val_dataset, 
@@ -554,8 +840,13 @@ def main():
     
     print(f"\nStarting validation with {len(val_dataset)} samples...")
     
-    # Create output directory
-    output_dir = os.path.join('./results', args.model_name)
+    # Create output directory with dataset type
+    if args.dataset_type == 'rrsisd':
+        output_dir = os.path.join('./results', f'{args.model_name}_rrsisd')
+    elif args.dataset_type == 'refsegrs':
+        output_dir = os.path.join('./results', f'{args.model_name}_refsegrs')
+    else:
+        output_dir = os.path.join('./results', args.model_name)
     os.makedirs(output_dir, exist_ok=True)
     
     # Run testing
