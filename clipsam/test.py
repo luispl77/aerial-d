@@ -28,6 +28,8 @@ def parse_args():
     parser.add_argument('--with_dense_feat', type=bool, default=True, help='Use dense features')
     parser.add_argument('--vis_only', action='store_true', help='Only run visualization without computing metrics')
     parser.add_argument('--dataset_root', type=str, default='./aeriald', help='Root directory of the AERIAL-D dataset')
+    parser.add_argument('--dataset_type', type=str, choices=['aeriald', 'rrsisd'], default='aeriald', help='Type of dataset to use for testing')
+    parser.add_argument('--rrsisd_root', type=str, default='../datagen/rrsisd', help='Root directory of the RRSISD dataset')
     parser.add_argument('--seed', type=int, default=42, help='Random seed for patch selection')
     
     return parser.parse_args()
@@ -376,6 +378,122 @@ class SimpleDataset:
         
         return image, obj['expression'], mask, obj['image_filename'], obj['type']
 
+
+class RRSISDDataset:
+    def __init__(self, dataset_root, split='val', input_size=480, max_samples=None, seed=42):
+        self.dataset_root = dataset_root
+        self.split = split
+        self.input_size = input_size
+        self.max_samples = max_samples
+        
+        # Set random seed
+        random.seed(seed)
+        
+        # Set paths for RRSISD structure
+        self.ann_dir = os.path.join(dataset_root, 'images', 'rrsisd', 'ann_split')
+        self.image_dir = os.path.join(dataset_root, 'images', 'rrsisd', 'JPEGImages')
+        
+        # Add transform to match model configuration
+        self.transform = T.Compose([
+            T.Resize((input_size, input_size)),
+            T.ToTensor(),
+            T.Normalize(mean=[0.485, 0.456, 0.406], 
+                       std=[0.229, 0.224, 0.225])
+        ])
+        
+        # Get list of XML files
+        self.xml_files = [f for f in os.listdir(self.ann_dir) if f.endswith('.xml')]
+        
+        print(f"\nFound {len(self.xml_files)} XML files in RRSISD dataset")
+        print("Loading and processing XML files...")
+        
+        # Store samples
+        self.samples = []
+        
+        # Use tqdm for progress bar
+        for xml_file in tqdm(self.xml_files, desc="Processing RRSISD XML files"):
+            xml_path = os.path.join(self.ann_dir, xml_file)
+            try:
+                tree = ET.parse(xml_path)
+                root = tree.getroot()
+                
+                # Get image filename
+                filename = root.find('filename').text
+                image_path = os.path.join(self.image_dir, filename)
+                
+                # Check if image exists
+                if not os.path.exists(image_path):
+                    print(f"Warning: Image {image_path} not found, skipping...")
+                    continue
+                
+                # Get object information
+                obj = root.find('object')
+                if obj is None:
+                    continue
+                    
+                # Get object properties
+                name = obj.find('name')
+                name_text = name.text if name is not None else "object"
+                
+                description = obj.find('description')
+                description_text = description.text if description is not None else name_text
+                
+                # Get segmentation
+                seg = obj.find('segmentation')
+                if seg is None or not seg.text:
+                    print(f"Warning: No segmentation found in {xml_file}, skipping...")
+                    continue
+                    
+                # Parse the segmentation dictionary
+                try:
+                    seg_dict = eval(seg.text)
+                    size = seg_dict['size']
+                    counts = seg_dict['counts']
+                    rle = {'size': size, 'counts': counts}
+                except:
+                    print(f"Warning: Failed to parse segmentation in {xml_file}, skipping...")
+                    continue
+                
+                # Add sample
+                self.samples.append({
+                    'image_path': image_path,
+                    'expression': description_text,
+                    'segmentation': rle,
+                    'category': name_text,
+                    'filename': filename
+                })
+                
+            except Exception as e:
+                print(f"Warning: Error processing {xml_file}: {e}")
+                continue
+        
+        # If max_samples is specified, randomly sample
+        if self.max_samples is not None and len(self.samples) > self.max_samples:
+            random.shuffle(self.samples)
+            self.samples = self.samples[:self.max_samples]
+        
+        print(f"\nRRSISD Dataset statistics:")
+        print(f"- Total valid samples: {len(self.samples)}")
+        if self.max_samples is not None:
+            print(f"- Selected for processing: {len(self.samples)}")
+    
+    def __len__(self):
+        return len(self.samples)
+    
+    def __getitem__(self, idx):
+        sample = self.samples[idx]
+        
+        # Load image
+        image = Image.open(sample['image_path']).convert('RGB')
+        image = self.transform(image)
+        
+        # Decode mask from RLE
+        binary_mask = mask_utils.decode(sample['segmentation'])
+        mask = torch.from_numpy(binary_mask).float()
+        mask = T.Resize((self.input_size, self.input_size), antialias=True)(mask.unsqueeze(0)).squeeze(0)
+        
+        return image, sample['expression'], mask, sample['filename'], 'individual'
+
 def test(model, test_loader, device, output_dir, num_vis=20, vis_only=False):
     model.eval()
     
@@ -526,16 +644,28 @@ def main():
     # Load model
     model = load_model(checkpoint_path, device, args)
     
-    # Create validation dataset
+    # Create validation dataset based on dataset type
     # If in vis_only mode, only load the number of samples we need
     max_samples = args.num_vis if args.vis_only else None
-    val_dataset = SimpleDataset(
-        dataset_root=args.dataset_root,
-        split='val',
-        input_size=args.input_size,
-        max_samples=max_samples,
-        seed=args.seed
-    )
+    
+    if args.dataset_type == 'aeriald':
+        val_dataset = SimpleDataset(
+            dataset_root=args.dataset_root,
+            split='val',
+            input_size=args.input_size,
+            max_samples=max_samples,
+            seed=args.seed
+        )
+    elif args.dataset_type == 'rrsisd':
+        val_dataset = RRSISDDataset(
+            dataset_root=args.rrsisd_root,
+            split='val',  # Not used for RRSISD but kept for compatibility
+            input_size=args.input_size,
+            max_samples=max_samples,
+            seed=args.seed
+        )
+    else:
+        raise ValueError(f"Unknown dataset type: {args.dataset_type}")
     
     val_loader = torch.utils.data.DataLoader(
         val_dataset, 
@@ -554,8 +684,11 @@ def main():
     
     print(f"\nStarting validation with {len(val_dataset)} samples...")
     
-    # Create output directory
-    output_dir = os.path.join('./results', args.model_name)
+    # Create output directory with dataset type
+    if args.dataset_type == 'rrsisd':
+        output_dir = os.path.join('./results', f'{args.model_name}_rrsisd')
+    else:
+        output_dir = os.path.join('./results', args.model_name)
     os.makedirs(output_dir, exist_ok=True)
     
     # Run testing
