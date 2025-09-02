@@ -78,6 +78,8 @@ def parse_args():
     
     # Expression filtering
     parser.add_argument('--unique_only', action='store_true', help='Train only on unique expressions (type="unique" in XML). Validation still uses all expressions.')
+    parser.add_argument('--original_only', action='store_true', help='Train only on original expressions (those with id attributes in XML). Validation still uses all expressions.')
+    parser.add_argument('--enhanced_only', action='store_true', help='Train only on enhanced expressions (type="enhanced" in XML). Validation still uses all expressions.')
     parser.add_argument('--one_unique_per_obj', action='store_true', help='If set along with --unique_only, only one unique expression per object/group will be used for training.')
     
     # Balanced batch sampling
@@ -598,13 +600,15 @@ def find_transformed_image(image_dir, base_filename):
     return None, None
 
 class SimpleDataset:
-    def __init__(self, dataset_root, split='train', input_size=512, use_historic=False, enable_domain_adaptation=False, unique_only=False, one_unique_per_obj=False, use_transformed=False, dataset_filter=None):
+    def __init__(self, dataset_root, split='train', input_size=512, use_historic=False, enable_domain_adaptation=False, unique_only=False, original_only=False, enhanced_only=False, one_unique_per_obj=False, use_transformed=False, dataset_filter=None):
         self.dataset_root = dataset_root
         self.split = split
         self.input_size = input_size
         self.use_historic = use_historic
         self.enable_domain_adaptation = enable_domain_adaptation
         self.unique_only = unique_only
+        self.original_only = original_only
+        self.enhanced_only = enhanced_only
         self.one_unique_per_obj = one_unique_per_obj
         self.use_transformed = use_transformed
         self.dataset_filter = dataset_filter
@@ -734,11 +738,21 @@ class SimpleDataset:
                 exp_elem = obj.find('expressions')
                 if exp_elem is not None:
                     for exp in exp_elem.findall('expression'):
-                        # Filter expressions based on unique_only flag
+                        # Filter expressions based on filtering flags
                         if self.unique_only:
                             # Only include expressions with type="unique"
                             exp_type = exp.get('type')
                             if exp_type == 'unique':
+                                expressions.append(exp.text)
+                        elif self.original_only:
+                            # Only include expressions with id attributes (original expressions)
+                            exp_id = exp.get('id')
+                            if exp_id is not None:
+                                expressions.append(exp.text)
+                        elif self.enhanced_only:
+                            # Only include expressions with type="enhanced"
+                            exp_type = exp.get('type')
+                            if exp_type == 'enhanced':
                                 expressions.append(exp.text)
                         else:
                             # Include all expressions
@@ -788,11 +802,21 @@ class SimpleDataset:
                     exp_elem = group.find('expressions')
                     if exp_elem is not None:
                         for exp in exp_elem.findall('expression'):
-                            # Filter expressions based on unique_only flag
+                            # Filter expressions based on filtering flags
                             if self.unique_only:
                                 # Only include expressions with type="unique"
                                 exp_type = exp.get('type')
                                 if exp_type == 'unique':
+                                    group_expressions.append(exp.text)
+                            elif self.original_only:
+                                # Only include expressions with id attributes (original expressions)
+                                exp_id = exp.get('id')
+                                if exp_id is not None:
+                                    group_expressions.append(exp.text)
+                            elif self.enhanced_only:
+                                # Only include expressions with type="enhanced"
+                                exp_type = exp.get('type')
+                                if exp_type == 'enhanced':
                                     group_expressions.append(exp.text)
                             else:
                                 # Include all expressions
@@ -853,6 +877,10 @@ class SimpleDataset:
             print(f"- Expression filtering: UNIQUE ONLY (type='unique')")
             if self.one_unique_per_obj:
                 print(f"- Expression count: ONE PER OBJECT/GROUP")
+        elif self.original_only:
+            print(f"- Expression filtering: ORIGINAL ONLY (with id attributes)")
+        elif self.enhanced_only:
+            print(f"- Expression filtering: ENHANCED ONLY (type='enhanced')")
         else:
             print(f"- Expression filtering: ALL EXPRESSIONS")
         
@@ -958,6 +986,8 @@ def save_run_details(args, run_id, model_name, effective_batch_size, train_datas
         f.write(f"Using Historic Images: {args.use_historic}\n")
         f.write(f"Using Transformed Images: {args.use_transformed}\n")
         f.write(f"Train on Unique Expressions Only: {args.unique_only}\n")
+        f.write(f"Train on Original Expressions Only: {args.original_only}\n")
+        f.write(f"Train on Enhanced Expressions Only: {args.enhanced_only}\n")
         if args.unique_only and args.one_unique_per_obj:
             f.write(f"Train on One Unique Expression per Object: Yes\n")
         if args.dataset_filter:
@@ -971,6 +1001,13 @@ def save_run_details(args, run_id, model_name, effective_batch_size, train_datas
 def main():
     # Parse command line arguments
     args = parse_args()
+    
+    # Validate expression filtering arguments are mutually exclusive
+    expression_filters = [args.unique_only, args.original_only, args.enhanced_only]
+    if sum(expression_filters) > 1:
+        print("Error: Only one expression filtering option can be used at a time.")
+        print("Choose between --unique_only, --original_only, or --enhanced_only.")
+        return
     
     # Validate arguments for resume functionality
     if args.resume and not args.model_name:
@@ -1049,6 +1086,8 @@ def main():
         use_historic=args.use_historic,
         enable_domain_adaptation=args.enable_domain_adaptation,
         unique_only=args.unique_only,
+        original_only=args.original_only,
+        enhanced_only=args.enhanced_only,
         one_unique_per_obj=args.one_unique_per_obj,
         use_transformed=args.use_transformed,
         dataset_filter=args.dataset_filter
