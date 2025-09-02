@@ -12,6 +12,7 @@ from torchmetrics import JaccardIndex
 from tqdm import tqdm
 import random
 import cv2
+import html
 
 from model import SigLipSamSegmentator
 
@@ -395,7 +396,7 @@ class RRSISDDataset:
         self.ann_dir = os.path.join(dataset_root, 'images', 'rrsisd', 'ann_split')
         self.image_dir = os.path.join(dataset_root, 'images', 'rrsisd', 'JPEGImages')
         
-        # Add transform to match model configuration
+        # Add transform to match model configuration  
         self.transform = T.Compose([
             T.Resize((input_size, input_size)),
             T.ToTensor(),
@@ -403,73 +404,108 @@ class RRSISDDataset:
                        std=[0.229, 0.224, 0.225])
         ])
         
-        # Get list of XML files
-        self.xml_files = [f for f in os.listdir(self.ann_dir) if f.endswith('.xml')]
+        # Load JSON annotations (contains the correct RLE masks)
+        json_path = os.path.join(dataset_root, 'instances.json')
+        if not os.path.exists(json_path):
+            raise FileNotFoundError(f"JSON file not found at {json_path}")
+            
+        with open(json_path, 'r') as f:
+            json_data = json.load(f)
         
-        print(f"\nFound {len(self.xml_files)} XML files in RRSISD dataset")
-        print("Loading and processing XML files...")
+        # Create lookup dict from JSON for fast access
+        self.json_annotations = {ann['image_id']: ann for ann in json_data['annotations']}
         
-        # Store samples
+        # Get list of XML files and sample them first (like the old approach)
+        all_xml_files = [f for f in os.listdir(self.ann_dir) if f.endswith('.xml')]
+        
+        # Pre-sample XML files for efficiency
+        if self.max_samples is not None and len(all_xml_files) > self.max_samples * 2:
+            random.shuffle(all_xml_files)
+            xml_files_to_process = all_xml_files[:self.max_samples * 5]  # 5x buffer
+        else:
+            xml_files_to_process = all_xml_files
+        
+        print(f"\nProcessing RRSISD {split} split from {len(xml_files_to_process)} sampled XML files...")
+        
+        # Store samples with proper mask loading
         self.samples = []
         
-        # Use tqdm for progress bar
-        for xml_file in tqdm(self.xml_files, desc="Processing RRSISD XML files"):
+        for xml_file in tqdm(xml_files_to_process, desc=f"Processing RRSISD {split} XML files"):
+            if self.max_samples is not None and len(self.samples) >= self.max_samples:
+                break
+                
+            # Extract image_id from XML filename (e.g., "00001.xml" -> 1)
+            try:
+                image_id = int(xml_file.replace('.xml', ''))
+            except ValueError:
+                continue
+                
             xml_path = os.path.join(self.ann_dir, xml_file)
+            
             try:
                 tree = ET.parse(xml_path)
                 root = tree.getroot()
                 
-                # Get image filename
-                filename = root.find('filename').text
-                image_path = os.path.join(self.image_dir, filename)
+                # Check if this XML is for the requested split
+                xml_split = root.find('split').text
+                if xml_split != split:
+                    continue
                 
-                # Check if image exists
+                # Check if we have JSON annotation for this image
+                if image_id not in self.json_annotations:
+                    continue
+                    
+                ann = self.json_annotations[image_id]
+                image_path = os.path.join(self.image_dir, f"{image_id:05d}.jpg")
+                
                 if not os.path.exists(image_path):
-                    print(f"Warning: Image {image_path} not found, skipping...")
                     continue
                 
-                # Get object information
-                obj = root.find('object')
-                if obj is None:
-                    continue
+                # Get JSON bbox coordinates [x1, y1, x2, y2]
+                json_bbox = ann['bbox']
+                
+                # Find matching object in XML by exact bbox match
+                matched_description = None
+                for obj in root.findall('object'):
+                    bbox = obj.find('bndbox')
+                    desc = obj.find('description')
                     
-                # Get object properties
-                name = obj.find('name')
-                name_text = name.text if name is not None else "object"
+                    if bbox is not None and desc is not None and desc.text:
+                        # Get XML bbox coordinates
+                        xmin = int(bbox.find('xmin').text)
+                        ymin = int(bbox.find('ymin').text)
+                        xmax = int(bbox.find('xmax').text)
+                        ymax = int(bbox.find('ymax').text)
+                        xml_bbox = [xmin, ymin, xmax, ymax]
+                        
+                        # Check for exact match
+                        if xml_bbox == json_bbox:
+                            matched_description = desc.text
+                            break
                 
-                description = obj.find('description')
-                description_text = description.text if description is not None else name_text
+                if matched_description is None:
+                    # Fallback to generic description
+                    matched_description = "the object in the image"
                 
-                # Get segmentation
-                seg = obj.find('segmentation')
-                if seg is None or not seg.text:
-                    print(f"Warning: No segmentation found in {xml_file}, skipping...")
-                    continue
-                    
-                # Parse the segmentation dictionary
-                try:
-                    seg_dict = eval(seg.text)
-                    size = seg_dict['size']
-                    counts = seg_dict['counts']
-                    rle = {'size': size, 'counts': counts}
-                except:
-                    print(f"Warning: Failed to parse segmentation in {xml_file}, skipping...")
-                    continue
+                # Get mask from RLE in JSON (this is the correct mask!)
+                rle = ann['segmentation'][0]
                 
                 # Add sample
                 self.samples.append({
                     'image_path': image_path,
-                    'expression': description_text,
-                    'segmentation': rle,
-                    'category': name_text,
-                    'filename': filename
+                    'expression': matched_description,
+                    'segmentation': rle,  # RLE from JSON, not XML
+                    'image_id': image_id,
+                    'bbox': json_bbox
                 })
                 
             except Exception as e:
                 print(f"Warning: Error processing {xml_file}: {e}")
                 continue
+            if self.max_samples is not None and len(self.samples) >= self.max_samples:
+                break
         
-        # If max_samples is specified, randomly sample
+        # Final sampling if we still have too many
         if self.max_samples is not None and len(self.samples) > self.max_samples:
             random.shuffle(self.samples)
             self.samples = self.samples[:self.max_samples]
@@ -494,7 +530,7 @@ class RRSISDDataset:
         mask = torch.from_numpy(binary_mask).float()
         mask = T.Resize((self.input_size, self.input_size), antialias=True)(mask.unsqueeze(0)).squeeze(0)
         
-        return image, sample['expression'], mask, sample['filename'], 'individual'
+        return image, sample['expression'], mask, f"{sample['image_id']:05d}.jpg", 'individual'
 
 
 class RefSegRSDataset:
