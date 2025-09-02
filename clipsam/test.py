@@ -16,6 +16,97 @@ import html
 
 from model import SigLipSamSegmentator
 
+# Historic transformation functions from pipeline step 7
+def add_film_grain(image: np.ndarray, intensity: float = 0.3) -> np.ndarray:
+    """Add film grain noise to simulate old photography."""
+    noise = np.random.normal(0, intensity * 255, image.shape).astype(np.float32)
+    noisy_image = image.astype(np.float32) + noise
+    return np.clip(noisy_image, 0, 255).astype(np.uint8)
+
+def adjust_contrast_gamma(image: np.ndarray, contrast: float = 0.8, gamma: float = 1.2) -> np.ndarray:
+    """Adjust contrast and gamma to simulate old film characteristics."""
+    # Apply gamma correction
+    gamma_corrected = np.power(image / 255.0, gamma) * 255.0
+    
+    # Apply contrast adjustment
+    mean_val = np.mean(gamma_corrected)
+    contrasted = (gamma_corrected - mean_val) * contrast + mean_val
+    
+    return np.clip(contrasted, 0, 255).astype(np.uint8)
+
+def apply_sepia(image: np.ndarray) -> np.ndarray:
+    """Apply sepia filter using transformation matrix."""
+    # Ensure image is 3-channel color
+    if len(image.shape) == 2:
+        # Convert grayscale to color first
+        image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+    elif len(image.shape) == 3 and image.shape[2] == 4:
+        # Convert BGRA to BGR
+        image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
+    
+    # Create sepia filter
+    sepia_filter = np.array([[0.272, 0.534, 0.131], 
+                            [0.349, 0.686, 0.168], 
+                            [0.393, 0.769, 0.189]])
+    sepia_image = cv2.transform(image, sepia_filter)
+    sepia_image = np.clip(sepia_image, 0, 255)  # Ensure valid range
+    
+    return sepia_image.astype(np.uint8)
+
+def add_noise(image: np.ndarray) -> np.ndarray:
+    """Add random noise to simulate old photography grain."""
+    noise = np.random.randint(0, 50, image.shape, dtype='uint8')
+    noisy_image = cv2.add(image, noise)
+    return noisy_image
+
+def apply_basic_bw_effect(image: np.ndarray) -> tuple:
+    """Basic black and white conversion."""
+    # Convert to grayscale
+    if len(image.shape) == 3:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = image.copy()
+    
+    return gray, "Basic_BW"
+
+def apply_bw_grain_effect(image: np.ndarray) -> tuple:
+    """B&W with grain and contrast adjustment."""
+    # Convert to grayscale
+    if len(image.shape) == 3:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = image.copy()
+    
+    # Mild contrast adjustment
+    adjusted = adjust_contrast_gamma(gray, contrast=0.85, gamma=1.1)
+    
+    # Light grain
+    grainy = add_film_grain(adjusted, intensity=0.1)
+    
+    return grainy, "BW_Grain"
+
+def apply_sepia_with_noise_effect(image: np.ndarray) -> tuple:
+    """Apply sepia tone effect with noise for vintage look."""
+    # Apply sepia effect - this should work on the original color image
+    sepia_image = apply_sepia(image)
+    
+    # Add noise
+    noisy_sepia = add_noise(sepia_image)
+    
+    return noisy_sepia, "Sepia_Noise"
+
+def apply_random_historic_effect(image: np.ndarray) -> tuple:
+    """Apply one of the three historic effects randomly with equal probability."""
+    effects = [
+        apply_basic_bw_effect,
+        apply_bw_grain_effect,
+        apply_sepia_with_noise_effect
+    ]
+    
+    # Choose random effect
+    chosen_effect = random.choice(effects)
+    return chosen_effect(image)
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Test SigLIP+SAM segmentation model')
     parser.add_argument('--batch_size', type=int, default=1, help='Batch size for testing (fixed to 1 for proper IoU calculation)')
@@ -35,6 +126,7 @@ def parse_args():
     parser.add_argument('--refsegrs_root', type=str, default='../datagen/refsegrs/RefSegRS', help='Root directory of the RefSegRS dataset')
     parser.add_argument('--nwpu_root', type=str, default='../datagen/NWPU-Refer', help='Root directory of the NWPU-Refer dataset')
     parser.add_argument('--seed', type=int, default=42, help='Random seed for patch selection')
+    parser.add_argument('--historic', action='store_true', help='Apply historic transformations (Basic B&W, B&W + Grain, or Sepia + Noise) randomly to images before testing')
     
     return parser.parse_args()
 
@@ -94,12 +186,31 @@ def calculate_individual_iou(pred, target):
     
     return iou_score.item(), pred_binary, target_binary
 
-def visualize_predictions(image, mask, pred, text, save_path):
+def visualize_predictions(image, mask, pred, text, save_path, transformed_image=None, effect_name=None):
     # Create directory if it doesn't exist
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     
-    # Convert tensors to numpy arrays
-    image = image.detach().cpu().permute(1, 2, 0).numpy()
+    # Always process the original image that the model saw (denormalized)
+    original_image = image.detach().cpu().permute(1, 2, 0).numpy()
+    mean = np.array([0.485, 0.456, 0.406])
+    std = np.array([0.229, 0.224, 0.225])
+    original_image = original_image * std[None, None, :] + mean[None, None, :]
+    original_image = np.clip(original_image, 0, 1)
+    
+    # Use transformed image for the first subplot if available, otherwise use original
+    if transformed_image is not None:
+        # Use the transformed image (it's already in RGB format from dataset)
+        # Need to resize it to match the model input size (same as mask/predictions)
+        from PIL import Image as PILImage
+        transformed_pil = PILImage.fromarray(transformed_image)
+        # Get the size from the original image (which is already at model input size)
+        target_size = (original_image.shape[1], original_image.shape[0])  # (width, height)
+        transformed_resized = transformed_pil.resize(target_size, PILImage.Resampling.LANCZOS)
+        display_image = np.array(transformed_resized).astype(np.float32) / 255.0
+        display_image = np.clip(display_image, 0, 1)
+    else:
+        display_image = original_image
+    
     print(f"DEBUG VIZ: Original mask shape: {mask.shape}, unique values: {torch.unique(mask)}, sum: {torch.sum(mask)}")
     mask = (mask > 0.5).float().detach().cpu().numpy()
     print(f"DEBUG VIZ: Processed mask shape: {mask.shape}, unique values: {np.unique(mask)}, sum: {np.sum(mask)}")
@@ -110,24 +221,21 @@ def visualize_predictions(image, mask, pred, text, save_path):
     # Binary prediction with threshold 0.5
     pred_binary = (prob > 0.5).astype(float)
     
-    # Normalize image for visualization
-    mean = np.array([0.485, 0.456, 0.406])
-    std = np.array([0.229, 0.224, 0.225])
-    image = image * std[None, None, :] + mean[None, None, :]
-    image = np.clip(image, 0, 1)
-    
     # Create figure with subplots
     fig, axes = plt.subplots(1, 4, figsize=(20, 5))
     
-    # Add text as figure title
-    fig.suptitle(f'Expression: "{text}"', wrap=True)
+    # Add text as figure title, including effect name if available
+    title = f'Expression: "{text}"'
+    if effect_name:
+        title += f' | Historic Effect: {effect_name}'
+    fig.suptitle(title, wrap=True)
     
     # Plot image, ground truth, probability map, and binary prediction
-    axes[0].imshow(image)
+    axes[0].imshow(display_image)
     axes[0].set_title('Image')
     
     # Overlay ground truth mask on image
-    axes[1].imshow(image)
+    axes[1].imshow(display_image)
     axes[1].imshow(mask, cmap='Reds', alpha=0.5)
     axes[1].set_title('Ground Truth Overlay')
     
@@ -137,7 +245,7 @@ def visualize_predictions(image, mask, pred, text, save_path):
     fig.colorbar(prob_plot, ax=axes[2])
     
     # Overlay prediction on image
-    axes[3].imshow(image)
+    axes[3].imshow(display_image)
     axes[3].imshow(pred_binary, cmap='Blues', alpha=0.5)
     axes[3].set_title('Prediction Overlay')
     
@@ -380,7 +488,7 @@ class SimpleDataset:
         mask = torch.from_numpy(binary_mask).float()
         mask = T.Resize((self.input_size, self.input_size), antialias=True)(mask.unsqueeze(0)).squeeze(0)
         
-        return image, obj['expression'], mask, obj['image_filename'], obj['type']
+        return image, obj['expression'], mask, obj['image_filename'], obj['type'], None, None
 
 
 class RRSISDDataset:
@@ -531,7 +639,7 @@ class RRSISDDataset:
         mask = torch.from_numpy(binary_mask).float()
         mask = T.Resize((self.input_size, self.input_size), antialias=True)(mask.unsqueeze(0)).squeeze(0)
         
-        return image, sample['expression'], mask, f"{sample['image_id']:05d}.jpg", 'individual'
+        return image, sample['expression'], mask, f"{sample['image_id']:05d}.jpg", 'individual', None, None
 
 
 class RefSegRSDataset:
@@ -640,15 +748,16 @@ class RefSegRSDataset:
         mask = torch.from_numpy(mask_array).float()
         mask = T.Resize((self.input_size, self.input_size), antialias=True)(mask.unsqueeze(0)).squeeze(0)
         
-        return image, sample['expression'], mask, f"expr{sample['expr_id']}_img{sample['image_id']}", 'individual'
+        return image, sample['expression'], mask, f"expr{sample['expr_id']}_img{sample['image_id']}", 'individual', None, None
 
 
 class NWPUDataset:
-    def __init__(self, dataset_root, split='val', input_size=480, max_samples=None, seed=42):
+    def __init__(self, dataset_root, split='val', input_size=480, max_samples=None, seed=42, historic=False):
         self.dataset_root = dataset_root
         self.split = split
         self.input_size = input_size
         self.max_samples = max_samples
+        self.historic = historic
         
         # Set random seed
         random.seed(seed)
@@ -703,8 +812,31 @@ class NWPUDataset:
             dummy_mask = torch.zeros(self.input_size, self.input_size)
             return dummy_image, "error loading sample", dummy_mask, f"error_{idx}", 'individual'
         
+        # Apply historic transformations if enabled
+        original_image_array = sample['image']
+        if self.historic:
+            # Apply random historic effect to numpy array (in BGR format for OpenCV functions)
+            bgr_image = cv2.cvtColor(original_image_array, cv2.COLOR_RGB2BGR)
+            transformed_image, effect_name = apply_random_historic_effect(bgr_image)
+            
+            # Convert back to RGB for PIL processing
+            if len(transformed_image.shape) == 2:
+                # Grayscale to RGB
+                rgb_image = cv2.cvtColor(transformed_image, cv2.COLOR_GRAY2RGB)
+            else:
+                # BGR to RGB
+                rgb_image = cv2.cvtColor(transformed_image, cv2.COLOR_BGR2RGB)
+            
+            # Store the transformed image for visualization
+            self._last_transformed_image = rgb_image
+            self._last_effect_name = effect_name
+        else:
+            rgb_image = original_image_array
+            self._last_transformed_image = None
+            self._last_effect_name = None
+        
         # Convert image to PIL and apply transform
-        image_pil = Image.fromarray(sample['image']).convert('RGB')
+        image_pil = Image.fromarray(rgb_image).convert('RGB')
         image = self.transform(image_pil)
         
         # Convert mask to tensor and resize
@@ -725,7 +857,11 @@ class NWPUDataset:
         # Determine type based on number of objects
         sample_type = 'group' if sample['num_objects'] > 1 else 'individual'
         
-        return image, expression, mask, filename, sample_type
+        # Store transformed image for visualization if historic flag is enabled
+        if self.historic and hasattr(self, '_last_transformed_image'):
+            return image, expression, mask, filename, sample_type, self._last_transformed_image, self._last_effect_name
+        else:
+            return image, expression, mask, filename, sample_type, None, None
 
 
 def test(model, test_loader, device, output_dir, num_vis=20, vis_only=False):
@@ -742,7 +878,7 @@ def test(model, test_loader, device, output_dir, num_vis=20, vis_only=False):
     
     print("\nTesting model...")
     with torch.no_grad():
-        for batch_idx, (images, texts, masks, image_ids, sample_types) in enumerate(test_loader):
+        for batch_idx, (images, texts, masks, image_ids, sample_types, transformed_images, effect_names) in enumerate(test_loader):
             # If in vis_only mode and we've processed enough samples, break
             if vis_only and vis_count >= num_vis:
                 break
@@ -777,7 +913,10 @@ def test(model, test_loader, device, output_dir, num_vis=20, vis_only=False):
             # Visualize some predictions
             if vis_count < num_vis:
                 save_path = os.path.join(output_dir, f"val_{image_id}.png")
-                visualize_predictions(image, mask, output, text, save_path)
+                # Pass transformed image and effect name if available
+                transformed_img = transformed_images[0] if transformed_images[0] is not None else None
+                effect_name = effect_names[0] if effect_names[0] is not None else None
+                visualize_predictions(image, mask, output, text, save_path, transformed_img, effect_name)
                 vis_count += 1
             
             # Clean GPU memory after each batch
@@ -912,7 +1051,8 @@ def main():
             split='val',
             input_size=args.input_size,
             max_samples=max_samples,
-            seed=args.seed
+            seed=args.seed,
+            historic=args.historic
         )
     else:
         raise ValueError(f"Unknown dataset type: {args.dataset_type}")
@@ -928,11 +1068,20 @@ def main():
             [item[1] for item in batch],               # texts
             torch.stack([item[2] for item in batch]),  # masks
             [item[3] for item in batch],               # image_ids
-            [item[4] for item in batch]                # sample_types
+            [item[4] for item in batch],               # sample_types
+            [item[5] for item in batch],               # transformed_images (can be None)
+            [item[6] for item in batch]                # effect_names (can be None)
         )
     )
     
     print(f"\nStarting validation with {len(val_dataset)} samples...")
+    
+    # Display historic transformations info if enabled
+    if args.historic:
+        print("Historic transformations enabled:")
+        print("  - Random selection of Basic B&W, B&W + Grain, or Sepia + Noise effects")
+        print("  - Applied with equal probability to each test image")
+        print("  - Visualizations will show transformed images")
     
     # Create output directory with dataset type
     if args.dataset_type == 'rrsisd':
@@ -940,7 +1089,8 @@ def main():
     elif args.dataset_type == 'refsegrs':
         output_dir = os.path.join('./results', f'{args.model_name}_refsegrs')
     elif args.dataset_type == 'nwpu':
-        output_dir = os.path.join('./results', f'{args.model_name}_nwpu')
+        output_suffix = '_nwpu_historic' if args.historic else '_nwpu'
+        output_dir = os.path.join('./results', f'{args.model_name}{output_suffix}')
     else:
         output_dir = os.path.join('./results', args.model_name)
     os.makedirs(output_dir, exist_ok=True)
