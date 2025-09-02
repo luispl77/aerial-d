@@ -6,11 +6,19 @@
 \@writefile{toc}{\contentsline {section}{\numberline {3}Aerial-D}{1}{}\protected@file@percent }
 \newlabel{sec:approach}{{3}{1}{Aerial-D}{section.3}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Rule-Based Expression Generation}{1}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Example of rule generation for a single instance. The highlighted plane in the top right section demonstrates how the system assigns spatial, visual, and relational rules that will later be combined into referring expressions.}}{1}{}\protected@file@percent }
+\newlabel{fig:rule_example}{{1}{1}{Rule-Based Expression Generation}{figure.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Example of expression uniqueness filtering. When two objects share similar attributes, conflicting expressions like "the small vehicle in the top right" are filtered out, while unique expressions that distinguish between objects are retained.}}{2}{}\protected@file@percent }
+\newlabel{fig:filter_unique_example}{{2}{2}{Rule-Based Expression Generation}{figure.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}LLM Expression Generation}{2}{}\protected@file@percent }
 \bibstyle{abbrv}
 \bibdata{ExtendedAbstract_ref_db}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}LLM Expression Generation}{2}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {4}Experiments}{2}{}\protected@file@percent }
-\newlabel{sec:experiments}{{4}{2}{Experiments}{section.4}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5}Conclusion and Future Work}{2}{}\protected@file@percent }
-\newlabel{sec:conclusion}{{5}{2}{Conclusion and Future Work}{section.5}{}}
-\gdef \@abspage@last{2}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Example of LLM enhancement process showing original aerial image with group of four large vehicles (left) and corresponding expression enhancements (right).}}{3}{}\protected@file@percent }
+\newlabel{fig:llm_enhancement_example}{{3}{3}{LLM Expression Generation}{figure.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Knowledge distillation pipeline for scalable LLM enhancement. A small sample of 500 expressions is processed through OpenAI's O3 model to generate high-quality training targets, which are then used to fine-tune Gemma3 12B via QLora. The fine-tuned model enables cost-effective local inference to enhance the full dataset of 300,000 expressions using vLLM on a single GPU.}}{3}{}\protected@file@percent }
+\newlabel{fig:llm_distillation}{{4}{3}{LLM Expression Generation}{figure.4}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Experiments}{3}{}\protected@file@percent }
+\newlabel{sec:experiments}{{4}{3}{Experiments}{section.4}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Conclusion and Future Work}{3}{}\protected@file@percent }
+\newlabel{sec:conclusion}{{5}{3}{Conclusion and Future Work}{section.5}{}}
+\gdef \@abspage@last{3}
