@@ -16,7 +16,7 @@ Our preprocessing pipeline extracts 480×480 patches from both source datasets u
 
 The foundation of our dataset construction relies on systematic rule-based generation that analyzes spatial, visual, and relational properties of objects within aerial imagery. Our pipeline transforms basic segmentation annotations into rich referring expressions through comprehensive feature extraction and linguistic synthesis.
 
-\begin{figure}[H]
+\begin{figure*}[t]
 \centering
 \begin{minipage}{0.5\textwidth}
 \centering
@@ -53,7 +53,7 @@ Directional Relations & "to the bottom right of a plane" \\
 \end{minipage}
 \caption{Example of rule generation for a single instance. The highlighted plane in the top right section demonstrates how the system assigns spatial, visual, and relational rules that will later be combined into referring expressions.}
 \label{fig:rule_example}
-\end{figure}
+\end{figure*}
 
 Each 480×480 patch undergoes spatial analysis through grid partitioning into nine distinct regions, establishing fundamental positional references such as "top left", "center", and "bottom right". To handle objects positioned near boundaries between regions, we implement borderline detection that assigns multiple valid position labels when objects fall within boundary zones. This ensures robust expression coverage while maintaining spatial precision.
 
@@ -65,7 +65,7 @@ To handle scenarios with multiple similar objects, we implement clustering-based
 
 The expression synthesis process combines all extracted features through systematic template application, generating linguistic descriptions ranging from simple category references to complex multi-attribute formulations. However, comprehensive generation inevitably creates conflicting expressions where identical phrases refer to multiple different objects. We address this ambiguity through strict uniqueness filtering that eliminates all non-unique expressions, ensuring every remaining phrase uniquely identifies a single target within the dataset.
 
-\begin{figure}[H]
+\begin{figure*}[t]
 \centering
 \begin{minipage}{0.5\textwidth}
 \centering
@@ -101,7 +101,7 @@ The expression synthesis process combines all extracted features through systema
 \end{minipage}
 \caption{Example of expression uniqueness filtering. When two objects share similar attributes, conflicting expressions like "the small vehicle in the top right" are filtered out, while unique expressions that distinguish between objects are retained.}
 \label{fig:filter_unique_example}
-\end{figure}
+\end{figure*}
 
 \subsection{LLM Expression Generation}
 
@@ -109,7 +109,7 @@ While rule-based generation provides systematic coverage of spatial and visual a
 
 To address these limitations, we employ large language model enhancement through two primary mechanisms. Language enhancement diversifies the linguistic patterns beyond simple templates, generating varied phrasings and vocabulary while maintaining semantic accuracy. Visual enhancement incorporates detailed descriptions of contextual objects and environmental features that extend beyond the original dataset categories, enabling expressions that reference nearby roads, vegetation, and architectural elements not captured in the source annotations.
 
-\begin{figure}[H]
+\begin{figure*}[t]
 \centering
 \begin{minipage}{0.5\textwidth}
 \centering
@@ -137,7 +137,7 @@ Unique & the set of four big vehicles parked in a single row in the upper center
 \end{minipage}
 \caption{Example of LLM enhancement process showing original aerial image with group of four large vehicles (left) and corresponding expression enhancements (right).}
 \label{fig:llm_enhancement_example}
-\end{figure}
+\end{figure*}
 
 However, applying production-grade language models directly to our dataset presents significant computational challenges. The rule-based generation produces hundreds of thousands of expressions requiring LLM processing, creating scale that would be prohibitively expensive using premium APIs. Processing the complete dataset through high-quality proprietary models would require substantial financial resources and extensive processing time.
 
@@ -149,7 +149,7 @@ The distillation approach transforms costly premium API processing into manageab
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.6\textwidth]{./images/distillation.png}
+\includegraphics[width=0.8\columnwidth]{./images/distillation.png}
 \caption{Knowledge distillation pipeline for scalable LLM enhancement. A small sample of 500 expressions is processed through OpenAI's O3 model to generate high-quality training targets, which are then used to fine-tune Gemma3 12B via QLora. The fine-tuned model enables cost-effective local inference to enhance the full dataset of 300,000 expressions using vLLM on a single GPU.}
 \label{fig:llm_distillation}
 \end{figure}
