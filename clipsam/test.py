@@ -11,6 +11,7 @@ from pycocotools import mask as mask_utils
 from torchmetrics import JaccardIndex
 from tqdm import tqdm
 import random
+import cv2
 
 from model import SigLipSamSegmentator
 
@@ -28,8 +29,9 @@ def parse_args():
     parser.add_argument('--with_dense_feat', type=bool, default=True, help='Use dense features')
     parser.add_argument('--vis_only', action='store_true', help='Only run visualization without computing metrics')
     parser.add_argument('--dataset_root', type=str, default='./aeriald', help='Root directory of the AERIAL-D dataset')
-    parser.add_argument('--dataset_type', type=str, choices=['aeriald', 'rrsisd'], default='aeriald', help='Type of dataset to use for testing')
+    parser.add_argument('--dataset_type', type=str, choices=['aeriald', 'rrsisd', 'refsegrs'], default='aeriald', help='Type of dataset to use for testing')
     parser.add_argument('--rrsisd_root', type=str, default='../datagen/rrsisd', help='Root directory of the RRSISD dataset')
+    parser.add_argument('--refsegrs_root', type=str, default='../datagen/refsegrs/RefSegRS', help='Root directory of the RefSegRS dataset')
     parser.add_argument('--seed', type=int, default=42, help='Random seed for patch selection')
     
     return parser.parse_args()
@@ -494,6 +496,116 @@ class RRSISDDataset:
         
         return image, sample['expression'], mask, sample['filename'], 'individual'
 
+
+class RefSegRSDataset:
+    def __init__(self, dataset_root, split='val', input_size=480, max_samples=None, seed=42):
+        self.dataset_root = dataset_root
+        self.split = split
+        self.input_size = input_size
+        self.max_samples = max_samples
+        
+        # Set random seed
+        random.seed(seed)
+        
+        # Set paths for RefSegRS structure
+        self.images_dir = os.path.join(dataset_root, 'images')
+        self.masks_dir = os.path.join(dataset_root, 'masks')
+        
+        # Add transform to match model configuration
+        self.transform = T.Compose([
+            T.Resize((input_size, input_size)),
+            T.ToTensor(),
+            T.Normalize(mean=[0.485, 0.456, 0.406], 
+                       std=[0.229, 0.224, 0.225])
+        ])
+        
+        # Load referring expressions from txt files
+        self.expressions = self._load_expressions(f'output_phrase_{split}.txt')
+        
+        print(f"\nRefSegRS Dataset ({split} split):")
+        print(f"- Total expressions: {len(self.expressions)}")
+        
+        # Convert to list of samples
+        self.samples = []
+        for expr_id, expr_data in self.expressions.items():
+            image_id = expr_data['image_id']
+            expression = expr_data['expression']
+            
+            # Check if both image and mask exist
+            image_path = os.path.join(self.images_dir, f"{image_id}.tif")
+            mask_path = os.path.join(self.masks_dir, f"{image_id}.tif")
+            
+            if os.path.exists(image_path) and os.path.exists(mask_path):
+                self.samples.append({
+                    'expr_id': expr_id,
+                    'image_id': image_id,
+                    'image_path': image_path,
+                    'mask_path': mask_path,
+                    'expression': expression
+                })
+        
+        # If max_samples is specified, randomly sample
+        if self.max_samples is not None and len(self.samples) > self.max_samples:
+            random.shuffle(self.samples)
+            self.samples = self.samples[:self.max_samples]
+        
+        print(f"- Valid samples (with existing files): {len(self.samples)}")
+        if self.max_samples is not None:
+            print(f"- Selected for processing: {len(self.samples)}")
+    
+    def _load_expressions(self, filename):
+        """Load referring expressions from txt file."""
+        expressions = {}
+        txt_path = os.path.join(self.dataset_root, filename)
+        
+        if not os.path.exists(txt_path):
+            print(f"Warning: {txt_path} not found")
+            return expressions
+            
+        with open(txt_path, 'r') as f:
+            for line_num, line in enumerate(f, 1):
+                line = line.strip()
+                if line and ' ' in line:
+                    parts = line.split(' ', 1)
+                    try:
+                        image_id = int(parts[0])
+                        expression = parts[1]
+                        expressions[line_num] = {
+                            'image_id': image_id,
+                            'expression': expression
+                        }
+                    except ValueError:
+                        continue
+        return expressions
+    
+    def __len__(self):
+        return len(self.samples)
+    
+    def __getitem__(self, idx):
+        sample = self.samples[idx]
+        
+        # Load image with PIL to handle .tif format
+        image = Image.open(sample['image_path']).convert('RGB')
+        image = self.transform(image)
+        
+        # Load mask with PIL to handle .tif format
+        mask_pil = Image.open(sample['mask_path'])
+        mask_array = np.array(mask_pil)
+        
+        # Convert to grayscale if needed (RefSegRS masks might be 3-channel)
+        if len(mask_array.shape) == 3:
+            mask_array = cv2.cvtColor(mask_array, cv2.COLOR_RGB2GRAY)
+        
+        # Convert to binary (0 or 1)
+        mask_array = (mask_array > 127).astype(np.uint8)
+        
+        # Convert to tensor and resize
+        mask = torch.from_numpy(mask_array).float()
+        mask = T.Resize((self.input_size, self.input_size), antialias=True)(mask.unsqueeze(0)).squeeze(0)
+        
+        return image, sample['expression'], mask, f"expr{sample['expr_id']}_img{sample['image_id']}", 'individual'
+
+
 def test(model, test_loader, device, output_dir, num_vis=20, vis_only=False):
     model.eval()
     
@@ -664,6 +776,14 @@ def main():
             max_samples=max_samples,
             seed=args.seed
         )
+    elif args.dataset_type == 'refsegrs':
+        val_dataset = RefSegRSDataset(
+            dataset_root=args.refsegrs_root,
+            split='val',
+            input_size=args.input_size,
+            max_samples=max_samples,
+            seed=args.seed
+        )
     else:
         raise ValueError(f"Unknown dataset type: {args.dataset_type}")
     
@@ -687,6 +807,8 @@ def main():
     # Create output directory with dataset type
     if args.dataset_type == 'rrsisd':
         output_dir = os.path.join('./results', f'{args.model_name}_rrsisd')
+    elif args.dataset_type == 'refsegrs':
+        output_dir = os.path.join('./results', f'{args.model_name}_refsegrs')
     else:
         output_dir = os.path.join('./results', args.model_name)
     os.makedirs(output_dir, exist_ok=True)
