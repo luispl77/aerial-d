@@ -35,16 +35,18 @@ Our evaluation demonstrates that the model trained on AerialD generalizes effect
 % Cross-dataset performance table
 \begin{table}[H]
 \centering
-\caption{Cross-Dataset Performance Evaluation on Validation Sets}
+\caption{Cross-Dataset Performance Evaluation on Validation Sets (Historic-filtered results in \textcolor{blue}{blue})}
 \label{tab:cross_dataset_results}
-\begin{tabular}{@{}lccccc@{}}
+\begin{tabular}{@{}lcccccccc@{}}
 \toprule
-\textbf{Dataset} & \textbf{IoU@0.5} & \textbf{IoU@0.7} & \textbf{IoU@0.9} & \textbf{mIoU} & \textbf{oIoU} \\
+\textbf{Dataset} & \textbf{IoU@0.5} & \textbf{IoU@0.7} & \textbf{IoU@0.9} & \multicolumn{2}{c}{\textbf{mIoU}} & \multicolumn{2}{c}{\textbf{oIoU}} \\
+\cmidrule(lr){5-6} \cmidrule(lr){7-8}
+ & & & & \textbf{Orig.} & \textbf{Hist.} & \textbf{Orig.} & \textbf{Hist.} \\
 \midrule
-AERIAL-D & -- & -- & -- & -- & -- \\
-RefSegRS & -- & -- & -- & -- & -- \\
-RRSIS-D & -- & -- & -- & -- & -- \\
-NWPU-Refer & -- & -- & -- & -- & -- \\
+AERIAL-D & -- & -- & -- & -- & \textcolor{blue}{--} & -- & \textcolor{blue}{--} \\
+RefSegRS & -- & -- & -- & -- & \textcolor{blue}{--} & -- & \textcolor{blue}{--} \\
+RRSIS-D & -- & -- & -- & -- & \textcolor{blue}{--} & -- & \textcolor{blue}{--} \\
+NWPU-Refer & -- & -- & -- & -- & \textcolor{blue}{--} & -- & \textcolor{blue}{--} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -73,7 +75,7 @@ Our dataset comparison presented in Table \ref{tab:dataset_comparison} reveals t
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=\textwidth]{./../Images/qualitative.png}
+\includegraphics[width=\textwidth]{Images/qualitative.png}
 \caption{Qualitative segmentation results from RSRefSeg model on Google Earth imagery.}
 \label{fig:qualitative_examples}
 \end{figure}

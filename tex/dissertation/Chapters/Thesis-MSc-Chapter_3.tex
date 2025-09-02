@@ -19,7 +19,7 @@ Overview of datasets used for aerial imagery analysis and referring segmentation
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.8\textwidth]{../Images/isaid_examples.png}
+\includegraphics[width=0.8\textwidth]{Images/isaid_examples.png}
 \caption{iSAID dataset examples showing instance segmentation and semantic segmentation annotations for aerial imagery.}
 \label{fig:isaid_examples}
 \end{figure}
@@ -28,7 +28,7 @@ Overview of datasets used for aerial imagery analysis and referring segmentation
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.8\textwidth]{../Images/loveda.png}
+\includegraphics[width=0.8\textwidth]{Images/loveda.png}
 \caption{LoveDA dataset examples showing semantic segmentation annotations for land use and land cover classification in aerial imagery.}
 \label{fig:loveda_examples}
 \end{figure}
@@ -41,9 +41,9 @@ Overview of datasets used for aerial imagery analysis and referring segmentation
 
 \begin{figure}[htbp]
 \centering
-\subfigure[RefSegRS dataset example samples.]{\includegraphics[width=0.45\textwidth]{../Images/refsegrs.png}\label{fig:refsegrs}}
+\subfigure[RefSegRS dataset example samples.]{\includegraphics[width=0.45\textwidth]{Images/refsegrs.png}\label{fig:refsegrs}}
 \hfill
-\subfigure[RRSIS-D dataset example samples.]{\includegraphics[width=0.45\textwidth]{../Images/rrsisd.png}\label{fig:rrsisd}}
+\subfigure[RRSIS-D dataset example samples.]{\includegraphics[width=0.45\textwidth]{Images/rrsisd.png}\label{fig:rrsisd}}
 \caption{Examples from aerial referring segmentation datasets showing diverse referring expressions with corresponding images and ground truth masks.}
 \label{fig:aerial_datasets}
 \end{figure}
@@ -136,7 +136,7 @@ The Segment Anything Model (SAM) provides a foundational approach to semantic se
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=1.0\textwidth]{../Images/sam.png}
+\includegraphics[width=1.0\textwidth]{Images/sam.png}
 \caption{Segment Anything Model (SAM) architecture showing the image encoder, prompt encoder, and mask decoder components. The model processes various prompt types including points, boxes, and text to generate precise segmentation masks.}
 \label{fig:sam_architecture}
 \end{figure}
@@ -151,7 +151,7 @@ RSRefSeg represents a specialized approach designed specifically for aerial refe
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=\textwidth]{./../Images/clipsam.png}
+\includegraphics[width=\textwidth]{Images/clipsam.png}
 \caption{RSRefSeg architecture overview showing the integration of SigLIP2 vision-language encoder with SAM mask decoder through custom prompter networks for text-guided segmentation. The dual-pathway design processes both local (token-level) and global (sentence-level) text-visual interactions to generate sparse and dense prompts for precise aerial image segmentation.}
 \label{fig:rsrefseg_architecture}
 \end{figure}
