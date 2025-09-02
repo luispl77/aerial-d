@@ -30,9 +30,10 @@ def parse_args():
     parser.add_argument('--with_dense_feat', type=bool, default=True, help='Use dense features')
     parser.add_argument('--vis_only', action='store_true', help='Only run visualization without computing metrics')
     parser.add_argument('--dataset_root', type=str, default='./aeriald', help='Root directory of the AERIAL-D dataset')
-    parser.add_argument('--dataset_type', type=str, choices=['aeriald', 'rrsisd', 'refsegrs'], default='aeriald', help='Type of dataset to use for testing')
+    parser.add_argument('--dataset_type', type=str, choices=['aeriald', 'rrsisd', 'refsegrs', 'nwpu'], default='aeriald', help='Type of dataset to use for testing')
     parser.add_argument('--rrsisd_root', type=str, default='../datagen/rrsisd', help='Root directory of the RRSISD dataset')
     parser.add_argument('--refsegrs_root', type=str, default='../datagen/refsegrs/RefSegRS', help='Root directory of the RefSegRS dataset')
+    parser.add_argument('--nwpu_root', type=str, default='../datagen/NWPU-Refer', help='Root directory of the NWPU-Refer dataset')
     parser.add_argument('--seed', type=int, default=42, help='Random seed for patch selection')
     
     return parser.parse_args()
@@ -642,6 +643,91 @@ class RefSegRSDataset:
         return image, sample['expression'], mask, f"expr{sample['expr_id']}_img{sample['image_id']}", 'individual'
 
 
+class NWPUDataset:
+    def __init__(self, dataset_root, split='val', input_size=480, max_samples=None, seed=42):
+        self.dataset_root = dataset_root
+        self.split = split
+        self.input_size = input_size
+        self.max_samples = max_samples
+        
+        # Set random seed
+        random.seed(seed)
+        
+        # Import the NWPUReferProcessor from our processing script
+        import sys
+        sys.path.append('../datagen/utils')
+        from process_nwpu_refer import NWPUReferProcessor
+        
+        # Initialize the processor
+        self.processor = NWPUReferProcessor(dataset_root)
+        
+        # Add transform to match model configuration
+        self.transform = T.Compose([
+            T.Resize((input_size, input_size)),
+            T.ToTensor(),
+            T.Normalize(mean=[0.485, 0.456, 0.406], 
+                       std=[0.229, 0.224, 0.225])
+        ])
+        
+        # Get dataset info
+        self.dataset_info = self.processor.get_dataset_info()
+        
+        # Get total samples for the split
+        total_samples = self.dataset_info[f'{split}_samples']
+        
+        # Create list of indices for the split
+        self.sample_indices = list(range(total_samples))
+        
+        # If max_samples is specified, randomly sample indices
+        if self.max_samples is not None and len(self.sample_indices) > self.max_samples:
+            random.shuffle(self.sample_indices)
+            self.sample_indices = self.sample_indices[:self.max_samples]
+        
+        print(f"\nNWPU-Refer Dataset ({split} split):")
+        print(f"- Total samples in split: {total_samples}")
+        print(f"- Samples to process: {len(self.sample_indices)}")
+    
+    def __len__(self):
+        return len(self.sample_indices)
+    
+    def __getitem__(self, idx):
+        # Get the actual sample index
+        sample_idx = self.sample_indices[idx]
+        
+        # Get sample from processor
+        sample = self.processor.get_sample(self.split, sample_idx)
+        
+        if sample is None:
+            # If sample loading fails, create a dummy sample
+            dummy_image = torch.zeros(3, self.input_size, self.input_size)
+            dummy_mask = torch.zeros(self.input_size, self.input_size)
+            return dummy_image, "error loading sample", dummy_mask, f"error_{idx}", 'individual'
+        
+        # Convert image to PIL and apply transform
+        image_pil = Image.fromarray(sample['image']).convert('RGB')
+        image = self.transform(image_pil)
+        
+        # Convert mask to tensor and resize
+        mask = torch.from_numpy(sample['mask']).float()
+        # Normalize mask to 0-1 range
+        mask = mask / 255.0 if mask.max() > 1.0 else mask
+        mask = T.Resize((self.input_size, self.input_size), antialias=True)(mask.unsqueeze(0)).squeeze(0)
+        
+        # Get expression
+        expression = sample['expression']
+        
+        # Create a filename for identification (avoid long filenames with many refs)
+        if len(sample['ref_ids']) > 5:
+            filename = f"img{sample['image_id']}_refs{len(sample['ref_ids'])}items"
+        else:
+            filename = f"img{sample['image_id']}_refs{'_'.join(map(str, sample['ref_ids']))}"
+        
+        # Determine type based on number of objects
+        sample_type = 'group' if sample['num_objects'] > 1 else 'individual'
+        
+        return image, expression, mask, filename, sample_type
+
+
 def test(model, test_loader, device, output_dir, num_vis=20, vis_only=False):
     model.eval()
     
@@ -820,6 +906,14 @@ def main():
             max_samples=max_samples,
             seed=args.seed
         )
+    elif args.dataset_type == 'nwpu':
+        val_dataset = NWPUDataset(
+            dataset_root=args.nwpu_root,
+            split='val',
+            input_size=args.input_size,
+            max_samples=max_samples,
+            seed=args.seed
+        )
     else:
         raise ValueError(f"Unknown dataset type: {args.dataset_type}")
     
@@ -845,6 +939,8 @@ def main():
         output_dir = os.path.join('./results', f'{args.model_name}_rrsisd')
     elif args.dataset_type == 'refsegrs':
         output_dir = os.path.join('./results', f'{args.model_name}_refsegrs')
+    elif args.dataset_type == 'nwpu':
+        output_dir = os.path.join('./results', f'{args.model_name}_nwpu')
     else:
         output_dir = os.path.join('./results', args.model_name)
     os.makedirs(output_dir, exist_ok=True)
