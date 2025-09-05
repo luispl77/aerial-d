@@ -1,24 +1,24 @@
 \relax 
 \@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{}\protected@file@percent }
 \newlabel{sec:intro}{{1}{1}{Introduction}{section.1}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {2}Related Work}{1}{}\protected@file@percent }
-\newlabel{sec:related}{{2}{1}{Related Work}{section.2}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {3}Aerial-D}{1}{}\protected@file@percent }
-\newlabel{sec:approach}{{3}{1}{Aerial-D}{section.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Rule-Based Expression Generation}{1}{}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Example of rule generation for a single instance. The highlighted plane in the top right section demonstrates how the system assigns spatial, visual, and relational rules that will later be combined into referring expressions.}}{2}{}\protected@file@percent }
-\newlabel{fig:rule_example}{{1}{2}{Rule-Based Expression Generation}{figure.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}LLM Expression Generation}{2}{}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Example of expression uniqueness filtering. When two objects share similar attributes, conflicting expressions like "the small vehicle in the top right" are filtered out, while unique expressions that distinguish between objects are retained.}}{3}{}\protected@file@percent }
-\newlabel{fig:filter_unique_example}{{2}{3}{Rule-Based Expression Generation}{figure.2}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Example of LLM enhancement process showing original aerial image with group of four large vehicles (left) and corresponding expression enhancements (right).}}{3}{}\protected@file@percent }
-\newlabel{fig:llm_enhancement_example}{{3}{3}{LLM Expression Generation}{figure.3}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Knowledge distillation pipeline for scalable LLM enhancement. A small sample of 500 expressions is processed through OpenAI's O3 model to generate high-quality training targets, which are then used to fine-tune Gemma3 12B via QLora. The fine-tuned model enables cost-effective local inference to enhance the full dataset of 300,000 expressions using vLLM on a single GPU.}}{3}{}\protected@file@percent }
-\newlabel{fig:llm_distillation}{{4}{3}{LLM Expression Generation}{figure.4}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Representative examples from Aerial-D dataset showing diverse referring expressions with corresponding aerial images and ground truth masks.}}{1}{}\protected@file@percent }
+\newlabel{fig:dataset_examples}{{1}{1}{Introduction}{figure.1}{}}
 \bibstyle{abbrv}
 \bibdata{ExtendedAbstract_ref_db}
-\@writefile{toc}{\contentsline {section}{\numberline {4}Experiments}{4}{}\protected@file@percent }
-\newlabel{sec:experiments}{{4}{4}{Experiments}{section.4}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5}Conclusion and Future Work}{4}{}\protected@file@percent }
-\newlabel{sec:conclusion}{{5}{4}{Conclusion and Future Work}{section.5}{}}
-\gdef \@abspage@last{4}
+\@writefile{toc}{\contentsline {section}{\numberline {2}Related Work}{2}{}\protected@file@percent }
+\newlabel{sec:related}{{2}{2}{Related Work}{section.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Aerial-D Dataset Construction}{2}{}\protected@file@percent }
+\newlabel{sec:approach}{{3}{2}{Aerial-D Dataset Construction}{section.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Rule-Based Expression Generation}{2}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}LLM Expression Generation}{2}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Knowledge distillation pipeline for scalable LLM enhancement. A small sample of 500 expressions is processed through OpenAI's O3 model to generate high-quality training targets, which are then used to fine-tune Gemma3 12B via QLora. The fine-tuned model enables cost-effective local inference to enhance the full dataset of 300,000 expressions using vLLM on a single GPU.}}{2}{}\protected@file@percent }
+\newlabel{fig:llm_distillation}{{4}{2}{LLM Expression Generation}{figure.4}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Experiments}{2}{}\protected@file@percent }
+\newlabel{sec:experiments}{{4}{2}{Experiments}{section.4}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Conclusion and Future Work}{2}{}\protected@file@percent }
+\newlabel{sec:conclusion}{{5}{2}{Conclusion and Future Work}{section.5}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Example of rule generation for a single instance. The highlighted plane in the top right section demonstrates how the system assigns spatial, visual, and relational rules that will later be combined into referring expressions.}}{3}{}\protected@file@percent }
+\newlabel{fig:rule_example}{{2}{3}{Rule-Based Expression Generation}{figure.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Example of LLM enhancement process showing original aerial image with group of four large vehicles (left) and corresponding expression enhancements (right).}}{3}{}\protected@file@percent }
+\newlabel{fig:llm_enhancement_example}{{3}{3}{LLM Expression Generation}{figure.3}{}}
+\gdef \@abspage@last{3}
