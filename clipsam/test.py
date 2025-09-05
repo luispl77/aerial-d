@@ -211,9 +211,7 @@ def visualize_predictions(image, mask, pred, text, save_path, transformed_image=
     else:
         display_image = original_image
     
-    print(f"DEBUG VIZ: Original mask shape: {mask.shape}, unique values: {torch.unique(mask)}, sum: {torch.sum(mask)}")
     mask = (mask > 0.5).float().detach().cpu().numpy()
-    print(f"DEBUG VIZ: Processed mask shape: {mask.shape}, unique values: {np.unique(mask)}, sum: {np.sum(mask)}")
     
     # Convert logits to probabilities
     prob = torch.sigmoid(pred).detach().cpu().numpy()
@@ -875,13 +873,11 @@ def test(model, test_loader, device, output_dir, num_vis=20, vis_only=False):
     pass_counts = {thresh: 0 for thresh in pass_thresholds}
     
     vis_count = 0
+    visualized_images = set()  # Track which images we've already visualized
     
     print("\nTesting model...")
     with torch.no_grad():
         for batch_idx, (images, texts, masks, image_ids, sample_types, transformed_images, effect_names) in enumerate(test_loader):
-            # If in vis_only mode and we've processed enough samples, break
-            if vis_only and vis_count >= num_vis:
-                break
                 
             images = images.to(device, non_blocking=True)
             masks = masks.to(device, non_blocking=True)
@@ -915,13 +911,16 @@ def test(model, test_loader, device, output_dir, num_vis=20, vis_only=False):
                 total_intersection += intersection
                 total_union += union
             
-            # Visualize some predictions
-            if vis_count < num_vis:
-                save_path = os.path.join(output_dir, f"val_{image_id}.png")
+            # Visualize first sample from each unique image - up to 20 different images
+            if vis_count < num_vis and image_id not in visualized_images:
+                print(f"Visualizing image {vis_count + 1}/20: {image_id}")
+                # Create unique filename using vis_count to avoid overwriting
+                save_path = os.path.join(output_dir, f"val_{vis_count:03d}_{image_id}.png")
                 # Pass transformed image and effect name if available
                 transformed_img = transformed_images[0] if transformed_images[0] is not None else None
                 effect_name = effect_names[0] if effect_names[0] is not None else None
                 visualize_predictions(image, mask, output, text, save_path, transformed_img, effect_name)
+                visualized_images.add(image_id)
                 vis_count += 1
             
             # Clean GPU memory after each batch
@@ -931,11 +930,12 @@ def test(model, test_loader, device, output_dir, num_vis=20, vis_only=False):
             torch.cuda.empty_cache()
             
             if not vis_only:
-                print(f"Sample {batch_idx} (ID: {image_id}) - IoU: {iou_score:.4f}")
+                vis_msg = f" - Visualized!" if (vis_count <= num_vis and image_id in visualized_images) else ""
+                print(f"Sample {batch_idx} (ID: {image_id}) - IoU: {iou_score:.4f}{vis_msg}")
             else:
                 print(f"Visualizing sample {batch_idx} (ID: {image_id}) - Type: {sample_type}")
             
-            # If in vis_only mode and we've processed enough samples, break
+            # If we've found enough unique images for visualization, and we're in vis_only mode, break
             if vis_only and vis_count >= num_vis:
                 break
     
@@ -1121,8 +1121,8 @@ def main():
     elif args.dataset_type == 'nwpu':
         output_suffix = '_nwpu_historic' if args.historic else '_nwpu'
         output_dir = os.path.join('./results', f'{args.model_name}{output_suffix}')
-    else:
-        output_dir = os.path.join('./results', args.model_name)
+    else:  # aeriald dataset
+        output_dir = os.path.join('./results', f'{args.model_name}_aeriald')
     os.makedirs(output_dir, exist_ok=True)
     
     # Run testing
