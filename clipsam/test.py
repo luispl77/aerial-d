@@ -211,9 +211,7 @@ def visualize_predictions(image, mask, pred, text, save_path, transformed_image=
     else:
         display_image = original_image
     
-    print(f"DEBUG VIZ: Original mask shape: {mask.shape}, unique values: {torch.unique(mask)}, sum: {torch.sum(mask)}")
     mask = (mask > 0.5).float().detach().cpu().numpy()
-    print(f"DEBUG VIZ: Processed mask shape: {mask.shape}, unique values: {np.unique(mask)}, sum: {np.sum(mask)}")
     
     # Convert logits to probabilities
     prob = torch.sigmoid(pred).detach().cpu().numpy()
@@ -271,8 +269,8 @@ class SimpleDataset:
         random.seed(seed)
         
         # Set paths based on split
-        self.ann_dir = os.path.join(dataset_root, 'patches', split, 'annotations')
-        self.image_dir = os.path.join(dataset_root, 'patches', split, 'images')
+        self.ann_dir = os.path.join(dataset_root, split, 'annotations')
+        self.image_dir = os.path.join(dataset_root, split, 'images')
         
         # Add transform to match model configuration
         self.transform = T.Compose([
@@ -377,11 +375,16 @@ class SimpleDataset:
             groups_elem = root.find('groups')
             if groups_elem is not None:
                 for group in groups_elem.findall('group'):
-                    # Get group properties
-                    group_id = group.find('id').text
-                    instance_ids_text = group.find('instance_ids').text
-                    instance_ids = [id.strip() for id in instance_ids_text.split(',')]
-                    category = group.find('category').text
+                    # Get group properties with null checks
+                    group_id_elem = group.find('id')
+                    if group_id_elem is None:
+                        continue  # Skip groups without ID
+                    group_id = group_id_elem.text
+                    
+                    category_elem = group.find('category')
+                    if category_elem is None:
+                        continue  # Skip groups without category
+                    category = category_elem.text
                     
                     # Get group expressions
                     group_expressions = []
@@ -393,17 +396,21 @@ class SimpleDataset:
                     if not group_expressions:
                         continue  # Skip groups without expressions
                     
-                    # Collect segmentations for all instances in the group
-                    group_segmentations = []
-                    group_bboxes = []
+                    # Groups have direct segmentation data
+                    seg_elem = group.find('segmentation')
+                    if seg_elem is None or not seg_elem.text:
+                        continue  # Skip groups without segmentation
                     
-                    for instance_id in instance_ids:
-                        if instance_id in objects_by_id:
-                            group_segmentations.append(objects_by_id[instance_id]['segmentation'])
-                            group_bboxes.append(objects_by_id[instance_id]['bbox'])
-                    
-                    if not group_segmentations:
-                        continue  # Skip groups with no valid instances
+                    try:
+                        # Parse the segmentation dictionary
+                        seg_dict = eval(seg_elem.text)
+                        size = seg_dict['size']
+                        counts = seg_dict['counts']
+                        rle = {'size': size, 'counts': counts}
+                        group_segmentation = rle
+                    except Exception as e:
+                        print(f"WARNING: Failed to parse segmentation for group {group_id} in {xml_file}: {e}")
+                        continue
                     
                     total_groups += 1
                     total_group_expressions += len(group_expressions)
@@ -412,12 +419,10 @@ class SimpleDataset:
                     for expression in group_expressions:
                         self.objects.append({
                             'image_filename': filename,
-                            'bbox': group_bboxes,  # List of bboxes for all instances
-                            'segmentation': group_segmentations,  # List of segmentations
+                            'segmentation': group_segmentation,  # Single segmentation for group
                             'expression': expression,
                             'category': category,
-                            'type': 'group',
-                            'instance_ids': instance_ids
+                            'type': 'group'
                         })
         
         # If in visualization mode, ensure we have unique images
@@ -471,19 +476,8 @@ class SimpleDataset:
             # Single object mask
             binary_mask = mask_utils.decode(obj['segmentation'])
         else:  # group
-            # Combine multiple masks for group
-            print(f"DEBUG: Processing group with {len(obj['segmentation'])} instances")
-            combined_mask = None
-            for i, segmentation in enumerate(obj['segmentation']):
-                instance_mask = mask_utils.decode(segmentation)
-                print(f"DEBUG: Instance {i} mask shape: {instance_mask.shape}, unique values: {np.unique(instance_mask)}, sum: {np.sum(instance_mask)}")
-                if combined_mask is None:
-                    combined_mask = instance_mask.astype(bool)
-                else:
-                    # Union of masks (logical OR)
-                    combined_mask = np.logical_or(combined_mask, instance_mask.astype(bool))
-            binary_mask = combined_mask.astype(np.uint8)
-            print(f"DEBUG: Final combined mask shape: {binary_mask.shape}, unique values: {np.unique(binary_mask)}, sum: {np.sum(binary_mask)}")
+            # Single group mask (already combined in the dataset)
+            binary_mask = mask_utils.decode(obj['segmentation'])
         
         mask = torch.from_numpy(binary_mask).float()
         mask = T.Resize((self.input_size, self.input_size), antialias=True)(mask.unsqueeze(0)).squeeze(0)
@@ -874,14 +868,16 @@ def test(model, test_loader, device, output_dir, num_vis=20, vis_only=False):
     total_intersection = 0
     total_union = 0
     
+    # For pass@k metrics
+    pass_thresholds = [0.7, 0.8, 0.9]
+    pass_counts = {thresh: 0 for thresh in pass_thresholds}
+    
     vis_count = 0
+    visualized_images = set()  # Track which images we've already visualized
     
     print("\nTesting model...")
     with torch.no_grad():
         for batch_idx, (images, texts, masks, image_ids, sample_types, transformed_images, effect_names) in enumerate(test_loader):
-            # If in vis_only mode and we've processed enough samples, break
-            if vis_only and vis_count >= num_vis:
-                break
                 
             images = images.to(device, non_blocking=True)
             masks = masks.to(device, non_blocking=True)
@@ -903,6 +899,11 @@ def test(model, test_loader, device, output_dir, num_vis=20, vis_only=False):
                 iou_score, pred_binary, target_binary = calculate_individual_iou(output, mask)
                 all_ious.append((image_id, iou_score))
                 
+                # Update pass@k counters
+                for thresh in pass_thresholds:
+                    if iou_score >= thresh:
+                        pass_counts[thresh] += 1
+                
                 # Update running counters for oIoU calculation
                 intersection = torch.logical_and(pred_binary, target_binary).sum().item()
                 union = torch.logical_or(pred_binary, target_binary).sum().item()
@@ -910,13 +911,16 @@ def test(model, test_loader, device, output_dir, num_vis=20, vis_only=False):
                 total_intersection += intersection
                 total_union += union
             
-            # Visualize some predictions
-            if vis_count < num_vis:
-                save_path = os.path.join(output_dir, f"val_{image_id}.png")
+            # Visualize first sample from each unique image - up to 20 different images
+            if vis_count < num_vis and image_id not in visualized_images:
+                print(f"Visualizing image {vis_count + 1}/20: {image_id}")
+                # Create unique filename using vis_count to avoid overwriting
+                save_path = os.path.join(output_dir, f"val_{vis_count:03d}_{image_id}.png")
                 # Pass transformed image and effect name if available
                 transformed_img = transformed_images[0] if transformed_images[0] is not None else None
                 effect_name = effect_names[0] if effect_names[0] is not None else None
                 visualize_predictions(image, mask, output, text, save_path, transformed_img, effect_name)
+                visualized_images.add(image_id)
                 vis_count += 1
             
             # Clean GPU memory after each batch
@@ -926,11 +930,12 @@ def test(model, test_loader, device, output_dir, num_vis=20, vis_only=False):
             torch.cuda.empty_cache()
             
             if not vis_only:
-                print(f"Sample {batch_idx} (ID: {image_id}) - IoU: {iou_score:.4f}")
+                vis_msg = f" - Visualized!" if (vis_count <= num_vis and image_id in visualized_images) else ""
+                print(f"Sample {batch_idx} (ID: {image_id}) - IoU: {iou_score:.4f}{vis_msg}")
             else:
                 print(f"Visualizing sample {batch_idx} (ID: {image_id}) - Type: {sample_type}")
             
-            # If in vis_only mode and we've processed enough samples, break
+            # If we've found enough unique images for visualization, and we're in vis_only mode, break
             if vis_only and vis_count >= num_vis:
                 break
     
@@ -942,9 +947,18 @@ def test(model, test_loader, device, output_dir, num_vis=20, vis_only=False):
         # Calculate oIoU using the running counters
         oiou = total_intersection / total_union if total_union > 0 else 0.0
         
+        # Calculate pass@k metrics
+        total_samples = len(iou_values)
+        pass_metrics = {}
+        for thresh in pass_thresholds:
+            pass_rate = pass_counts[thresh] / total_samples * 100
+            pass_metrics[thresh] = pass_rate
+        
         print("\nValidation Results:")
         print(f"mIoU (mean of individual IoUs): {miou:.4f}")
         print(f"oIoU (overall IoU): {oiou:.4f}")
+        for thresh in pass_thresholds:
+            print(f"Pass@{thresh}: {pass_metrics[thresh]:.2f}% ({pass_counts[thresh]}/{total_samples})")
         print(f"Min IoU: {min(iou_values):.4f}")
         print(f"Max IoU: {max(iou_values):.4f}")
         print(f"Median IoU: {np.median(iou_values):.4f}")
@@ -954,6 +968,8 @@ def test(model, test_loader, device, output_dir, num_vis=20, vis_only=False):
         with open(results_file, 'w') as f:
             f.write(f"mIoU (mean of individual IoUs): {miou:.4f}\n")
             f.write(f"oIoU (overall IoU): {oiou:.4f}\n")
+            for thresh in pass_thresholds:
+                f.write(f"Pass@{thresh}: {pass_metrics[thresh]:.2f}% ({pass_counts[thresh]}/{total_samples})\n")
             f.write(f"Min IoU: {min(iou_values):.4f}\n")
             f.write(f"Max IoU: {max(iou_values):.4f}\n")
             f.write(f"Median IoU: {np.median(iou_values):.4f}\n\n")
@@ -962,18 +978,26 @@ def test(model, test_loader, device, output_dir, num_vis=20, vis_only=False):
             for image_id, iou in sorted(all_ious, key=lambda x: x[0]):
                 f.write(f"Image {image_id}: {iou:.4f}\n")
         
-        # Plot IoU histogram
-        plt.figure(figsize=(10, 6))
-        plt.hist(iou_values, bins=20, alpha=0.7)
+        # Plot IoU histogram with pass@k thresholds
+        plt.figure(figsize=(12, 6))
+        plt.hist(iou_values, bins=20, alpha=0.7, color='lightblue')
         plt.axvline(miou, color='r', linestyle='--', label=f'mIoU: {miou:.4f}')
         plt.axvline(oiou, color='b', linestyle='--', label=f'oIoU: {oiou:.4f}')
         plt.axvline(np.median(iou_values), color='g', linestyle='--', label=f'Median IoU: {np.median(iou_values):.4f}')
+        
+        # Add pass@k threshold lines
+        colors = ['orange', 'purple', 'red']
+        for i, thresh in enumerate(pass_thresholds):
+            plt.axvline(thresh, color=colors[i], linestyle=':', alpha=0.8, 
+                       label=f'Pass@{thresh} threshold ({pass_metrics[thresh]:.2f}%)')
+        
         plt.xlabel('IoU')
         plt.ylabel('Count')
-        plt.title('Distribution of IoU Scores')
-        plt.legend()
+        plt.title('Distribution of IoU Scores with Pass@k Thresholds')
+        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
         plt.grid(True, alpha=0.3)
-        plt.savefig(os.path.join(output_dir, "iou_histogram.png"))
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, "iou_histogram.png"), dpi=300, bbox_inches='tight')
         plt.close()
         
         # Create IoU vs. Image ID scatter plot
@@ -991,7 +1015,13 @@ def test(model, test_loader, device, output_dir, num_vis=20, vis_only=False):
         plt.savefig(os.path.join(output_dir, "iou_by_image.png"))
         plt.close()
         
-        return {"miou": miou, "oiou": oiou}
+        # Return all metrics including pass@k
+        metrics_dict = {
+            "miou": miou, 
+            "oiou": oiou,
+            **{f"pass_{thresh}": pass_metrics[thresh] for thresh in pass_thresholds}
+        }
+        return metrics_dict
     else:
         print("\nVisualization complete.")
         return None
@@ -1084,15 +1114,16 @@ def main():
         print("  - Visualizations will show transformed images")
     
     # Create output directory with dataset type
+    historic_suffix = '_historic' if args.historic else ''
+    
     if args.dataset_type == 'rrsisd':
-        output_dir = os.path.join('./results', f'{args.model_name}_rrsisd')
+        output_dir = os.path.join('./results', f'{args.model_name}_rrsisd{historic_suffix}')
     elif args.dataset_type == 'refsegrs':
-        output_dir = os.path.join('./results', f'{args.model_name}_refsegrs')
+        output_dir = os.path.join('./results', f'{args.model_name}_refsegrs{historic_suffix}')
     elif args.dataset_type == 'nwpu':
-        output_suffix = '_nwpu_historic' if args.historic else '_nwpu'
-        output_dir = os.path.join('./results', f'{args.model_name}{output_suffix}')
-    else:
-        output_dir = os.path.join('./results', args.model_name)
+        output_dir = os.path.join('./results', f'{args.model_name}_nwpu{historic_suffix}')
+    else:  # aeriald dataset
+        output_dir = os.path.join('./results', f'{args.model_name}_aeriald{historic_suffix}')
     os.makedirs(output_dir, exist_ok=True)
     
     # Run testing
@@ -1102,6 +1133,8 @@ def main():
         print(f"\nValidation complete. Results saved to {output_dir}")
         print(f"Final mIoU: {metrics['miou']:.4f}")
         print(f"Final oIoU: {metrics['oiou']:.4f}")
+        for thresh in [0.7, 0.8, 0.9]:
+            print(f"Final Pass@{thresh}: {metrics[f'pass_{thresh}']:.2f}%")
     else:
         print(f"\nVisualization complete. Results saved to {output_dir}")
 
