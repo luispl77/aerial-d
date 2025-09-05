@@ -1114,15 +1114,16 @@ def main():
         print("  - Visualizations will show transformed images")
     
     # Create output directory with dataset type
+    historic_suffix = '_historic' if args.historic else ''
+    
     if args.dataset_type == 'rrsisd':
-        output_dir = os.path.join('./results', f'{args.model_name}_rrsisd')
+        output_dir = os.path.join('./results', f'{args.model_name}_rrsisd{historic_suffix}')
     elif args.dataset_type == 'refsegrs':
-        output_dir = os.path.join('./results', f'{args.model_name}_refsegrs')
+        output_dir = os.path.join('./results', f'{args.model_name}_refsegrs{historic_suffix}')
     elif args.dataset_type == 'nwpu':
-        output_suffix = '_nwpu_historic' if args.historic else '_nwpu'
-        output_dir = os.path.join('./results', f'{args.model_name}{output_suffix}')
+        output_dir = os.path.join('./results', f'{args.model_name}_nwpu{historic_suffix}')
     else:  # aeriald dataset
-        output_dir = os.path.join('./results', f'{args.model_name}_aeriald')
+        output_dir = os.path.join('./results', f'{args.model_name}_aeriald{historic_suffix}')
     os.makedirs(output_dir, exist_ok=True)
     
     # Run testing
