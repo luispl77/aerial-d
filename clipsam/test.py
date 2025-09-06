@@ -259,11 +259,12 @@ def visualize_predictions(image, mask, pred, text, save_path, transformed_image=
     plt.close()
 
 class SimpleDataset:
-    def __init__(self, dataset_root, split='val', input_size=480, max_samples=None, seed=42):
+    def __init__(self, dataset_root, split='val', input_size=480, max_samples=None, seed=42, historic=False):
         self.dataset_root = dataset_root
         self.split = split
         self.input_size = input_size
         self.max_samples = max_samples
+        self.historic = historic
         
         # Set random seed
         random.seed(seed)
@@ -468,8 +469,26 @@ class SimpleDataset:
         obj = self.objects[idx]
         
         # Load image using stored path
-        image = Image.open(self.images[obj['image_filename']]).convert('RGB')
-        image = self.transform(image)
+        image_pil = Image.open(self.images[obj['image_filename']]).convert('RGB')
+        
+        # Apply historic transformations if enabled
+        transformed_image = None
+        effect_name = None
+        if self.historic:
+            # Convert PIL to numpy array (RGB format)
+            original_image_array = np.array(image_pil)
+            # Apply random historic effect to numpy array (in BGR format for OpenCV functions)
+            bgr_image = cv2.cvtColor(original_image_array, cv2.COLOR_RGB2BGR)
+            transformed_image_bgr, effect_name = apply_random_historic_effect(bgr_image)
+            
+            # Convert back to RGB for PIL processing
+            transformed_image_rgb = cv2.cvtColor(transformed_image_bgr, cv2.COLOR_BGR2RGB)
+            transformed_image = transformed_image_rgb.copy()  # Store for visualization
+            
+            # Use transformed image for model input
+            image_pil = Image.fromarray(transformed_image_rgb)
+        
+        image = self.transform(image_pil)
         
         # Handle mask creation based on type
         if obj['type'] == 'individual':
@@ -482,15 +501,16 @@ class SimpleDataset:
         mask = torch.from_numpy(binary_mask).float()
         mask = T.Resize((self.input_size, self.input_size), antialias=True)(mask.unsqueeze(0)).squeeze(0)
         
-        return image, obj['expression'], mask, obj['image_filename'], obj['type'], None, None
+        return image, obj['expression'], mask, obj['image_filename'], obj['type'], transformed_image, effect_name
 
 
 class RRSISDDataset:
-    def __init__(self, dataset_root, split='val', input_size=480, max_samples=None, seed=42):
+    def __init__(self, dataset_root, split='val', input_size=480, max_samples=None, seed=42, historic=False):
         self.dataset_root = dataset_root
         self.split = split
         self.input_size = input_size
         self.max_samples = max_samples
+        self.historic = historic
         
         # Set random seed
         random.seed(seed)
@@ -625,23 +645,42 @@ class RRSISDDataset:
         sample = self.samples[idx]
         
         # Load image
-        image = Image.open(sample['image_path']).convert('RGB')
-        image = self.transform(image)
+        image_pil = Image.open(sample['image_path']).convert('RGB')
+        
+        # Apply historic transformations if enabled
+        transformed_image = None
+        effect_name = None
+        if self.historic:
+            # Convert PIL to numpy array (RGB format)
+            original_image_array = np.array(image_pil)
+            # Apply random historic effect to numpy array (in BGR format for OpenCV functions)
+            bgr_image = cv2.cvtColor(original_image_array, cv2.COLOR_RGB2BGR)
+            transformed_image_bgr, effect_name = apply_random_historic_effect(bgr_image)
+            
+            # Convert back to RGB for PIL processing
+            transformed_image_rgb = cv2.cvtColor(transformed_image_bgr, cv2.COLOR_BGR2RGB)
+            transformed_image = transformed_image_rgb.copy()  # Store for visualization
+            
+            # Use transformed image for model input
+            image_pil = Image.fromarray(transformed_image_rgb)
+        
+        image = self.transform(image_pil)
         
         # Decode mask from RLE
         binary_mask = mask_utils.decode(sample['segmentation'])
         mask = torch.from_numpy(binary_mask).float()
         mask = T.Resize((self.input_size, self.input_size), antialias=True)(mask.unsqueeze(0)).squeeze(0)
         
-        return image, sample['expression'], mask, f"{sample['image_id']:05d}.jpg", 'individual', None, None
+        return image, sample['expression'], mask, f"{sample['image_id']:05d}.jpg", 'individual', transformed_image, effect_name
 
 
 class RefSegRSDataset:
-    def __init__(self, dataset_root, split='val', input_size=480, max_samples=None, seed=42):
+    def __init__(self, dataset_root, split='val', input_size=480, max_samples=None, seed=42, historic=False):
         self.dataset_root = dataset_root
         self.split = split
         self.input_size = input_size
         self.max_samples = max_samples
+        self.historic = historic
         
         # Set random seed
         random.seed(seed)
@@ -724,8 +763,26 @@ class RefSegRSDataset:
         sample = self.samples[idx]
         
         # Load image with PIL to handle .tif format
-        image = Image.open(sample['image_path']).convert('RGB')
-        image = self.transform(image)
+        image_pil = Image.open(sample['image_path']).convert('RGB')
+        
+        # Apply historic transformations if enabled
+        transformed_image = None
+        effect_name = None
+        if self.historic:
+            # Convert PIL to numpy array (RGB format)
+            original_image_array = np.array(image_pil)
+            # Apply random historic effect to numpy array (in BGR format for OpenCV functions)
+            bgr_image = cv2.cvtColor(original_image_array, cv2.COLOR_RGB2BGR)
+            transformed_image_bgr, effect_name = apply_random_historic_effect(bgr_image)
+            
+            # Convert back to RGB for PIL processing
+            transformed_image_rgb = cv2.cvtColor(transformed_image_bgr, cv2.COLOR_BGR2RGB)
+            transformed_image = transformed_image_rgb.copy()  # Store for visualization
+            
+            # Use transformed image for model input
+            image_pil = Image.fromarray(transformed_image_rgb)
+        
+        image = self.transform(image_pil)
         
         # Load mask with PIL to handle .tif format
         mask_pil = Image.open(sample['mask_path'])
@@ -742,7 +799,7 @@ class RefSegRSDataset:
         mask = torch.from_numpy(mask_array).float()
         mask = T.Resize((self.input_size, self.input_size), antialias=True)(mask.unsqueeze(0)).squeeze(0)
         
-        return image, sample['expression'], mask, f"expr{sample['expr_id']}_img{sample['image_id']}", 'individual', None, None
+        return image, sample['expression'], mask, f"expr{sample['expr_id']}_img{sample['image_id']}", 'individual', transformed_image, effect_name
 
 
 class NWPUDataset:
@@ -1057,7 +1114,8 @@ def main():
             split='val',
             input_size=args.input_size,
             max_samples=max_samples,
-            seed=args.seed
+            seed=args.seed,
+            historic=args.historic
         )
     elif args.dataset_type == 'rrsisd':
         val_dataset = RRSISDDataset(
@@ -1065,7 +1123,8 @@ def main():
             split='val',  # Not used for RRSISD but kept for compatibility
             input_size=args.input_size,
             max_samples=max_samples,
-            seed=args.seed
+            seed=args.seed,
+            historic=args.historic
         )
     elif args.dataset_type == 'refsegrs':
         val_dataset = RefSegRSDataset(
@@ -1073,7 +1132,8 @@ def main():
             split='val',
             input_size=args.input_size,
             max_samples=max_samples,
-            seed=args.seed
+            seed=args.seed,
+            historic=args.historic
         )
     elif args.dataset_type == 'nwpu':
         val_dataset = NWPUDataset(
