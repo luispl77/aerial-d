@@ -926,7 +926,7 @@ def test(model, test_loader, device, output_dir, num_vis=20, vis_only=False):
     total_union = 0
     
     # For pass@k metrics
-    pass_thresholds = [0.7, 0.8, 0.9]
+    pass_thresholds = [0.5, 0.7, 0.9]
     pass_counts = {thresh: 0 for thresh in pass_thresholds}
     
     vis_count = 0
@@ -1193,7 +1193,7 @@ def main():
         print(f"\nValidation complete. Results saved to {output_dir}")
         print(f"Final mIoU: {metrics['miou']:.4f}")
         print(f"Final oIoU: {metrics['oiou']:.4f}")
-        for thresh in [0.7, 0.8, 0.9]:
+        for thresh in [0.5, 0.7, 0.9]:
             print(f"Final Pass@{thresh}: {metrics[f'pass_{thresh}']:.2f}%")
     else:
         print(f"\nVisualization complete. Results saved to {output_dir}")
