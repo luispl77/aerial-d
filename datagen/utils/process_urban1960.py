@@ -286,6 +286,117 @@ class Urban1960Processor:
         
         return output_path
     
+    def find_samples_with_all_classes(self, split='train', dataset='ISP'):
+        """Find one sample for each class that exists in the dataset."""
+        if split not in self.splits[dataset]:
+            raise ValueError(f"Invalid split: {split}")
+        
+        samples = self.splits[dataset][split]
+        expected_classes = list(self.class_names[dataset].keys())
+        found_samples = {}
+        class_stats = {cls: 0 for cls in expected_classes}  # Count occurrences
+        
+        print(f"\nSearching for samples containing each class in {dataset} {split}...")
+        print(f"Looking for classes: {expected_classes}")
+        print(f"Total samples to search: {len(samples)}")
+        
+        for i, image_name in enumerate(samples):
+            try:
+                mask = self.load_mask(image_name, dataset)
+                unique_classes = np.unique(mask)
+                
+                # Count all classes found
+                for cls in unique_classes:
+                    if cls in expected_classes:
+                        class_stats[cls] += 1
+                
+                # Check if this sample contains any classes we haven't found yet
+                for cls in unique_classes:
+                    if cls in expected_classes and cls not in found_samples:
+                        found_samples[cls] = {'index': i, 'image_name': image_name}
+                        print(f"  Found class {cls} ({self.class_names[dataset][cls]}) in sample {i}: {image_name}")
+                
+                if i % 200 == 0 or i == len(samples) - 1:  # Progress update
+                    print(f"  Searched {i+1}/{len(samples)} samples, found {len(found_samples)}/{len(expected_classes)} classes")
+                    print(f"    Current class counts: {dict(sorted(class_stats.items()))}")
+                    
+            except FileNotFoundError:
+                continue
+        
+        print(f"\nFinal class statistics across all {len(samples)} samples:")
+        for cls in sorted(class_stats.keys()):
+            count = class_stats[cls]
+            percentage = (count / len(samples)) * 100 if len(samples) > 0 else 0
+            print(f"  Class {cls} ({self.class_names[dataset][cls]}): {count} samples ({percentage:.1f}%)")
+        
+        missing_classes = set(expected_classes) - set(found_samples.keys())
+        if missing_classes:
+            print(f"\n  WARNING: Could not find any samples with classes: {missing_classes}")
+            print(f"  These classes might not exist in the {split} split or dataset")
+        
+        return found_samples
+    
+    def search_all_splits_for_classes(self, dataset='ISP'):
+        """Search across all splits to find examples of each class."""
+        expected_classes = list(self.class_names[dataset].keys())
+        found_samples = {}
+        
+        for split in ['train', 'val', 'test']:
+            if not self.splits[dataset].get(split):
+                continue
+                
+            print(f"\n=== Searching {split} split ===")
+            split_samples = self.find_samples_with_all_classes(split, dataset)
+            
+            # Add any new classes we found
+            for cls, sample_info in split_samples.items():
+                if cls not in found_samples:
+                    found_samples[cls] = {**sample_info, 'split': split}
+                    print(f"  Added class {cls} from {split} split")
+        
+        return found_samples
+    
+    def visualize_all_classes(self, split='train', dataset='ISP', save_dir='.', search_all_splits=False):
+        """Generate one visualization for each class in the dataset."""
+        if search_all_splits:
+            print("Searching across all splits to find every class...")
+            found_samples = self.search_all_splits_for_classes(dataset)
+        else:
+            found_samples = self.find_samples_with_all_classes(split, dataset)
+        
+        if not found_samples:
+            print(f"No samples found for {dataset}")
+            return []
+        
+        output_paths = []
+        os.makedirs(save_dir, exist_ok=True)
+        
+        print(f"\nGenerating visualizations for each class...")
+        
+        # Sort by class ID for consistent ordering
+        for cls in sorted(found_samples.keys()):
+            sample_info = found_samples[cls]
+            index = sample_info['index']
+            sample_split = sample_info.get('split', split)  # Use original split if not specified
+            
+            try:
+                output_path = self.visualize_sample(sample_split, index, dataset, save_dir)
+                if output_path:
+                    # Rename file to indicate it's the class example
+                    class_name_clean = self.class_names[dataset][cls].replace('/', '_').replace(' ', '_').replace('&', 'and')
+                    new_name = f"urban1960_{dataset.lower()}_class_{cls}_{class_name_clean}_from_{sample_split}.png"
+                    new_path = os.path.join(save_dir, new_name)
+                    
+                    import shutil
+                    shutil.move(output_path, new_path)
+                    output_paths.append(new_path)
+                    print(f"Class {cls} example saved as: {new_name}")
+                    
+            except Exception as e:
+                print(f"Error creating visualization for class {cls}: {e}")
+        
+        return output_paths
+    
     def get_dataset_info(self):
         """Get basic dataset statistics."""
         info = {}
@@ -317,6 +428,10 @@ def main():
                        help='Sample index to visualize')
     parser.add_argument('--visualize', action='store_true',
                        help='Visualize samples')
+    parser.add_argument('--visualize_all_classes', action='store_true',
+                       help='Find and visualize one example of each class')
+    parser.add_argument('--search_all_splits', action='store_true',
+                       help='Search across train/val/test splits to find all classes')
     parser.add_argument('--analyze', action='store_true',
                        help='Analyze mask encoding format')
     parser.add_argument('--info', action='store_true',
@@ -344,6 +459,14 @@ def main():
     
     if args.analyze:
         processor.analyze_mask_encoding(args.dataset, args.num_samples)
+        return
+    
+    if args.visualize_all_classes:
+        output_paths = processor.visualize_all_classes(args.split, args.dataset, args.save_dir, args.search_all_splits)
+        if output_paths:
+            print(f"\nGenerated {len(output_paths)} class example visualizations:")
+            for path in output_paths:
+                print(f"  {os.path.basename(path)}")
         return
     
     if args.visualize:
