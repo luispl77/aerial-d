@@ -88,6 +88,9 @@ def parse_args():
     # Dataset filtering
     parser.add_argument('--dataset_filter', type=str, choices=['isaid', 'loveda', 'deepglobe'], help='Train only on samples from a specific dataset (isaid, loveda, or deepglobe)')
     
+    # Custom folder naming
+    parser.add_argument('--custom_name', type=str, help='Override the default auto-generated folder name for models and visualizations with a custom name')
+    
     return parser.parse_args()
 
 def save_checkpoint(model, optimizer, epoch, loss, path):
@@ -1169,14 +1172,19 @@ def main():
             print(f"Error: Checkpoint 'latest.pt' not found in {original_checkpoint_dir}")
             return
         
-        # Create restart directory
-        restart_model_name = f"{original_model_name}_restart_{run_id}_epochs{args.epochs}"
+        # Create restart directory with custom name if provided
+        if args.custom_name:
+            restart_model_name = args.custom_name
+            print(f"Using custom restart directory name: {restart_model_name}")
+        else:
+            restart_model_name = f"{original_model_name}_restart_{run_id}_epochs{args.epochs}"
+            print(f"Creating restart directory: {restart_model_name}")
+            
         model_name = restart_model_name
         checkpoint_dir = os.path.join('./models', restart_model_name)
         vis_dir = os.path.join('./visualizations', restart_model_name)
         
         print(f"Resuming from: {original_model_name}")
-        print(f"Creating restart directory: {restart_model_name}")
         
         # Create new directories for restart
         os.makedirs(checkpoint_dir, exist_ok=True)
@@ -1198,7 +1206,13 @@ def main():
                 f.write(f"Additional Epochs: {args.epochs}\n")
     else:
         # Create new model for fresh training
-        model_name = f"clip_sam_{run_id}_epochs{args.epochs}_bs{args.batch_size}x{grad_accum_steps}_lr{args.lr}"
+        if args.custom_name:
+            model_name = args.custom_name
+            print(f"Using custom folder name: {model_name}")
+        else:
+            model_name = f"clip_sam_{run_id}_epochs{args.epochs}_bs{args.batch_size}x{grad_accum_steps}_lr{args.lr}"
+            print(f"Using auto-generated folder name: {model_name}")
+            
         # Use absolute paths to avoid any path resolution issues
         base_dir = os.path.dirname(os.path.abspath(__file__))
         checkpoint_dir = os.path.join(base_dir, 'models', model_name)
