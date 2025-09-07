@@ -121,10 +121,11 @@ def parse_args():
     parser.add_argument('--with_dense_feat', type=bool, default=True, help='Use dense features')
     parser.add_argument('--vis_only', action='store_true', help='Only run visualization without computing metrics')
     parser.add_argument('--dataset_root', type=str, default='./aeriald', help='Root directory of the AERIAL-D dataset')
-    parser.add_argument('--dataset_type', type=str, choices=['aeriald', 'rrsisd', 'refsegrs', 'nwpu'], default='aeriald', help='Type of dataset to use for testing')
+    parser.add_argument('--dataset_type', type=str, choices=['aeriald', 'rrsisd', 'refsegrs', 'nwpu', 'urban1960'], default='aeriald', help='Type of dataset to use for testing')
     parser.add_argument('--rrsisd_root', type=str, default='../datagen/rrsisd', help='Root directory of the RRSISD dataset')
     parser.add_argument('--refsegrs_root', type=str, default='../datagen/refsegrs/RefSegRS', help='Root directory of the RefSegRS dataset')
     parser.add_argument('--nwpu_root', type=str, default='../datagen/NWPU-Refer', help='Root directory of the NWPU-Refer dataset')
+    parser.add_argument('--urban1960_root', type=str, default='../datagen/Urban1960SatBench', help='Root directory of the Urban1960SatBench dataset')
     parser.add_argument('--seed', type=int, default=42, help='Random seed for patch selection')
     parser.add_argument('--historic', action='store_true', help='Apply historic transformations (Basic B&W, B&W + Grain, or Sepia + Noise) randomly to images before testing')
     
@@ -915,6 +916,197 @@ class NWPUDataset:
             return image, expression, mask, filename, sample_type, None, None
 
 
+class Urban1960Dataset:
+    def __init__(self, dataset_root, split='val', input_size=480, max_samples=None, seed=42, historic=False):
+        self.dataset_root = dataset_root
+        self.split = split
+        self.input_size = input_size
+        self.max_samples = max_samples
+        self.historic = historic  # Always False for Urban1960 (already historic imagery)
+        
+        # Set random seed
+        random.seed(seed)
+        
+        # Add transform to match model configuration
+        self.transform = T.Compose([
+            T.Resize((input_size, input_size)),
+            T.ToTensor(),
+            T.Normalize(mean=[0.485, 0.456, 0.406], 
+                       std=[0.229, 0.224, 0.225])
+        ])
+        
+        # Class mappings for referring expressions
+        self.class_expressions = {
+            # From Urban1960SatISP (Impervious Surface Product)
+            'ISP_0': "all natural areas and vegetation in the image",
+            'ISP_1': "all building and road areas in the image",
+            # From Urban1960SatSS (Semantic Segmentation) - skip background class 0
+            'SS_1': "all buildings in the image", 
+            'SS_2': "all roads in the image",
+            'SS_3': "all water in the image"
+        }
+        
+        # Process both ISP and SS subdatasets
+        self.samples = []
+        
+        # Process ISP dataset
+        isp_images_dir = os.path.join(dataset_root, 'Urban1960SatISP', 'image')
+        isp_masks_dir = os.path.join(dataset_root, 'Urban1960SatISP', 'mask_gt_ISP')
+        isp_split_file = os.path.join(dataset_root, 'Urban1960SatISP', f'labelled_{split}.txt')
+        
+        if os.path.exists(isp_split_file):
+            with open(isp_split_file, 'r') as f:
+                isp_image_names = [line.strip() for line in f if line.strip()]
+            
+            print(f"\nUrban1960 Dataset ({split} split):")
+            print(f"- ISP images in split: {len(isp_image_names)}")
+            
+            for image_name in isp_image_names:
+                # Early termination if we have enough samples for testing
+                if self.max_samples is not None and len(self.samples) >= self.max_samples * 2:
+                    print(f"  Early termination at {len(self.samples)} samples for ISP processing")
+                    break
+                    
+                image_path = os.path.join(isp_images_dir, f"{image_name}.png")
+                mask_path = os.path.join(isp_masks_dir, f"{image_name}.png")
+                
+                if not os.path.exists(image_path) or not os.path.exists(mask_path):
+                    continue
+                
+                # Load mask to determine which classes are present
+                try:
+                    mask_pil = Image.open(mask_path)
+                    mask_array = np.array(mask_pil)
+                    
+                    # Get unique class values in this mask (ISP has classes 0 and 1)
+                    unique_classes = np.unique(mask_array)
+                    isp_classes_added = 0
+                    for class_id in unique_classes:
+                        if class_id in [0, 1]:  # ISP classes
+                            self.samples.append({
+                                'image_name': image_name,
+                                'image_path': image_path,
+                                'mask_path': mask_path,
+                                'class_id': class_id,
+                                'dataset_type': 'ISP',
+                                'expression': self.class_expressions[f'ISP_{class_id}']
+                            })
+                            isp_classes_added += 1
+                    if isp_classes_added > 0:
+                        print(f"    Added {isp_classes_added} ISP classes from {image_name}: {unique_classes}")
+                            
+                except Exception as e:
+                    print(f"Warning: Error processing ISP {image_name}: {e}")
+                    continue
+        
+        # Process SS dataset
+        ss_images_dir = os.path.join(dataset_root, 'Urban1960SatSS', 'image')
+        ss_masks_dir = os.path.join(dataset_root, 'Urban1960SatSS', 'mask_gt')
+        ss_split_file = os.path.join(dataset_root, 'Urban1960SatSS', f'labelled_{split}.txt')
+        
+        if os.path.exists(ss_split_file):
+            with open(ss_split_file, 'r') as f:
+                ss_image_names = [line.strip() for line in f if line.strip()]
+            
+            print(f"- SS images in split: {len(ss_image_names)}")
+            
+            for image_name in ss_image_names:
+                # Early termination if we have enough samples for testing
+                if self.max_samples is not None and len(self.samples) >= self.max_samples * 2:
+                    print(f"  Early termination at {len(self.samples)} samples for SS processing")
+                    break
+                    
+                image_path = os.path.join(ss_images_dir, f"{image_name}.png")
+                mask_path = os.path.join(ss_masks_dir, f"{image_name}.png")
+                
+                if not os.path.exists(image_path) or not os.path.exists(mask_path):
+                    continue
+                
+                # Load mask to determine which classes are present
+                try:
+                    mask_pil = Image.open(mask_path)
+                    mask_array = np.array(mask_pil)
+                    
+                    # Get unique class values in this mask (SS classes 1-3, skip background class 0)
+                    unique_classes = np.unique(mask_array)
+                    for class_id in unique_classes:
+                        if class_id in [1, 2, 3]:  # SS classes, skip background (0)
+                            self.samples.append({
+                                'image_name': image_name,
+                                'image_path': image_path,
+                                'mask_path': mask_path,
+                                'class_id': class_id,
+                                'dataset_type': 'SS',
+                                'expression': self.class_expressions[f'SS_{class_id}']
+                            })
+                            
+                except Exception as e:
+                    print(f"Warning: Error processing SS {image_name}: {e}")
+                    continue
+        
+        # If max_samples is specified, randomly sample
+        if self.max_samples is not None and len(self.samples) > self.max_samples:
+            random.shuffle(self.samples)
+            self.samples = self.samples[:self.max_samples]
+        
+        print(f"- Total samples (class instances): {len(self.samples)}")
+        if self.max_samples is not None:
+            print(f"- Selected for processing: {len(self.samples)}")
+        
+        # Show class distribution
+        class_counts = {}
+        isp_total = 0
+        ss_total = 0
+        for sample in self.samples:
+            cls_key = f"{sample['dataset_type']}_{sample['class_id']}"
+            class_counts[cls_key] = class_counts.get(cls_key, 0) + 1
+            if sample['dataset_type'] == 'ISP':
+                isp_total += 1
+            elif sample['dataset_type'] == 'SS':
+                ss_total += 1
+        
+        print("- Dataset type distribution:")
+        print(f"  ISP samples: {isp_total}")
+        print(f"  SS samples: {ss_total}")
+        print("- Class distribution:")
+        for cls_key in sorted(class_counts.keys()):
+            expression = self.class_expressions[cls_key]
+            print(f"  {cls_key}: {class_counts[cls_key]} samples - '{expression}'")
+    
+    def __len__(self):
+        return len(self.samples)
+    
+    def __getitem__(self, idx):
+        sample = self.samples[idx]
+        
+        # Load image
+        image_pil = Image.open(sample['image_path']).convert('RGB')
+        
+        # No historic transformations (already historic imagery)
+        transformed_image = None
+        effect_name = None
+        
+        image = self.transform(image_pil)
+        
+        # Load mask and create binary mask for this specific class
+        mask_pil = Image.open(sample['mask_path'])
+        mask_array = np.array(mask_pil)
+        
+        # Create binary mask for the specific class
+        class_id = sample['class_id']
+        dataset_type = sample['dataset_type']
+        binary_mask = (mask_array == class_id).astype(np.uint8)
+        
+        # Convert to tensor and resize
+        mask = torch.from_numpy(binary_mask).float()
+        mask = T.Resize((self.input_size, self.input_size), antialias=True)(mask.unsqueeze(0)).squeeze(0)
+        
+        # Create filename for identification
+        filename = f"{sample['image_name']}_{dataset_type}_class{class_id}"
+        
+        return image, sample['expression'], mask, filename, 'individual', transformed_image, effect_name
+
+
 def test(model, test_loader, device, output_dir, num_vis=20, vis_only=False):
     model.eval()
     
@@ -1144,6 +1336,15 @@ def main():
             seed=args.seed,
             historic=args.historic
         )
+    elif args.dataset_type == 'urban1960':
+        val_dataset = Urban1960Dataset(
+            dataset_root=args.urban1960_root,
+            split='val',
+            input_size=args.input_size,
+            max_samples=max_samples,
+            seed=args.seed,
+            historic=False  # Always False for Urban1960 (already historic imagery)
+        )
     else:
         raise ValueError(f"Unknown dataset type: {args.dataset_type}")
     
@@ -1182,6 +1383,8 @@ def main():
         output_dir = os.path.join('./results', f'{args.model_name}_refsegrs{historic_suffix}')
     elif args.dataset_type == 'nwpu':
         output_dir = os.path.join('./results', f'{args.model_name}_nwpu{historic_suffix}')
+    elif args.dataset_type == 'urban1960':
+        output_dir = os.path.join('./results', f'{args.model_name}_urban1960{historic_suffix}')
     else:  # aeriald dataset
         output_dir = os.path.join('./results', f'{args.model_name}_aeriald{historic_suffix}')
     os.makedirs(output_dir, exist_ok=True)
