@@ -109,17 +109,19 @@ To evaluate the individual contributions of different expression enhancement str
 % Ablation expression types table
 \begin{table}[H]
 \centering
-\caption{Ablation Study: Expression Type Training Analysis}
+\caption{Ablation Study: Cross-Dataset Performance by Training Configuration}
 \label{tab:ablation_expression_types}
-{\footnotesize
-\begin{tabular}{@{}p{3.2cm}ccccccc@{}}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lc|ccc|ccc|ccc|ccc@{}}
 \toprule
-\textbf{Training Configuration} & \textbf{IoU@0.5} & \textbf{IoU@0.7} & \textbf{IoU@0.9} & \textbf{mIoU} & \textbf{oIoU} & \textbf{Unique Triplets} & \textbf{Epochs} \\
+\multirow{2}{*}{\textbf{Training Configuration}} & \multirow{2}{*}{\textbf{Samples}} & \multicolumn{3}{c|}{\textbf{Aerial-D}} & \multicolumn{3}{c|}{\textbf{RefSegRS}} & \multicolumn{3}{c|}{\textbf{RRSIS-D}} & \multicolumn{3}{c}{\textbf{NWPU-Refer}} \\
+\cmidrule(lr){3-5} \cmidrule(lr){6-8} \cmidrule(lr){9-11} \cmidrule(lr){12-14}
+ & & \textbf{Pass@0.7} & \textbf{mIoU} & \textbf{oIoU} & \textbf{Pass@0.7} & \textbf{mIoU} & \textbf{oIoU} & \textbf{Pass@0.7} & \textbf{mIoU} & \textbf{oIoU} & \textbf{Pass@0.7} & \textbf{mIoU} & \textbf{oIoU} \\
 \midrule
-Rule-based Only & -- & -- & -- & -- & -- & 506K & 3 \\
-Language Variations Only & -- & -- & -- & -- & -- & 497K & 3 \\
-Unique Expressions Only & -- & -- & -- & -- & -- & 519K & 3 \\
-Combined All & -- & -- & -- & -- & -- & 1,522K & 1 \\
+Rule-based Only & 506K × 3 & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
+Language Variations Only & 497K × 3 & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
+Unique Expressions Only & 519K × 3 & -- & -- & -- & 2.55\% & 18.32\% & 8.37\% & 20.86\% & 31.78\% & 33.73\% & 15.91\% & 24.68\% & 29.22\% \\
+Combined All & 1,522K × 1 & -- & -- & 50.3\% & 1.86\% & 18.80\% & 8.58\% & 23.39\% & 34.07\% & 34.80\% & 15.91\% & 24.57\% & 28.27\% \\
 \bottomrule
 \end{tabular}%
 }
