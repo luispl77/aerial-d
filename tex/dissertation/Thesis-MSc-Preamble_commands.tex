@@ -57,7 +57,7 @@
 \usepackage{booktabs}
 \usepackage{multirow}
 \usepackage{colortbl}
-\usepackage{spreadtab}
+%\usepackage{spreadtab}
 \usepackage{longtable}
 \usepackage{pdflscape}
 \usepackage{float}
@@ -115,9 +115,9 @@
 % -----------------------------------------------------------------------------
 % Create TODO Notes in text
 % The notes can be made invisible by just using the 'disable' option:
-\usepackage[textwidth=2cm, textsize=small]{todonotes}
+%\usepackage[textwidth=2cm, textsize=small]{todonotes}
 %\usepackage[textwidth=2cm, textsize=small, disable]{todonotes}
-\setlength{\marginparwidth}{2cm}
+%\setlength{\marginparwidth}{2cm}
 %
 % -----------------------------------------------------------------------------
 % PACKAGE changes
@@ -125,7 +125,7 @@
 % Track changes in document (changes in pdf preview).
 %% Use "final" option to make all tracking markups invisible.
 %\usepackage[authormarkup=superscript,authormarkuptext=id,markup=underlined,ulem={ULforem,normalbf},final]{changes}
-\usepackage[authormarkup=superscript,authormarkuptext=id,markup=underlined,ulem={ULforem,normalbf}]{changes}
+%\usepackage[authormarkup=superscript,authormarkuptext=id,markup=underlined,ulem={ULforem,normalbf}]{changes}
 % commands:
 % \added[id=xx]{text}
 % \deleted[id=xx]{text}
@@ -232,32 +232,32 @@
 % PACKAGE glossaries:
 % -----------------------------------------------------------------------------
 % Allows creating a list of terms with definitions for those terms
-\usepackage[xindy,nopostdot,symbols]{glossaries}
-\usepackage[symbols,automake]{glossaries-extra}
-\usepackage{glossary-longragged}
+%\usepackage[xindy,nopostdot,symbols]{glossaries}
+%\usepackage[symbols,automake]{glossaries-extra}
+%\usepackage{glossary-longragged}
 
 % Special style to print trailing dots before locations list
-\makeatletter
-\newglossarystyle{mystyle}{%
-  \setglossarystyle{altlist}%
-  \renewenvironment{theglossary}{%
-  \begin{description}[style=standard,labelindent=0pt,itemsep=5pt]%
-  }%
-  {\end{description}}
-  \renewcommand*{\glossentry}[2]{%
-    \item[\glsentryitem{##1}%
-      \glstarget{##1}{\glossentryname{##1}}]%
-      \mbox{}\par\nobreak\@afterheading
-      \glossentrydesc{##1}\glspostdescription
-      {\def\hfill{\hskip 25pt plus 3fill}\dotfill\mbox{ ##2}}%
-  }%
-  \renewcommand{\glsgroupskip}{}%
-}
-\makeatother
+%\makeatletter
+%\newglossarystyle{mystyle}{%
+%  \setglossarystyle{altlist}%
+%  \renewenvironment{theglossary}{%
+%  \begin{description}[style=standard,labelindent=0pt,itemsep=5pt]%
+%  }%
+%  {\end{description}}
+%  \renewcommand*{\glossentry}[2]{%
+%    \item[\glsentryitem{##1}%
+%      \glstarget{##1}{\glossentryname{##1}}]%
+%      \mbox{}\par\nobreak\@afterheading
+%      \glossentrydesc{##1}\glspostdescription
+%      {\def\hfill{\hskip 25pt plus 3fill}\dotfill\mbox{ ##2}}%
+%  }%
+%  \renewcommand{\glsgroupskip}{}%
+%}
+%\makeatother
 
-\makeglossaries
+%\makeglossaries
 % Glossary Terms and Symbols are defined in the following file:
-\input{./Chapters/Thesis-MSc-Glossary.tex}
+%\input{./Chapters/Thesis-MSc-Glossary.tex}
 % #############################################################################
 % GLOBAL FORMATTING OF THE THESIS DOCUMENT before using FANCY stuff
 % Load Titlepage definition

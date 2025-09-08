@@ -18,26 +18,10 @@ import torch.nn.functional as F
 from datetime import datetime
 import random
 from tqdm import tqdm
+import cv2
+import html
+import sys
 
-def calculate_grl_lambda(current_iter, total_iters, schedule='linear', max_lambda=1.0):
-    """Calculate gradient reversal lambda based on training progress"""
-    progress = current_iter / total_iters
-    
-    if schedule == 'constant':
-        return max_lambda
-    elif schedule == 'linear':
-        return progress * max_lambda
-    elif schedule == 'exponential':
-        # Exponential schedule: 2 / (1 + exp(-10 * progress)) - 1
-        return max_lambda * (2 / (1 + np.exp(-10 * progress)) - 1)
-    elif schedule == 'delayed':
-        # No GRL for first 70% of training, then gradual ramp
-        if progress < 0.7:
-            return 0.0
-        else:
-            return max_lambda * ((progress - 0.7) / 0.3) ** 2
-    else:
-        return max_lambda
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train aerial segmentation model with SigLIP+SAM')
@@ -65,12 +49,6 @@ def parse_args():
     parser.add_argument('--use_historic', action='store_true', default=True, help='Use historic (BW) images instead of normal color images')
     parser.add_argument('--use_transformed', action='store_true', help='Use transformed images (_5, _toD, _toP, _toL) when available')
     
-    # Domain adaptation arguments
-    parser.add_argument('--enable_domain_adaptation', action='store_true', help='Enable domain adversarial training')
-    parser.add_argument('--num_domains', type=int, default=3, help='Number of domains (iSAID=0, DeepGlobe=1, LoveDA=2)')
-    parser.add_argument('--domain_loss_weight', type=float, default=0.02, help='Weight for domain adversarial loss')
-    parser.add_argument('--grl_lambda_schedule', type=str, default='delayed', choices=['constant', 'linear', 'exponential', 'delayed'], help='GRL lambda scheduling')
-    parser.add_argument('--grl_max_lambda', type=float, default=0.5, help='Maximum lambda value for gradient reversal')
     
     # Mid-epoch checkpointing
     parser.add_argument('--save_mid_epoch_checkpoints', action='store_true', help='Save checkpoints at 25%, 50%, 75% of each epoch')
@@ -82,14 +60,19 @@ def parse_args():
     parser.add_argument('--enhanced_only', action='store_true', help='Train only on enhanced expressions (type="enhanced" in XML). Validation still uses all expressions.')
     parser.add_argument('--one_unique_per_obj', action='store_true', help='If set along with --unique_only, only one unique expression per object/group will be used for training.')
     
-    # Balanced batch sampling
-    parser.add_argument('--balanced_batch_sampling', action='store_true', help='Enable balanced batch sampling for domain adaptation. Only active if --enable_domain_adaptation is also set.')
     
     # Dataset filtering
     parser.add_argument('--dataset_filter', type=str, choices=['isaid', 'loveda', 'deepglobe'], help='Train only on samples from a specific dataset (isaid, loveda, or deepglobe)')
     
     # Custom folder naming
     parser.add_argument('--custom_name', type=str, help='Override the default auto-generated folder name for models and visualizations with a custom name')
+    
+    # Multi-dataset training
+    parser.add_argument('--use_all_datasets', action='store_true', help='Train on AerialD + 4 additional datasets (RRSISD, RefSegRS, NWPU, Urban1960). Expression filtering flags still apply to AerialD only.')
+    parser.add_argument('--rrsisd_root', type=str, default='../datagen/rrsisd', help='Root directory of the RRSISD dataset')
+    parser.add_argument('--refsegrs_root', type=str, default='../datagen/refsegrs/RefSegRS', help='Root directory of the RefSegRS dataset')
+    parser.add_argument('--nwpu_root', type=str, default='../datagen/NWPU-Refer', help='Root directory of the NWPU-Refer dataset')
+    parser.add_argument('--urban1960_root', type=str, default='../datagen/Urban1960SatBench', help='Root directory of the Urban1960SatBench dataset')
     
     return parser.parse_args()
 
@@ -278,10 +261,6 @@ def train(
     weight_decay=0.01,
     max_grad_norm=1.0,
     grad_accum_steps=1,
-    enable_domain_adaptation=False,
-    domain_loss_weight=0.1,
-    grl_lambda_schedule='linear',
-    grl_max_lambda=1.0,
     save_mid_epoch_checkpoints=False,
     mid_epoch_intervals=4
 ):
@@ -327,49 +306,22 @@ def train(
             checkpoint_intervals = []
         
         for batch_idx, batch_data in enumerate(train_loader):
-            # Handle variable batch returns (with or without domain labels)
-            if enable_domain_adaptation:
-                images, texts, masks, sample_types, domain_labels = batch_data
-                domain_labels = domain_labels.to(device, non_blocking=True)
-            else:
-                images, texts, masks, sample_types = batch_data
-                domain_labels = None
+            # Handle batch data
+            images, texts, masks, sample_types = batch_data
             
             # Update learning rate using polynomial decay
             if batch_idx % grad_accum_steps == 0:
                 poly_lr = initial_lr * (1 - current_iter / total_iters) ** power
                 for param_group in optimizer.param_groups:
                     param_group['lr'] = poly_lr
-                    
-                # Update gradient reversal lambda if using domain adaptation
-                if enable_domain_adaptation:
-                    grl_lambda = calculate_grl_lambda(
-                        current_iter, total_iters, 
-                        grl_lambda_schedule, grl_max_lambda
-                    )
-                    model.set_gradient_reversal_lambda(grl_lambda)
             
             images = images.to(device, non_blocking=True)
             masks = masks.to(device, non_blocking=True)
             
             with torch.amp.autocast(device_type='cuda'):
-                if enable_domain_adaptation and domain_labels is not None:
-                    # Forward pass with domain labels
-                    outputs, domain_logits = model(images, texts, domain_labels)
-                    
-                    # Compute segmentation loss
-                    seg_loss = model.compute_loss(outputs, masks, lambda_ce=0.9)
-                    
-                    # Compute domain loss
-                    domain_loss = model.compute_domain_loss(domain_logits, domain_labels)
-                    
-                    # Combined loss
-                    loss = seg_loss + domain_loss_weight * domain_loss
-                else:
-                    # Standard forward pass
-                    outputs = model(images, texts)
-                    loss = model.compute_loss(outputs, masks, lambda_ce=0.9)
-                    domain_loss = torch.tensor(0.0, device=device)
+                # Forward pass
+                outputs = model(images, texts)
+                loss = model.compute_loss(outputs, masks, lambda_ce=0.9)
                 
                 # Scale the loss by the number of accumulation steps
                 loss = loss / grad_accum_steps
@@ -402,10 +354,7 @@ def train(
                 
                 # Log the accumulated loss
                 epoch_loss += accumulated_loss
-                if enable_domain_adaptation:
-                    print(f"Batch {batch_idx} - Loss: {accumulated_loss:.4f} - IoU: {batch_metrics['iou']:.4f} - LR: {poly_lr:.6f} - GRL λ: {grl_lambda:.3f}")
-                else:
-                    print(f"Batch {batch_idx} - Loss: {accumulated_loss:.4f} - IoU: {batch_metrics['iou']:.4f} - LR: {poly_lr:.6f}")
+                print(f"Batch {batch_idx} - Loss: {accumulated_loss:.4f} - IoU: {batch_metrics['iou']:.4f} - LR: {poly_lr:.6f}")
                 accumulated_loss = 0
                 
                 # Increment iteration counter
@@ -439,17 +388,14 @@ def train(
         print("\nValidating...")
         with torch.no_grad():
             for batch_idx, batch_data in enumerate(val_loader):
-                # Handle variable batch returns (with or without domain labels)
-                if enable_domain_adaptation:
-                    images, texts, masks, sample_types, domain_labels = batch_data
-                else:
-                    images, texts, masks, sample_types = batch_data
+                # Handle batch data
+                images, texts, masks, sample_types = batch_data
                 
                 images = images.to(device, non_blocking=True)
                 masks = masks.to(device, non_blocking=True)
                 
                 with torch.amp.autocast(device_type='cuda'):
-                    # For validation, we don't use domain adaptation (no domain labels passed)
+                    # Forward pass
                     outputs = model(images, texts)
                     loss = model.compute_loss(outputs, masks, lambda_ce=0.9)
                 
@@ -501,63 +447,9 @@ def train(
                 f.write(f"\n=== NEW BEST MODEL AT EPOCH {epoch} ===\n")
                 f.write(f"IoU: {best_iou:.6f}\n")
 
-class DomainBalancedSampler(torch.utils.data.Sampler):
-    """
-    Custom sampler to ensure each batch contains a balanced number of samples
-    from each domain.
-    """
-    def __init__(self, data_source, batch_size, num_domains):
-        self.data_source = data_source
-        self.batch_size = batch_size
-        self.num_domains = num_domains
-        
-        # Group indices by domain
-        self.indices_by_domain = [[] for _ in range(num_domains)]
-        for idx, obj in enumerate(data_source.objects):
-            domain_label = obj.get('domain_label', 0)
-            self.indices_by_domain[domain_label].append(idx)
-            
-        # Calculate samples per domain for each batch
-        self.samples_per_domain = self.batch_size // self.num_domains
-        
-        # Total number of batches is determined by the largest domain to ensure all samples are seen
-        self.num_batches = len(data_source) // self.batch_size
-        
-        print("\nDomainBalancedSampler initialized:")
-        for i in range(num_domains):
-            print(f"- Domain {i}: {len(self.indices_by_domain[i])} samples")
-        print(f"- Batch size: {self.batch_size}")
-        print(f"- Samples per domain per batch: {self.samples_per_domain}")
-        print(f"- Total batches per epoch: {self.num_batches}\n")
-
-    def __iter__(self):
-        # Shuffle indices for each domain at the start of each epoch
-        domain_iters = [iter(torch.randperm(len(indices)).tolist()) for indices in self.indices_by_domain]
-        
-        for _ in range(self.num_batches):
-            batch_indices = []
-            for domain_id in range(self.num_domains):
-                for _ in range(self.samples_per_domain):
-                    try:
-                        # Get the next shuffled index
-                        shuffled_idx = next(domain_iters[domain_id])
-                        # Get the actual dataset index
-                        batch_indices.append(self.indices_by_domain[domain_id][shuffled_idx])
-                    except StopIteration:
-                        # If a domain runs out of samples, reshuffle and start over
-                        domain_iters[domain_id] = iter(torch.randperm(len(self.indices_by_domain[domain_id])).tolist())
-                        shuffled_idx = next(domain_iters[domain_id])
-                        batch_indices.append(self.indices_by_domain[domain_id][shuffled_idx])
-            
-            # Shuffle the final batch to mix domains
-            random.shuffle(batch_indices)
-            yield batch_indices
-
-    def __len__(self):
-        return self.num_batches
 
 def get_domain_from_filename(filename):
-    """Determine domain based on annotation filename prefix"""
+    """Determine domain based on annotation filename prefix for dataset filtering"""
     filename = filename.upper()
     if filename.startswith('D'):
         return 1  # DeepGlobe
@@ -603,12 +495,11 @@ def find_transformed_image(image_dir, base_filename):
     return None, None
 
 class SimpleDataset:
-    def __init__(self, dataset_root, split='train', input_size=512, use_historic=False, enable_domain_adaptation=False, unique_only=False, original_only=False, enhanced_only=False, one_unique_per_obj=False, use_transformed=False, dataset_filter=None):
+    def __init__(self, dataset_root, split='train', input_size=512, use_historic=False, unique_only=False, original_only=False, enhanced_only=False, one_unique_per_obj=False, use_transformed=False, dataset_filter=None):
         self.dataset_root = dataset_root
         self.split = split
         self.input_size = input_size
         self.use_historic = use_historic
-        self.enable_domain_adaptation = enable_domain_adaptation
         self.unique_only = unique_only
         self.original_only = original_only
         self.enhanced_only = enhanced_only
@@ -663,9 +554,8 @@ class SimpleDataset:
             tree = ET.parse(xml_path)
             root = tree.getroot()
             
-            # Get image filename and determine domain from XML filename
+            # Get image filename
             filename = root.find('filename').text
-            domain_label = get_domain_from_filename(xml_file) if self.enable_domain_adaptation else None
             
             # Determine which image to use based on flags
             if self.use_transformed:
@@ -781,8 +671,6 @@ class SimpleDataset:
                             'category': name,
                             'type': 'individual'
                         }
-                        if self.enable_domain_adaptation:
-                            obj_data['domain_label'] = domain_label
                         self.objects.append(obj_data)
             
             # Process groups
@@ -864,8 +752,6 @@ class SimpleDataset:
                             'category': category,
                             'type': 'group'
                         }
-                        if self.enable_domain_adaptation:
-                            obj_data['domain_label'] = domain_label
                         self.objects.append(obj_data)
         
         print(f"\nDataset statistics:")
@@ -887,17 +773,6 @@ class SimpleDataset:
         else:
             print(f"- Expression filtering: ALL EXPRESSIONS")
         
-        # Print domain distribution if domain adaptation is enabled
-        if self.enable_domain_adaptation:
-            domain_counts = {0: 0, 1: 0, 2: 0}  # iSAID, DeepGlobe, LoveDA
-            for obj in self.objects:
-                domain_label = obj.get('domain_label', 0)
-                domain_counts[domain_label] += 1
-            
-            domain_names = {0: 'iSAID', 1: 'DeepGlobe', 2: 'LoveDA'}
-            print(f"\nDomain distribution:")
-            for domain_id, count in domain_counts.items():
-                print(f"- {domain_names[domain_id]} (ID {domain_id}): {count} samples")
     
     def __len__(self):
         return len(self.objects)
@@ -925,11 +800,587 @@ class SimpleDataset:
         mask = torch.from_numpy(binary_mask).float()
         mask = T.Resize((self.input_size, self.input_size), antialias=True)(mask.unsqueeze(0)).squeeze(0)
         
-        if self.enable_domain_adaptation:
-            domain_label = obj.get('domain_label', 0)  # Default to 0 (iSAID) if not found
-            return image, obj['expression'], mask, obj['type'], domain_label
-        else:
-            return image, obj['expression'], mask, obj['type']
+        return image, obj['expression'], mask, obj['type']
+
+
+# Additional dataset classes for multi-dataset training
+class RRSISDDataset:
+    def __init__(self, dataset_root, split='train', input_size=512):
+        self.dataset_root = dataset_root
+        self.split = split
+        self.input_size = input_size
+        
+        # Set paths for RRSISD structure
+        self.ann_dir = os.path.join(dataset_root, 'images', 'rrsisd', 'ann_split')
+        self.image_dir = os.path.join(dataset_root, 'images', 'rrsisd', 'JPEGImages')
+        
+        # Add transform to match model configuration  
+        self.transform = T.Compose([
+            T.Resize((input_size, input_size)),
+            T.ToTensor(),
+            T.Normalize(mean=[0.485, 0.456, 0.406], 
+                       std=[0.229, 0.224, 0.225])
+        ])
+        
+        # Load JSON annotations (contains the correct RLE masks)
+        json_path = os.path.join(dataset_root, 'instances.json')
+        if not os.path.exists(json_path):
+            raise FileNotFoundError(f"JSON file not found at {json_path}")
+            
+        with open(json_path, 'r') as f:
+            json_data = json.load(f)
+        
+        # Create lookup dict from JSON for fast access
+        self.json_annotations = {ann['image_id']: ann for ann in json_data['annotations']}
+        
+        # Get list of XML files for the specified split
+        all_xml_files = [f for f in os.listdir(self.ann_dir) if f.endswith('.xml')]
+        
+        print(f"\nProcessing RRSISD {split} split from {len(all_xml_files)} XML files...")
+        
+        # Store samples with proper mask loading
+        self.samples = []
+        
+        for xml_file in tqdm(all_xml_files, desc=f"Processing RRSISD {split} XML files"):
+            # Extract image_id from XML filename (e.g., "00001.xml" -> 1)
+            try:
+                image_id = int(xml_file.replace('.xml', ''))
+            except ValueError:
+                continue
+                
+            xml_path = os.path.join(self.ann_dir, xml_file)
+            
+            try:
+                tree = ET.parse(xml_path)
+                root = tree.getroot()
+                
+                # Check if this XML is for the requested split
+                xml_split = root.find('split').text
+                if xml_split != split:
+                    continue
+                
+                # Check if we have JSON annotation for this image
+                if image_id not in self.json_annotations:
+                    continue
+                    
+                ann = self.json_annotations[image_id]
+                image_path = os.path.join(self.image_dir, f"{image_id:05d}.jpg")
+                
+                if not os.path.exists(image_path):
+                    continue
+                
+                # Get JSON bbox coordinates [x1, y1, x2, y2]
+                json_bbox = ann['bbox']
+                
+                # Find matching object in XML by exact bbox match
+                matched_description = None
+                for obj in root.findall('object'):
+                    bbox = obj.find('bndbox')
+                    desc = obj.find('description')
+                    
+                    if bbox is not None and desc is not None and desc.text:
+                        # Get XML bbox coordinates
+                        xmin = int(bbox.find('xmin').text)
+                        ymin = int(bbox.find('ymin').text)
+                        xmax = int(bbox.find('xmax').text)
+                        ymax = int(bbox.find('ymax').text)
+                        xml_bbox = [xmin, ymin, xmax, ymax]
+                        
+                        # Check for exact match
+                        if xml_bbox == json_bbox:
+                            matched_description = desc.text
+                            break
+                
+                if matched_description is None:
+                    # Fallback to generic description
+                    matched_description = "the object in the image"
+                
+                # Get mask from RLE in JSON (this is the correct mask!)
+                rle = ann['segmentation'][0]
+                
+                # Add sample
+                sample_data = {
+                    'image_path': image_path,
+                    'expression': matched_description,
+                    'segmentation': rle,  # RLE from JSON, not XML
+                    'image_id': image_id,
+                    'bbox': json_bbox
+                }
+                self.samples.append(sample_data)
+                
+            except Exception as e:
+                print(f"Warning: Error processing {xml_file}: {e}")
+                continue
+        
+        print(f"RRSISD Dataset ({split} split):")
+        print(f"- Total valid samples: {len(self.samples)}")
+    
+    def __len__(self):
+        return len(self.samples)
+    
+    def __getitem__(self, idx):
+        sample = self.samples[idx]
+        
+        # Load image
+        image = Image.open(sample['image_path']).convert('RGB')
+        image = self.transform(image)
+        
+        # Decode mask from RLE
+        binary_mask = mask_utils.decode(sample['segmentation'])
+        mask = torch.from_numpy(binary_mask).float()
+        mask = T.Resize((self.input_size, self.input_size), antialias=True)(mask.unsqueeze(0)).squeeze(0)
+        
+        return image, sample['expression'], mask, 'individual'
+
+
+class RefSegRSDataset:
+    def __init__(self, dataset_root, split='train', input_size=512):
+        self.dataset_root = dataset_root
+        self.split = split
+        self.input_size = input_size
+        
+        # Set paths for RefSegRS structure
+        self.images_dir = os.path.join(dataset_root, 'images')
+        self.masks_dir = os.path.join(dataset_root, 'masks')
+        
+        # Add transform to match model configuration
+        self.transform = T.Compose([
+            T.Resize((input_size, input_size)),
+            T.ToTensor(),
+            T.Normalize(mean=[0.485, 0.456, 0.406], 
+                       std=[0.229, 0.224, 0.225])
+        ])
+        
+        # Load referring expressions from txt files
+        self.expressions = self._load_expressions(f'output_phrase_{split}.txt')
+        
+        print(f"\nRefSegRS Dataset ({split} split):")
+        print(f"- Total expressions: {len(self.expressions)}")
+        
+        # Convert to list of samples
+        self.samples = []
+        for expr_id, expr_data in self.expressions.items():
+            image_id = expr_data['image_id']
+            expression = expr_data['expression']
+            
+            # Check if both image and mask exist
+            image_path = os.path.join(self.images_dir, f"{image_id}.tif")
+            mask_path = os.path.join(self.masks_dir, f"{image_id}.tif")
+            
+            if os.path.exists(image_path) and os.path.exists(mask_path):
+                sample_data = {
+                    'expr_id': expr_id,
+                    'image_id': image_id,
+                    'image_path': image_path,
+                    'mask_path': mask_path,
+                    'expression': expression
+                }
+                self.samples.append(sample_data)
+        
+        print(f"- Valid samples (with existing files): {len(self.samples)}")
+    
+    def _load_expressions(self, filename):
+        """Load referring expressions from txt file."""
+        expressions = {}
+        txt_path = os.path.join(self.dataset_root, filename)
+        
+        if not os.path.exists(txt_path):
+            print(f"Warning: {txt_path} not found")
+            return expressions
+            
+        with open(txt_path, 'r') as f:
+            for line_num, line in enumerate(f, 1):
+                line = line.strip()
+                if line and ' ' in line:
+                    parts = line.split(' ', 1)
+                    try:
+                        image_id = int(parts[0])
+                        expression = parts[1]
+                        expressions[line_num] = {
+                            'image_id': image_id,
+                            'expression': expression
+                        }
+                    except ValueError:
+                        continue
+        return expressions
+    
+    def __len__(self):
+        return len(self.samples)
+    
+    def __getitem__(self, idx):
+        sample = self.samples[idx]
+        
+        # Load image with PIL to handle .tif format
+        image = Image.open(sample['image_path']).convert('RGB')
+        image = self.transform(image)
+        
+        # Load mask with PIL to handle .tif format
+        mask_pil = Image.open(sample['mask_path'])
+        mask_array = np.array(mask_pil)
+        
+        # Convert to grayscale if needed (RefSegRS masks might be 3-channel)
+        if len(mask_array.shape) == 3:
+            mask_array = cv2.cvtColor(mask_array, cv2.COLOR_RGB2GRAY)
+        
+        # Convert to binary (0 or 1)
+        mask_array = (mask_array > 127).astype(np.uint8)
+        
+        # Convert to tensor and resize
+        mask = torch.from_numpy(mask_array).float()
+        mask = T.Resize((self.input_size, self.input_size), antialias=True)(mask.unsqueeze(0)).squeeze(0)
+        
+        return image, sample['expression'], mask, 'individual'
+
+
+class NWPUDataset:
+    def __init__(self, dataset_root, split='train', input_size=512):
+        self.dataset_root = dataset_root
+        self.split = split
+        self.input_size = input_size
+        
+        # Import the NWPUReferProcessor from our processing script
+        sys.path.append('../datagen/utils')
+        try:
+            from process_nwpu_refer import NWPUReferProcessor
+            
+            # Initialize the processor
+            self.processor = NWPUReferProcessor(dataset_root)
+            
+            # Add transform to match model configuration
+            self.transform = T.Compose([
+                T.Resize((input_size, input_size)),
+                T.ToTensor(),
+                T.Normalize(mean=[0.485, 0.456, 0.406], 
+                           std=[0.229, 0.224, 0.225])
+            ])
+            
+            # Get dataset info
+            self.dataset_info = self.processor.get_dataset_info()
+            
+            # Get total samples for the split
+            total_samples = self.dataset_info[f'{split}_samples']
+            
+            # Create list of indices for the split
+            self.sample_indices = list(range(total_samples))
+            
+            print(f"\nNWPU-Refer Dataset ({split} split):")
+            print(f"- Total samples in split: {total_samples}")
+            print(f"- Samples to process: {len(self.sample_indices)}")
+            
+        except ImportError as e:
+            print(f"Warning: Could not import NWPUReferProcessor: {e}")
+            print("NWPU dataset will be empty.")
+            self.processor = None
+            self.sample_indices = []
+    
+    def __len__(self):
+        return len(self.sample_indices) if self.processor else 0
+    
+    def __getitem__(self, idx):
+        if not self.processor:
+            # Return dummy data if processor failed to load
+            dummy_image = torch.zeros(3, self.input_size, self.input_size)
+            dummy_mask = torch.zeros(self.input_size, self.input_size)
+            return dummy_image, "error loading sample", dummy_mask, 'individual'
+        
+        # Get the actual sample index
+        sample_idx = self.sample_indices[idx]
+        
+        # Get sample from processor
+        sample = self.processor.get_sample(self.split, sample_idx)
+        
+        if sample is None:
+            # If sample loading fails, create a dummy sample
+            dummy_image = torch.zeros(3, self.input_size, self.input_size)
+            dummy_mask = torch.zeros(self.input_size, self.input_size)
+            return dummy_image, "error loading sample", dummy_mask, 'individual'
+        
+        # Convert image to PIL and apply transform
+        image_pil = Image.fromarray(sample['image']).convert('RGB')
+        image = self.transform(image_pil)
+        
+        # Convert mask to tensor and resize
+        mask = torch.from_numpy(sample['mask']).float()
+        # Normalize mask to 0-1 range
+        mask = mask / 255.0 if mask.max() > 1.0 else mask
+        mask = T.Resize((self.input_size, self.input_size), antialias=True)(mask.unsqueeze(0)).squeeze(0)
+        
+        # Get expression
+        expression = sample['expression']
+        
+        # Determine type based on number of objects
+        sample_type = 'group' if sample['num_objects'] > 1 else 'individual'
+        
+        return image, expression, mask, sample_type
+
+
+class Urban1960Dataset:
+    def __init__(self, dataset_root, split='train', input_size=512):
+        self.dataset_root = dataset_root
+        self.split = split
+        self.input_size = input_size
+        
+        # Add transform to match model configuration
+        self.transform = T.Compose([
+            T.Resize((input_size, input_size)),
+            T.ToTensor(),
+            T.Normalize(mean=[0.485, 0.456, 0.406], 
+                       std=[0.229, 0.224, 0.225])
+        ])
+        
+        # Class mappings for referring expressions
+        self.class_expressions = {
+            # From Urban1960SatISP (Impervious Surface Product)
+            'ISP_0': "all natural areas and vegetation in the image",
+            'ISP_1': "all building and road areas in the image",
+            # From Urban1960SatSS (Semantic Segmentation) - skip background class 0
+            'SS_1': "all building areas in the image", 
+            'SS_2': "all roads in the image",
+            'SS_3': "all water in the image"
+        }
+        
+        # Process both ISP and SS subdatasets
+        self.samples = []
+        
+        # Process ISP dataset
+        isp_images_dir = os.path.join(dataset_root, 'Urban1960SatISP', 'image')
+        isp_masks_dir = os.path.join(dataset_root, 'Urban1960SatISP', 'mask_gt_ISP')
+        isp_split_file = os.path.join(dataset_root, 'Urban1960SatISP', f'labelled_{split}.txt')
+        
+        if os.path.exists(isp_split_file):
+            with open(isp_split_file, 'r') as f:
+                isp_image_names = [line.strip() for line in f if line.strip()]
+            
+            print(f"\nUrban1960 Dataset ({split} split):")
+            print(f"- ISP images in split: {len(isp_image_names)}")
+            
+            for image_name in isp_image_names:
+                image_path = os.path.join(isp_images_dir, f"{image_name}.png")
+                mask_path = os.path.join(isp_masks_dir, f"{image_name}.png")
+                
+                if not os.path.exists(image_path) or not os.path.exists(mask_path):
+                    continue
+                
+                # Load mask to determine which classes are present
+                try:
+                    mask_pil = Image.open(mask_path)
+                    mask_array = np.array(mask_pil)
+                    
+                    # Get unique class values in this mask (ISP has classes 0 and 1)
+                    unique_classes = np.unique(mask_array)
+                    for class_id in unique_classes:
+                        if class_id in [0, 1]:  # ISP classes
+                            sample_data = {
+                                'image_name': image_name,
+                                'image_path': image_path,
+                                'mask_path': mask_path,
+                                'class_id': class_id,
+                                'dataset_type': 'ISP',
+                                'expression': self.class_expressions[f'ISP_{class_id}']
+                            }
+                            self.samples.append(sample_data)
+                            
+                except Exception as e:
+                    print(f"Warning: Error processing ISP {image_name}: {e}")
+                    continue
+        
+        # Process SS dataset
+        ss_images_dir = os.path.join(dataset_root, 'Urban1960SatSS', 'image')
+        ss_masks_dir = os.path.join(dataset_root, 'Urban1960SatSS', 'mask_gt')
+        ss_split_file = os.path.join(dataset_root, 'Urban1960SatSS', f'labelled_{split}.txt')
+        
+        if os.path.exists(ss_split_file):
+            with open(ss_split_file, 'r') as f:
+                ss_image_names = [line.strip() for line in f if line.strip()]
+            
+            print(f"- SS images in split: {len(ss_image_names)}")
+            
+            for image_name in ss_image_names:
+                image_path = os.path.join(ss_images_dir, f"{image_name}.png")
+                mask_path = os.path.join(ss_masks_dir, f"{image_name}.png")
+                
+                if not os.path.exists(image_path) or not os.path.exists(mask_path):
+                    continue
+                
+                # Load mask to determine which classes are present
+                try:
+                    mask_pil = Image.open(mask_path)
+                    mask_array = np.array(mask_pil)
+                    
+                    # Get unique class values in this mask (SS classes 1-3, skip background class 0)
+                    unique_classes = np.unique(mask_array)
+                    for class_id in unique_classes:
+                        if class_id in [1, 2, 3]:  # SS classes, skip background (0)
+                            sample_data = {
+                                'image_name': image_name,
+                                'image_path': image_path,
+                                'mask_path': mask_path,
+                                'class_id': class_id,
+                                'dataset_type': 'SS',
+                                'expression': self.class_expressions[f'SS_{class_id}']
+                            }
+                            self.samples.append(sample_data)
+                            
+                except Exception as e:
+                    print(f"Warning: Error processing SS {image_name}: {e}")
+                    continue
+        
+        print(f"- Total samples (class instances): {len(self.samples)}")
+        
+        # Show class distribution
+        class_counts = {}
+        isp_total = 0
+        ss_total = 0
+        for sample in self.samples:
+            cls_key = f"{sample['dataset_type']}_{sample['class_id']}"
+            class_counts[cls_key] = class_counts.get(cls_key, 0) + 1
+            if sample['dataset_type'] == 'ISP':
+                isp_total += 1
+            elif sample['dataset_type'] == 'SS':
+                ss_total += 1
+        
+        print("- Dataset type distribution:")
+        print(f"  ISP samples: {isp_total}")
+        print(f"  SS samples: {ss_total}")
+        print("- Class distribution:")
+        for cls_key in sorted(class_counts.keys()):
+            expression = self.class_expressions[cls_key]
+            print(f"  {cls_key}: {class_counts[cls_key]} samples - '{expression}'")
+    
+    def __len__(self):
+        return len(self.samples)
+    
+    def __getitem__(self, idx):
+        sample = self.samples[idx]
+        
+        # Load image
+        image = Image.open(sample['image_path']).convert('RGB')
+        image = self.transform(image)
+        
+        # Load mask and create binary mask for this specific class
+        mask_pil = Image.open(sample['mask_path'])
+        mask_array = np.array(mask_pil)
+        
+        # Create binary mask for the specific class
+        class_id = sample['class_id']
+        binary_mask = (mask_array == class_id).astype(np.uint8)
+        
+        # Convert to tensor and resize
+        mask = torch.from_numpy(binary_mask).float()
+        mask = T.Resize((self.input_size, self.input_size), antialias=True)(mask.unsqueeze(0)).squeeze(0)
+        
+        return image, sample['expression'], mask, 'individual'
+
+
+class CombinedDataset:
+    """Combined dataset that merges AerialD with additional datasets."""
+    def __init__(self, dataset_root, split='train', input_size=512, use_historic=False, 
+                 unique_only=False, original_only=False, enhanced_only=False, 
+                 one_unique_per_obj=False, use_transformed=False, dataset_filter=None, 
+                 additional_datasets=None):
+        
+        self.datasets = []
+        self.dataset_names = []
+        self.cumulative_lengths = []
+        
+        # Always add AerialD dataset first
+        print("="*60)
+        print("LOADING AERIALD DATASET")
+        print("="*60)
+        
+        aeriald_dataset = SimpleDataset(
+            dataset_root=dataset_root,
+            split=split,
+            input_size=input_size,
+            use_historic=use_historic,
+            unique_only=unique_only,
+            original_only=original_only,
+            enhanced_only=enhanced_only,
+            one_unique_per_obj=one_unique_per_obj,
+            use_transformed=use_transformed,
+            dataset_filter=dataset_filter
+        )
+        
+        self.datasets.append(aeriald_dataset)
+        self.dataset_names.append("AerialD")
+        current_length = len(aeriald_dataset)
+        self.cumulative_lengths.append(current_length)
+        
+        # Add additional datasets if provided
+        if additional_datasets:
+            for dataset_config in additional_datasets:
+                dataset_type = dataset_config['type']
+                dataset_root = dataset_config['root']
+                
+                print("="*60)
+                print(f"LOADING {dataset_type.upper()} DATASET")
+                print("="*60)
+                
+                try:
+                    if dataset_type == 'rrsisd':
+                        dataset = RRSISDDataset(
+                            dataset_root=dataset_root,
+                            split=split,
+                            input_size=input_size
+                        )
+                    elif dataset_type == 'refsegrs':
+                        dataset = RefSegRSDataset(
+                            dataset_root=dataset_root,
+                            split=split,
+                            input_size=input_size
+                        )
+                    elif dataset_type == 'nwpu':
+                        dataset = NWPUDataset(
+                            dataset_root=dataset_root,
+                            split=split,
+                            input_size=input_size
+                        )
+                    elif dataset_type == 'urban1960':
+                        dataset = Urban1960Dataset(
+                            dataset_root=dataset_root,
+                            split=split,
+                            input_size=input_size
+                        )
+                    else:
+                        print(f"Warning: Unknown dataset type {dataset_type}, skipping...")
+                        continue
+                    
+                    self.datasets.append(dataset)
+                    self.dataset_names.append(dataset_type.upper())
+                    current_length += len(dataset)
+                    self.cumulative_lengths.append(current_length)
+                    
+                except Exception as e:
+                    print(f"Warning: Failed to load {dataset_type} dataset: {e}")
+                    print("Continuing with other datasets...")
+                    continue
+        
+        # Print summary
+        print("="*60)
+        print("COMBINED DATASET SUMMARY")
+        print("="*60)
+        total_samples = 0
+        for i, (name, dataset) in enumerate(zip(self.dataset_names, self.datasets)):
+            dataset_length = len(dataset)
+            total_samples += dataset_length
+            print(f"- {name}: {dataset_length:,} samples")
+        
+        print(f"\nTotal combined samples: {total_samples:,}")
+        print("="*60)
+    
+    def __len__(self):
+        return self.cumulative_lengths[-1] if self.cumulative_lengths else 0
+    
+    def __getitem__(self, idx):
+        # Find which dataset this index belongs to
+        for i, cum_len in enumerate(self.cumulative_lengths):
+            if idx < cum_len:
+                # Calculate the local index within the dataset
+                local_idx = idx - (self.cumulative_lengths[i-1] if i > 0 else 0)
+                return self.datasets[i][local_idx]
+        
+        # Should never reach here
+        raise IndexError(f"Index {idx} out of range for combined dataset of length {len(self)}")
 
 def save_run_details(args, run_id, model_name, effective_batch_size, train_dataset, val_dataset, vis_dir):
     """
@@ -972,16 +1423,6 @@ def save_run_details(args, run_id, model_name, effective_batch_size, train_datas
         if args.save_mid_epoch_checkpoints:
             f.write(f"Checkpoint Intervals: {args.mid_epoch_intervals}\n")
         
-        if args.enable_domain_adaptation:
-            f.write(f"\n===== DOMAIN ADAPTATION =====\n")
-            f.write(f"Enabled: Yes\n")
-            f.write(f"Number of Domains: {args.num_domains}\n")
-            f.write(f"Domain Loss Weight: {args.domain_loss_weight}\n")
-            f.write(f"GRL Lambda Schedule: {args.grl_lambda_schedule}\n")
-            f.write(f"GRL Max Lambda: {args.grl_max_lambda}\n\n")
-        else:
-            f.write(f"\n===== DOMAIN ADAPTATION =====\n")
-            f.write(f"Enabled: No\n\n")
         
         f.write(f"===== DATASET INFORMATION =====\n")
         f.write(f"Training Samples: {len(train_dataset)}\n")
@@ -997,6 +1438,18 @@ def save_run_details(args, run_id, model_name, effective_batch_size, train_datas
             f.write(f"Dataset Filter: {args.dataset_filter} only\n")
         else:
             f.write(f"Dataset Filter: All datasets\n")
+        f.write(f"\n===== MULTI-DATASET INFORMATION =====\n")
+        f.write(f"Multi-Dataset Training: {args.use_all_datasets}\n")
+        if args.use_all_datasets:
+            f.write(f"Datasets Used:\n")
+            f.write(f"  - AerialD (Primary): {args.dataset_root if hasattr(args, 'dataset_root') else './aeriald'}\n")
+            f.write(f"  - RRSISD: {args.rrsisd_root}\n")
+            f.write(f"  - RefSegRS: {args.refsegrs_root}\n")
+            f.write(f"  - NWPU: {args.nwpu_root}\n")
+            f.write(f"  - Urban1960: {args.urban1960_root}\n")
+            f.write(f"Expression Filtering: Applied to AerialD only\n")
+        else:
+            f.write(f"Single Dataset Mode - AerialD Only\n")
         f.write(f"Dataset Path: ./aeriald\n")
         f.write(f"Images Path: ./aeriald/patches\n")
         f.write(f"Annotations Path: ./aeriald/patches\n")
@@ -1069,9 +1522,7 @@ def main():
         down_spatial_times=args.down_spatial_times,
         with_dense_feat=args.with_dense_feat,
         lora_cfg=lora_cfg,
-        device=device,
-        enable_domain_adaptation=args.enable_domain_adaptation,
-        num_domains=args.num_domains
+        device=device
     ).to(device)
     
     # Get trainable parameters (those with requires_grad=True)
@@ -1082,31 +1533,73 @@ def main():
     scaler = torch.amp.GradScaler()
     
     # Create datasets using predefined splits
-    train_dataset = SimpleDataset(
-        dataset_root=dataset_path,
-        split='train',
-        input_size=args.input_size,
-        use_historic=args.use_historic,
-        enable_domain_adaptation=args.enable_domain_adaptation,
-        unique_only=args.unique_only,
-        original_only=args.original_only,
-        enhanced_only=args.enhanced_only,
-        one_unique_per_obj=args.one_unique_per_obj,
-        use_transformed=args.use_transformed,
-        dataset_filter=args.dataset_filter
-    )
-    
-    val_dataset = SimpleDataset(
-        dataset_root=dataset_path,
-        split='val',
-        input_size=args.input_size,
-        use_historic=args.use_historic,
-        enable_domain_adaptation=args.enable_domain_adaptation,
-        unique_only=False,  # Always use all expressions for validation
-        one_unique_per_obj=False,
-        use_transformed=args.use_transformed,
-        dataset_filter=args.dataset_filter
-    )
+    if args.use_all_datasets:
+        print("\n" + "="*80)
+        print("MULTI-DATASET TRAINING MODE ENABLED")
+        print("Training on AerialD + 4 additional datasets")
+        print("Expression filtering flags apply to AerialD only")
+        print("="*80)
+        
+        
+        # Configure additional datasets
+        additional_datasets = [
+            {'type': 'rrsisd', 'root': args.rrsisd_root},
+            {'type': 'refsegrs', 'root': args.refsegrs_root},
+            {'type': 'nwpu', 'root': args.nwpu_root},
+            {'type': 'urban1960', 'root': args.urban1960_root}
+        ]
+        
+        train_dataset = CombinedDataset(
+            dataset_root=dataset_path,
+            split='train',
+            input_size=args.input_size,
+            use_historic=args.use_historic,
+            unique_only=args.unique_only,
+            original_only=args.original_only,
+            enhanced_only=args.enhanced_only,
+            one_unique_per_obj=args.one_unique_per_obj,
+            use_transformed=args.use_transformed,
+            dataset_filter=args.dataset_filter,
+            additional_datasets=additional_datasets
+        )
+        
+        val_dataset = CombinedDataset(
+            dataset_root=dataset_path,
+            split='val',
+            input_size=args.input_size,
+            use_historic=args.use_historic,
+            unique_only=False,  # Always use all expressions for validation
+            one_unique_per_obj=False,
+            use_transformed=args.use_transformed,
+            dataset_filter=args.dataset_filter,
+            additional_datasets=additional_datasets
+        )
+    else:
+        print("\nSingle dataset mode - using AerialD only")
+        
+        train_dataset = SimpleDataset(
+            dataset_root=dataset_path,
+            split='train',
+            input_size=args.input_size,
+            use_historic=args.use_historic,
+            unique_only=args.unique_only,
+            original_only=args.original_only,
+            enhanced_only=args.enhanced_only,
+            one_unique_per_obj=args.one_unique_per_obj,
+            use_transformed=args.use_transformed,
+            dataset_filter=args.dataset_filter
+        )
+        
+        val_dataset = SimpleDataset(
+            dataset_root=dataset_path,
+            split='val',
+            input_size=args.input_size,
+            use_historic=args.use_historic,
+            unique_only=False,  # Always use all expressions for validation
+            one_unique_per_obj=False,
+            use_transformed=args.use_transformed,
+            dataset_filter=args.dataset_filter
+        )
     
     # Initialize train_loader with default settings first
     train_loader_kwargs = {
@@ -1115,26 +1608,9 @@ def main():
         'num_workers': 4
     }
 
-    # Use the custom balanced sampler if both flags are enabled
-    if args.enable_domain_adaptation and args.balanced_batch_sampling:
-        print("Using Domain Balanced Sampler for training.")
-        # Ensure batch size is divisible by the number of domains
-        if args.batch_size % args.num_domains != 0:
-            print(f"Warning: Batch size ({args.batch_size}) is not perfectly divisible by the number of domains ({args.num_domains}).")
-            print("This may result in slightly unbalanced batches.")
-
-        balanced_sampler = DomainBalancedSampler(
-            data_source=train_dataset,
-            batch_size=args.batch_size,
-            num_domains=args.num_domains
-        )
-        # When using a batch_sampler, 'batch_size', 'shuffle', 'sampler', and 'drop_last' must be None.
-        train_loader_kwargs['batch_sampler'] = balanced_sampler
-        # Remove keys that conflict with batch_sampler
-        train_loader_kwargs.pop('batch_size', None)
-    else:
-        print("Using standard random shuffling for training.")
-        train_loader_kwargs['shuffle'] = True
+    # Use standard random shuffling for training
+    print("Using standard random shuffling for training.")
+    train_loader_kwargs['shuffle'] = True
 
     train_loader = torch.utils.data.DataLoader(train_dataset, **train_loader_kwargs)
     
@@ -1241,10 +1717,6 @@ def main():
         weight_decay=args.weight_decay,
         max_grad_norm=1.0,
         grad_accum_steps=grad_accum_steps,
-        enable_domain_adaptation=args.enable_domain_adaptation,
-        domain_loss_weight=args.domain_loss_weight,
-        grl_lambda_schedule=args.grl_lambda_schedule,
-        grl_max_lambda=args.grl_max_lambda,
         save_mid_epoch_checkpoints=args.save_mid_epoch_checkpoints,
         mid_epoch_intervals=args.mid_epoch_intervals
     )
