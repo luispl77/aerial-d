@@ -51,7 +51,7 @@
 
 % Multiple figures
 \usepackage{subfigure} % subcaptions for subfigures
-\usepackage{subfigmat} % matrices of similar subfigures
+%\usepackage{subfigmat} % matrices of similar subfigures (not available on this system)
 
 % Declaring new column types
 % 'dcolumn' package defines D to be a column specifier with
@@ -104,15 +104,10 @@
 \titlespacing*{\section}{0pt}{10pt}{0pt}
 \titlespacing*{\subsection}{0pt}{10pt}{0pt}
 
-%% Section numbers with trailing dots. 
-%% http://www.ctan.org/tex-archive/help/Catalogue/entries/secdot.html
-\usepackage{secdot}
-%%
-%% Also put a dot after the subsection number
-\sectiondot{subsection}
-%% Set a space between dot and heading text
-\sectionpunct{section}{. }    % By default, \sectiondot places a \quad
-\sectionpunct{subsection}{. } % after the number
+%% Section numbers with trailing dots using titlesec (secdot not available)
+%% Alternative implementation using titlesec package
+\titleformat{\section}{\myFontSize\bfseries}{\thesection.}{1em}{}
+\titleformat{\subsection}{\rm\myFontSize}{\thesubsection.}{1em}{}
 
 % These are exact settings for a A4 page with top margin of
 % 25 mm, bottom margin of 30 mm, left and right margins of 25 mm,
