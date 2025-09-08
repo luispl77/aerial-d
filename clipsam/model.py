@@ -8,54 +8,6 @@ import einops
 from peft import LoraConfig, get_peft_model
 from transformers import SamProcessor, SamModel, SiglipModel, SiglipProcessor
 
-# Gradient Reversal Layer implementation
-class GradientReversalFunction(torch.autograd.Function):
-    """
-    Gradient Reversal Layer from Domain-Adversarial Training paper.
-    Forward pass: identity function
-    Backward pass: multiply gradients by -lambda (scale factor)
-    """
-    @staticmethod
-    def forward(ctx, x, lambda_):
-        ctx.lambda_ = lambda_
-        return x.view_as(x)
-    
-    @staticmethod
-    def backward(ctx, grad_output):
-        output = grad_output.neg() * ctx.lambda_
-        return output, None
-
-class GradientReversalLayer(nn.Module):
-    """Gradient Reversal Layer wrapper"""
-    def __init__(self, lambda_=1.0):
-        super(GradientReversalLayer, self).__init__()
-        self.lambda_ = lambda_
-    
-    def forward(self, x):
-        return GradientReversalFunction.apply(x, self.lambda_)
-    
-    def set_lambda(self, lambda_):
-        self.lambda_ = lambda_
-
-class DomainClassifier(nn.Module):
-    """
-    Domain classifier MLP for domain adversarial training.
-    Takes SigLIP pooled visual features and predicts domain (iSAID, DeepGlobe, LoveDA).
-    """
-    def __init__(self, input_dim, num_domains=3, hidden_dim=512, dropout=0.5):
-        super(DomainClassifier, self).__init__()
-        self.classifier = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim),
-            nn.ReLU(inplace=True),
-            nn.Dropout(dropout),
-            nn.Linear(hidden_dim, hidden_dim // 2),
-            nn.ReLU(inplace=True),
-            nn.Dropout(dropout),
-            nn.Linear(hidden_dim // 2, num_domains)
-        )
-    
-    def forward(self, x):
-        return self.classifier(x)
 
 class ConvModule(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, 
@@ -98,20 +50,12 @@ class SigLipSamSegmentator(nn.Module):
                  down_spatial_times=2,
                  with_dense_feat=True,
                  lora_cfg=None,
-                 device=None,
-                 enable_domain_adaptation=False,
-                 num_domains=3,
-                 domain_classifier_lr_scale=1.0):
+                 device=None):
         super().__init__()
         if device is None:
             self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         else:
             self.device = device
-            
-        # Domain adaptation settings
-        self.enable_domain_adaptation = enable_domain_adaptation
-        self.num_domains = num_domains
-        self.domain_classifier_lr_scale = domain_classifier_lr_scale
             
         # Add LoRA configuration with the exact params from the original implementation
         if lora_cfg is None:
@@ -197,40 +141,6 @@ class SigLipSamSegmentator(nn.Module):
         
         self.prompter_down_spatial = nn.Sequential(*down_spatial_modules)
         
-        # Domain adaptation components
-        if self.enable_domain_adaptation:
-            # Gradient reversal layer (shared between classifiers)
-            self.gradient_reversal = GradientReversalLayer(lambda_=1.0)
-            
-            # Domain classifier for SigLIP vision pooled features
-            siglip_hidden_size = self.clip_text_encoder.config.hidden_size
-            self.siglip_domain_classifier = DomainClassifier(
-                input_dim=siglip_hidden_size,
-                num_domains=self.num_domains,
-                hidden_dim=512,
-                dropout=0.5
-            )
-            
-            # Domain classifier for SAM vision features
-            # SAM features are [B, 256, 64, 64], so we need to pool them first
-            self.sam_feature_pool = nn.AdaptiveAvgPool2d((1, 1))
-            sam_feature_dim = 256  # As per SAM neck output
-            self.sam_domain_classifier = DomainClassifier(
-                input_dim=sam_feature_dim,
-                num_domains=self.num_domains,
-                hidden_dim=256, # Smaller hidden dim for smaller input
-                dropout=0.5
-            )
-            
-            print(f"Domain adaptation enabled with {self.num_domains} domains")
-            print(f"SigLIP domain classifier input dim: {siglip_hidden_size}")
-            print(f"SAM domain classifier input dim: {sam_feature_dim}")
-        else:
-            self.gradient_reversal = None
-            self.siglip_domain_classifier = None
-            self.sam_domain_classifier = None
-            self.sam_feature_pool = None
-        
         # Freeze models by default (can be unfrozen selectively)
         self._freeze_models()
         
@@ -257,11 +167,6 @@ class SigLipSamSegmentator(nn.Module):
         # They are the key components that learn to connect SigLIP and SAM
         self.prompter_down_channel.requires_grad_(True)
         self.prompter_down_spatial.requires_grad_(True)
-        
-        # Domain adaptation components should also be trainable if enabled
-        if self.enable_domain_adaptation:
-            self.siglip_domain_classifier.requires_grad_(True)
-            self.sam_domain_classifier.requires_grad_(True)
     
     def unfreeze_components(self, component_list):
         """Selectively unfreeze components for fine-tuning"""
@@ -294,7 +199,7 @@ class SigLipSamSegmentator(nn.Module):
         positional_embedding = self.shared_image_embedding(torch.stack([x_embed, y_embed], dim=-1))
         return positional_embedding.permute(2, 0, 1).unsqueeze(0)  # channel x height x width
 
-    def extract_features(self, image, text_list, return_domain_logits=False):
+    def extract_features(self, image, text_list):
         """Extract features from both SigLIP and SAM encoders"""
         # Prepare text inputs
         if isinstance(text_list, str):
@@ -328,22 +233,6 @@ class SigLipSamSegmentator(nn.Module):
         clip_visual_feat = einops.rearrange(clip_visual_feat, 'b (h w) c -> b c h w', 
                                           h=int(math.sqrt(clip_visual_feat.shape[1])))  # BX1152X27X27
         
-        # Domain prediction using gradient reversal (if enabled)
-        domain_logits = None
-        if self.enable_domain_adaptation and return_domain_logits:
-            # 1. SigLIP domain prediction
-            siglip_reversed_features = self.gradient_reversal(clip_visual_feat_pooler)
-            siglip_domain_logits = self.siglip_domain_classifier(siglip_reversed_features)
-            
-            # 2. SAM domain prediction
-            sam_pooled_feat = self.sam_feature_pool(sam_visual_feat).flatten(1)
-            sam_reversed_features = self.gradient_reversal(sam_pooled_feat)
-            sam_domain_logits = self.sam_domain_classifier(sam_reversed_features)
-            
-            domain_logits = {
-                'siglip': siglip_domain_logits,
-                'sam': sam_domain_logits
-            }
 
         # Process text with SigLIP
         text_dict = self.clip_text_processor(text_list, return_tensors='pt', padding=True, truncation=True, max_length=128)
@@ -423,10 +312,7 @@ class SigLipSamSegmentator(nn.Module):
         # SAM returns masks with shape [B, 1, H, W]
         seg_mask = low_res_masks.squeeze(1)  # Remove the extra dimension, now [B, H, W]
         
-        if return_domain_logits:
-            return seg_mask, domain_logits
-        else:
-            return seg_mask
+        return seg_mask
     
     def dice_loss(self, pred, target):
         """Calculate Dice loss for binary segmentation"""
@@ -468,52 +354,13 @@ class SigLipSamSegmentator(nn.Module):
         
         return loss
     
-    def compute_domain_loss(self, domain_logits, domain_labels, sam_loss_weight=0.5):
-        """
-        Compute domain classification loss for both SigLIP and SAM classifiers.
-        domain_logits: A dictionary containing 'siglip' and 'sam' logits.
-        domain_labels: The ground truth domain labels.
-        sam_loss_weight: A float to weigh the SAM domain loss.
-        """
-        if domain_logits is None or domain_labels is None:
-            return torch.tensor(0.0, device=self.device)
-        
-        # Class weights to handle domain imbalance
-        # Based on training set: iSAID=170067, DeepGlobe=4980, LoveDA=19118
-        # Weights calculated as: total_samples / (num_classes * class_count)
-        class_weights = torch.tensor([0.381, 12.995, 3.384], device=self.device)
-        
-        # SigLIP domain loss with class weights
-        siglip_loss = F.cross_entropy(domain_logits['siglip'], domain_labels, weight=class_weights)
-        
-        # SAM domain loss with class weights
-        sam_loss = F.cross_entropy(domain_logits['sam'], domain_labels, weight=class_weights)
-        
-        # Total domain loss
-        total_loss = siglip_loss + (sam_loss * sam_loss_weight)
-        
-        return total_loss
     
-    def set_gradient_reversal_lambda(self, lambda_):
-        """Set the lambda parameter for gradient reversal layer"""
-        if self.gradient_reversal is not None:
-            self.gradient_reversal.set_lambda(lambda_)
-    
-    def forward(self, image, text_list, domain_labels=None, return_domain_logits_inference=False):
+    def forward(self, image, text_list):
         """Forward pass of the model"""
         # Use memory efficient attention
         torch.backends.cuda.enable_mem_efficient_sdp(True)
         
-        # Determine if we should return domain logits
-        # This is true if we are training with domain adaptation OR if it's explicitly requested for inference
-        return_domain_logits = (self.enable_domain_adaptation and domain_labels is not None) or \
-                               (self.enable_domain_adaptation and return_domain_logits_inference)
-        
-        if return_domain_logits:
-            seg_mask, domain_logits = self.extract_features(image, text_list, return_domain_logits=True)
-        else:
-            seg_mask = self.extract_features(image, text_list, return_domain_logits=False)
-            domain_logits = None
+        seg_mask = self.extract_features(image, text_list)
         
         # Ensure seg_mask has correct shape before interpolation [B, H, W]
         if len(seg_mask.shape) == 4:
@@ -529,21 +376,12 @@ class SigLipSamSegmentator(nn.Module):
             align_corners=False
         ).squeeze(1)  # Remove channel dimension [B, H, W]
         
-        if return_domain_logits:
-            return seg_mask, domain_logits
-        else:
-            return seg_mask
+        return seg_mask
     
     def predict_masks(self, image, text, threshold=0.5):
         """Predict binary masks from image and text"""
-        # Forward pass to get mask logits (no domain labels for inference)
-        output = self.forward(image, text, domain_labels=None)
-        
-        # Handle both single return (seg_mask) and tuple return (seg_mask, domain_logits)
-        if isinstance(output, tuple):
-            mask_logits = output[0]
-        else:
-            mask_logits = output
+        # Forward pass to get mask logits
+        mask_logits = self.forward(image, text)
         
         # Apply sigmoid and threshold
         mask_probs = torch.sigmoid(mask_logits)
@@ -613,9 +451,6 @@ class SigLipSamSegmentator(nn.Module):
         print("\nParameter counts by component:")
         total_trainable = 0
         for name, module in self.named_children():
-            # Skip None modules (like gradient_reversal and domain_classifier when domain adaptation is disabled)
-            if module is None:
-                continue
             total_params = sum(p.numel() for p in module.parameters())
             module_trainable = sum(p.numel() for p in module.parameters() if p.requires_grad)
             total_trainable += module_trainable
