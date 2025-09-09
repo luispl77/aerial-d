@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import seaborn as sns
 from tqdm import tqdm
+import argparse
 try:
     from wordcloud import WordCloud
     WORDCLOUD_AVAILABLE = True
@@ -505,13 +506,13 @@ class DatasetMetrics:
         
         return report_text
     
-    def plot_distributions(self, output_dir: str):
+    def plot_distributions(self, output_dir: str, skip_wordcloud: bool = False):
         """Generate visualization plots for key metrics."""
         print("\nGenerating visualizations...")
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         
-        for split in ["train", "val", "total"]:
+        for split in ["train", "val"]:
             print(f"Creating plots for {split} split...")
             split_dir = output_dir / split
             split_dir.mkdir(exist_ok=True)
@@ -521,10 +522,10 @@ class DatasetMetrics:
             categories = list(self.metrics[split]["category_stats"].keys())
             counts = list(self.metrics[split]["category_stats"].values())
             sns.barplot(x=categories, y=counts)
-            plt.xticks(rotation=45, ha='right', fontsize=18, fontweight='bold')
-            plt.yticks(fontsize=18, fontweight='bold')
-            plt.xlabel("Category", fontsize=20, fontweight='bold')
-            plt.ylabel("Number of Instances", fontsize=20, fontweight='bold')
+            plt.xticks(rotation=45, ha='right', fontsize=22, fontweight='bold')
+            plt.yticks(fontsize=22, fontweight='bold')
+            plt.xlabel("Category", fontsize=24, fontweight='bold')
+            plt.ylabel("Number of Instances", fontsize=24, fontweight='bold')
             plt.tight_layout()
             plt.savefig(split_dir / "category_distribution.png", dpi=300, bbox_inches='tight')
             plt.close()
@@ -624,10 +625,10 @@ class DatasetMetrics:
                         fontweight='bold', fontsize=16, color='black')
             
             # Enhanced styling with larger fonts
-            plt.xlabel("Category", fontsize=20, labelpad=25)
-            plt.ylabel("Number of Instances", fontsize=20, labelpad=25)
-            plt.xticks(rotation=45, ha='right', fontsize=18)
-            plt.yticks(fontsize=18)
+            plt.xlabel("Category", fontsize=24, fontweight='bold', labelpad=25)
+            plt.ylabel("Number of Instances", fontsize=24, fontweight='bold', labelpad=25)
+            plt.xticks(rotation=45, ha='right', fontsize=22, fontweight='bold')
+            plt.yticks(fontsize=22, fontweight='bold')
             
             # Add subtle grid for readability
             plt.grid(axis='y', alpha=0.2, linestyle='--', linewidth=0.8)
@@ -676,7 +677,7 @@ class DatasetMetrics:
                     height = bar.get_height()
                     plt.text(bar.get_x() + bar.get_width()/2., height + height*0.005,
                             f'{count:,}', ha='center', va='bottom', 
-                            fontweight='bold', fontsize=16, color='black')
+                            fontweight='bold', fontsize=15, color='black')
                 
                 # Enhanced styling with larger fonts
                 plt.xlabel("Group Category", fontsize=24, fontweight='bold', labelpad=25)
@@ -702,8 +703,10 @@ class DatasetMetrics:
                            dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
                 plt.close()
         
-        # Generate total dataset word cloud
-        if self.metrics["total"]["expression_texts"] and WORDCLOUD_AVAILABLE:
+        # Generate total dataset word cloud (if not skipped)
+        if skip_wordcloud:
+            print("Skipping word cloud generation (--no_word flag)")
+        elif self.metrics["total"]["expression_texts"] and WORDCLOUD_AVAILABLE:
             print("Creating total dataset expression word cloud...")
             # Combine all expression texts into a single string
             all_text = " ".join(self.metrics["total"]["expression_texts"])
@@ -734,6 +737,16 @@ class DatasetMetrics:
         print(f"Visualizations saved to {output_dir}")
 
 def main():
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="Generate dataset metrics and visualizations")
+    parser.add_argument("--no_word", action="store_true", 
+                        help="Skip word cloud generation for faster processing")
+    parser.add_argument("--dataset_path", type=str, 
+                        default="/cfs/home/u035679/datasets/aeriald",
+                        help="Path to the dataset directory")
+    
+    args = parser.parse_args()
+    
     # Path to the final dataset directory (after all processing steps)
     # The directory structure is:
     # dataset/
@@ -748,9 +761,11 @@ def main():
     #           ├── images/
     #           └── annotations/
     
-    dataset_path = "/cfs/home/u035679/datasets/aeriald"
+    dataset_path = args.dataset_path
     
     print(f"Analyzing dataset at: {dataset_path}")
+    if args.no_word:
+        print("Word cloud generation will be skipped")
     
     # Initialize and run analysis
     metrics = DatasetMetrics(dataset_path)
@@ -766,7 +781,7 @@ def main():
     
     # Generate visualizations (save to same directory as this script)
     plots_dir = os.path.join(script_dir, "dataset_metrics_plots")
-    metrics.plot_distributions(plots_dir)
+    metrics.plot_distributions(plots_dir, skip_wordcloud=args.no_word)
 
 if __name__ == "__main__":
     main() 

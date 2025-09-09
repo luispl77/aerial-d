@@ -1,5 +1,5 @@
 # Fdb version 4
-["bibtex ExtendedAbstract"] 0 "ExtendedAbstract.aux" "ExtendedAbstract.bbl" "ExtendedAbstract" 1757412104.35092 0
+["bibtex ExtendedAbstract"] 0 "ExtendedAbstract.aux" "ExtendedAbstract.bbl" "ExtendedAbstract" 1757416847.63887 0
   "/usr/share/texmf/bibtex/bst/base/abbrv.bst" 1719994165 20329 b5fed53e10044d0f8112183785c759b1 ""
   "ExtendedAbstract.aux" 0 -1 0 "pdflatex"
   "ExtendedAbstract_ref_db.bib" 0 -1 0 ""
@@ -7,7 +7,7 @@
   "ExtendedAbstract.bbl"
   "ExtendedAbstract.blg"
   (rewritten before read)
-["pdflatex"] 1757412094.663 "ExtendedAbstract.tex" "ExtendedAbstract.pdf" "ExtendedAbstract" 1757412104.3515 0
+["pdflatex"] 1757416834.59037 "ExtendedAbstract.tex" "ExtendedAbstract.pdf" "ExtendedAbstract" 1757416847.6395 0
   "/etc/texmf/web2c/texmf.cnf" 1719994165 42612 09b3c6dec2a078bd30d80981dc2f43a3 ""
   "/usr/share/texmf/fonts/map/fontname/texfonts.map" 1719994165 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/share/texmf/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm" 1719994165 1004 54797486969f23fa377b128694d548df ""
@@ -83,7 +83,7 @@
   "/usr/share/texmf/web2c/texmf.cnf" 1719994165 42612 09b3c6dec2a078bd30d80981dc2f43a3 ""
   "/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map" 1741281428.68003 748382 149da6ca52268c23e5439c787f8d866f ""
   "/var/lib/texmf/web2c/pdftex/pdflatex.fmt" 1741281669 8220881 c8c8b4b79eae1f5acf5ff9b12789c320 ""
-  "ExtendedAbstract.aux" 1757412103.76155 3732 c1dfcae9581f72b6f612c7c53e155266 "pdflatex"
+  "ExtendedAbstract.aux" 1757416847.16289 3732 c1dfcae9581f72b6f612c7c53e155266 "pdflatex"
   "ExtendedAbstract.bbl" 1757337846.43237 49 0eba253fc001332e731e8aba3f23127b "bibtex ExtendedAbstract"
   "ExtendedAbstract.tex" 1757337054.01611 8935 b887ffb2db4b638ac04db663a0fc300a ""
   "ExtendedAbstract_abstr.tex" 1757083235.94962 1862 1cc5c773544117f17c3cf6ff11aa163b ""
@@ -97,8 +97,8 @@
   "images/distillation.png" 1756834940.6137 119278 73f608129b3c3bef2728d4cff727de3e ""
   "images/example_group.png" 1756834940.6177 929019 836eda309538516239035e908205554c ""
   "images/expression_wordcloud.png" 1757410363.5148 5201380 f7dbdea145c04142dc8fabf6094037c8 ""
-  "images/group_category_distribution.png" 1757410363.98181 458459 20086016dd5e6fcaad845b1dbbdaec15 ""
-  "images/instance_category_distribution.png" 1757410364.44482 535359 b929e1ecb68e8300c8ef8654c8b474c2 ""
+  "images/group_category_distribution.png" 1757416828.36945 909624 ed5f5576709f1aaf292e17821b2daceb ""
+  "images/instance_category_distribution.png" 1757416827.80944 845845 639ee507234616534eab070220a5ce08 ""
   "images/rule_based_generation.png" 1756834941.2897 5476117 20d4c771f43364436d15705daf4a90e0 ""
   (generated)
   "ExtendedAbstract.aux"
