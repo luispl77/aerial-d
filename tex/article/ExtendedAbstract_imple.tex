@@ -87,3 +87,26 @@ Unique & the set of four big vehicles parked in a single row in the upper center
 \caption{Knowledge distillation pipeline for scalable LLM enhancement. A small sample of 500 expressions is processed through OpenAI's O3 model to generate high-quality training targets, which are then used to fine-tune Gemma3 12B via QLora. The fine-tuned model enables cost-effective local inference to enhance the full dataset of 300,000 expressions using vLLM on a single GPU.}
 \label{fig:llm_distillation}
 \end{figure}
+
+\subsection{Dataset Statistics and Analysis}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{./images/expression_wordcloud.png}
+\caption{Word cloud visualization of the most frequent terms in Aerial-D referring expressions, highlighting the domain-specific vocabulary and spatial descriptors characteristic of aerial imagery.}
+\label{fig:expression_wordcloud}
+\end{figure}
+
+\begin{figure*}[t]
+\centering
+\begin{minipage}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{./images/group_category_distribution.png}
+\end{minipage}\hfill
+\begin{minipage}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{./images/instance_category_distribution.png}
+\end{minipage}
+\caption{Category distribution analysis of Aerial-D dataset. Left: Distribution of group annotations showing the prevalence of different object categories in group-level referring expressions. Right: Distribution of individual instance annotations across semantic categories, demonstrating the dataset's coverage of aerial object types.}
+\label{fig:category_distributions}
+\end{figure*}

@@ -105,7 +105,7 @@ The qualitative results shown in Figure \ref{fig:qualitative_examples} demonstra
 % #############################################################################
 \section{Ablation Studies}
 
-To evaluate the individual contributions of different expression enhancement strategies, we conduct an ablation study comparing models trained on different subsets of the AerialD dataset. The primary motivation behind this analysis is to determine whether the LLM enhancement process positively impacts model performance and to quantify the benefits of each enhancement type. As detailed in Table \ref{tab:llm_enhancement_stats} from Chapter 4, our dataset contains approximately 506K rule-based expressions, 497K language variation expressions, and 519K unique visual detail expressions, totaling 1.52M expressions.
+To evaluate the individual contributions of different expression enhancement strategies, we conduct an ablation study comparing models trained on different subsets of the AerialD dataset. The primary motivation behind this analysis is to determine whether the LLM enhancement process positively impacts model performance and to quantify the benefits of each enhancement type. As detailed in Table \ref{tab:llm_enhancement_stats} from Chapter 4, our training set contains approximately 371K rule-based expressions, 364K language variation expressions, and 382K unique visual detail expressions, totaling 1.12M training expressions.
 
 % Ablation expression types table
 \begin{table}[H]
@@ -119,10 +119,10 @@ To evaluate the individual contributions of different expression enhancement str
 \cmidrule(lr){3-5} \cmidrule(lr){6-8} \cmidrule(lr){9-11} \cmidrule(lr){12-14}
  & & \textbf{Pass@0.7} & \textbf{mIoU} & \textbf{oIoU} & \textbf{Pass@0.7} & \textbf{mIoU} & \textbf{oIoU} & \textbf{Pass@0.7} & \textbf{mIoU} & \textbf{oIoU} & \textbf{Pass@0.7} & \textbf{mIoU} & \textbf{oIoU} \\
 \midrule
-Rule-based Only & 506K × 4 & -- & -- & -- & 2.55\% & 3.73\% & 0.55\% & 29.89\% & 34.22\% & 36.46\% & 13.62\% & 16.78\% & 13.70\% \\
-Language Variations Only & 497K × 4 & -- & -- & -- & 3.02\% & 5.75\% & 4.99\% & 35.63\% & 41.63\% & 42.48\% & 16.90\% & 21.89\% & 16.68\% \\
-Unique Expressions Only & 519K × 4 & 35.75\% & 46.54\% & 63.02\% & 2.55\% & 18.32\% & 8.37\% & 20.86\% & 31.78\% & 33.73\% & 15.91\% & 24.68\% & 29.22\% \\
-Combined All & 1,522K × 2 & 39.54\% & 49.33\% & 64.30\% & 1.86\% & 18.80\% & 8.58\% & 23.39\% & 34.07\% & 34.80\% & 15.91\% & 24.57\% & 28.27\% \\
+Rule-based Only & 371K × 4 & -- & -- & -- & 2.55\% & 3.73\% & 0.55\% & 29.89\% & 34.22\% & 36.46\% & 13.62\% & 16.78\% & 13.70\% \\
+Language Variations Only & 364K × 4 & -- & -- & -- & 3.02\% & 5.75\% & 4.99\% & 35.63\% & 41.63\% & 42.48\% & 16.90\% & 21.89\% & 16.68\% \\
+Unique Expressions Only & 382K × 4 & 35.75\% & 46.54\% & 63.02\% & 2.55\% & 18.32\% & 8.37\% & 20.86\% & 31.78\% & 33.73\% & 15.91\% & 24.68\% & 29.22\% \\
+Combined All & 1,118K × 2 & 39.54\% & 49.33\% & 64.30\% & 1.86\% & 18.80\% & 8.58\% & 23.39\% & 34.07\% & 34.80\% & 15.91\% & 24.57\% & 28.27\% \\
 \bottomrule
 \end{tabular}%
 }

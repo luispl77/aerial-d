@@ -1,0 +1,178 @@
+# LaTeX compilation outputs
+*.aux
+*.lof
+*.log
+*.lot
+*.fls
+*.out
+*.toc
+*.fmt
+*.fot
+*.cb
+*.cb2
+.*.lb
+
+# Intermediate files
+*.dvi
+*.xdv
+*-converted-to.*
+
+# Bibliography files
+*.bbl
+*.bcf
+*.blg
+*-blx.aux
+*-blx.bib
+*.run.xml
+
+# Indices and glossaries
+*.alg
+*.glg
+*.glo
+*.gls
+*.glsdefs
+*.loa
+*.sls
+*.slg
+*.slo
+*.acn
+*.acr
+*.ist
+*.lol
+*.nav
+*.snm
+*.vrb
+*.nlo
+*.nls
+
+# Minitoc package
+*.mtc
+*.mtc[0-9]*
+*.mtc10
+*.slf
+*.slt
+*.stc
+*.stc[0-9]*
+*.mlf[0-9]*
+*.mlt[0-9]*
+
+# Makeindex
+*.maf
+*.mlf
+*.mlt
+*.loc
+
+# Hyperref
+*.brf
+
+# Knitr
+*-concordance.tex
+
+# Tikz & PGF
+*.figlist
+*.makefile
+*.fls
+*.fdb_latexmk
+
+# LatexMK
+*.fdb_latexmk
+*.synctex.gz
+
+# Xindy
+*.xdy
+
+# PDF output files
+*.pdf
+
+# Additional LaTeX outputs
+*.bcf
+*.run.xml
+*.auxlock
+*.figlist
+*.makefile
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.bak
+*~
+
+# Listings package
+*.listing
+
+# Algorithms package
+*.alg
+
+# Changes package
+*.soc
+
+# Minitoc specific files for ExtendedAbstract
+ExtendedAbstract.mtc[0-9]*
+ExtendedAbstract.mlf[0-9]*
+ExtendedAbstract.mlt[0-9]*
+
+# Nomencl package
+*.nlo
+*.nls
+
+# Glossaries package
+*.acn
+*.acr
+*.glg
+*.glo
+*.gls
+*.glsdefs
+*.lzo
+*.lzs
+*.slo
+
+# TODO notes
+*.tdo
+
+# Xindy
+*.xdy
+
+# hyperref
+*.out
+
+# Beamer
+*.nav
+*.pre
+*.snm
+*.vrb
+
+# SageTeX
+*.sagetex.sage
+*.sagetex.py
+*.sagetex.scmd
+
+# pythontex
+*.pytxcode
+pythontex-files-*/
+
+# tcolorbox
+*.auxlock
+
+# Backup files
+*~
+*.backup
+*.swp
+*.tmp
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor files
+*.sublime-project
+*.sublime-workspace
+.vscode/
+*.code-workspace
+
+# Temporary files
+*.temp
+*.tmp
