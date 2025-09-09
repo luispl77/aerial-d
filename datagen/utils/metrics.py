@@ -6,8 +6,17 @@ from pathlib import Path
 import numpy as np
 from typing import Dict, List, Tuple
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import seaborn as sns
 from tqdm import tqdm
+try:
+    from wordcloud import WordCloud
+    WORDCLOUD_AVAILABLE = True
+except ImportError:
+    WORDCLOUD_AVAILABLE = False
+    print("Warning: wordcloud package not found. Word cloud generation will be skipped.")
+    print("Install with: pip install wordcloud")
+
 import multiprocessing
 from multiprocessing import Pool, Value
 import time
@@ -50,8 +59,10 @@ def analyze_single_xml(xml_file_path):
             "expressions_per_instance": [],
             "expressions_per_group": [],
             "expression_types": defaultdict(int),
+            "expression_texts": [],
             "missing_masks": [],
-            "skipped_objects": 0
+            "skipped_objects": 0,
+            "expression_count_mismatches": []  # Track files with mismatched original/enhanced counts
         }
         
         patch_expressions = 0
@@ -82,11 +93,15 @@ def analyze_single_xml(xml_file_path):
             file_metrics["expressions_per_instance"].append(num_expressions)
             patch_expressions += num_expressions
             
-            # Analyze expression types
+            # Analyze expression types and collect texts
             for expr in expressions:
                 file_metrics["total_expressions"] += 1
-                expr_type = expr.get("type", "unknown")
+                expr_type = expr.get("type", "original")
                 file_metrics["expression_types"][expr_type] += 1
+                # Collect expression text for word cloud
+                expr_text = expr.text.strip() if expr.text else ""
+                if expr_text:
+                    file_metrics["expression_texts"].append(expr_text)
         
         # Analyze groups
         groups_elem = root.find('groups')
@@ -129,6 +144,17 @@ def analyze_single_xml(xml_file_path):
                 file_metrics["expressions_per_group"].append(num_expressions)
                 patch_expressions += num_expressions
                 
+                # Collect group expression texts for word cloud and count types
+                for expr in expressions:
+                    # Count expression type
+                    expr_type = expr.get("type", "original")
+                    file_metrics["expression_types"][expr_type] += 1
+                    
+                    # Collect expression text for word cloud
+                    expr_text = expr.text.strip() if expr.text else ""
+                    if expr_text:
+                        file_metrics["expression_texts"].append(expr_text)
+                
                 # Add group expressions to total
                 file_metrics["total_expressions"] += num_expressions
             
@@ -139,6 +165,18 @@ def analyze_single_xml(xml_file_path):
             file_metrics["expressions_per_patch"] = [patch_expressions]
         else:
             file_metrics["expressions_per_patch"] = []
+        
+        # Check for expression count mismatches (original vs enhanced)
+        original_count = file_metrics["expression_types"].get("original", 0)
+        enhanced_count = file_metrics["expression_types"].get("enhanced", 0)
+        
+        if original_count != enhanced_count and (original_count > 0 or enhanced_count > 0):
+            file_metrics["expression_count_mismatches"].append({
+                "file": str(xml_file_path),
+                "original": original_count,
+                "enhanced": enhanced_count,
+                "unique": file_metrics["expression_types"].get("unique", 0)
+            })
         
         return file_metrics
         
@@ -179,7 +217,8 @@ class DatasetMetrics:
             "expressions_per_group": [],  # Expressions per group
             "expressions_per_patch": [],
             "expression_types": defaultdict(int),
-
+            "expression_texts": [],  # All expression texts for word cloud
+            "expression_count_mismatches": []  # Files with mismatched original/enhanced counts
 
 
         }
@@ -196,7 +235,7 @@ class DatasetMetrics:
         
         print("\nCalculating total metrics...")
         # Calculate total metrics
-        for key in ["total_patches", "total_instances", "total_expressions"]:
+        for key in ["total_patches", "total_instances", "total_expressions", "total_groups", "total_special_pairs"]:
             self.metrics["total"][key] = self.metrics["train"][key] + self.metrics["val"][key]
         
         # Merge category stats
@@ -206,6 +245,44 @@ class DatasetMetrics:
                 self.metrics["train"]["category_stats"][category] + 
                 self.metrics["val"]["category_stats"][category]
             )
+        
+        # Merge group category stats
+        for category in set(list(self.metrics["train"]["group_category_stats"].keys()) + 
+                          list(self.metrics["val"]["group_category_stats"].keys())):
+            self.metrics["total"]["group_category_stats"][category] = (
+                self.metrics["train"]["group_category_stats"][category] + 
+                self.metrics["val"]["group_category_stats"][category]
+            )
+        
+        # Merge expression types
+        for expr_type in set(list(self.metrics["train"]["expression_types"].keys()) + 
+                          list(self.metrics["val"]["expression_types"].keys())):
+            self.metrics["total"]["expression_types"][expr_type] = (
+                self.metrics["train"]["expression_types"][expr_type] + 
+                self.metrics["val"]["expression_types"][expr_type]
+            )
+        
+        # Merge lists
+        self.metrics["total"]["expressions_per_instance"] = (
+            self.metrics["train"]["expressions_per_instance"] + 
+            self.metrics["val"]["expressions_per_instance"]
+        )
+        self.metrics["total"]["expressions_per_group"] = (
+            self.metrics["train"]["expressions_per_group"] + 
+            self.metrics["val"]["expressions_per_group"]
+        )
+        self.metrics["total"]["expressions_per_patch"] = (
+            self.metrics["train"]["expressions_per_patch"] + 
+            self.metrics["val"]["expressions_per_patch"]
+        )
+        self.metrics["total"]["expression_texts"] = (
+            self.metrics["train"]["expression_texts"] + 
+            self.metrics["val"]["expression_texts"]
+        )
+        self.metrics["total"]["expression_count_mismatches"] = (
+            self.metrics["train"]["expression_count_mismatches"] + 
+            self.metrics["val"]["expression_count_mismatches"]
+        )
         
         # Calculate averages
         for split in ["train", "val", "total"]:
@@ -217,7 +294,38 @@ class DatasetMetrics:
                 self.metrics[split]["avg_expressions_per_patch"] = np.mean(self.metrics[split]["expressions_per_patch"])
         
         print("Analysis complete!")
+        
+        # Print expression count mismatches to terminal immediately
+        self._print_expression_mismatches()
+        
         return self.metrics
+    
+    def _print_expression_mismatches(self):
+        """Print expression count mismatches to terminal."""
+        print("\n" + "="*80)
+        print("EXPRESSION COUNT MISMATCH REPORT")
+        print("="*80)
+        
+        total_mismatches = len(self.metrics["total"]["expression_count_mismatches"])
+        
+        if total_mismatches == 0:
+            print("✅ No expression count mismatches found!")
+            print("All files have matching original and enhanced expression counts.")
+        else:
+            print(f"⚠️  Found {total_mismatches} files with mismatched original/enhanced expression counts:")
+            print("\nFiles with mismatches:")
+            print("-" * 80)
+            
+            for split in ["train", "val"]:
+                split_mismatches = self.metrics[split]["expression_count_mismatches"]
+                if split_mismatches:
+                    print(f"\n{split.upper()} SPLIT ({len(split_mismatches)} files):")
+                    for mismatch in split_mismatches:
+                        filename = mismatch["file"].split("/")[-1]  # Just the filename
+                        print(f"  {filename}")
+                        print(f"    Original: {mismatch['original']}, Enhanced: {mismatch['enhanced']}, Unique: {mismatch['unique']}")
+        
+        print("="*80)
     
     def _analyze_split(self, split_path: Path, split_name: str):
         """Analyze a specific split (train/val) using multiprocessing."""
@@ -287,6 +395,8 @@ class DatasetMetrics:
             self.metrics[split_name]["expressions_per_instance"].extend(file_result["expressions_per_instance"])
             self.metrics[split_name]["expressions_per_group"].extend(file_result["expressions_per_group"])
             self.metrics[split_name]["expressions_per_patch"].extend(file_result["expressions_per_patch"])
+            self.metrics[split_name]["expression_texts"].extend(file_result["expression_texts"])
+            self.metrics[split_name]["expression_count_mismatches"].extend(file_result["expression_count_mismatches"])
             
             # Merge missing masks
             self.missing_masks.extend(file_result["missing_masks"])
@@ -360,6 +470,28 @@ class DatasetMetrics:
             for expr_type, count in sorted(self.metrics[split]["expression_types"].items(), key=lambda x: x[1], reverse=True):
                 report.append(f"  {expr_type}: {count} expressions")
             
+            # Add combined category distribution for total split only
+            if split == "total":
+                report.append("\n" + "="*50)
+                report.append("COMBINED DATASET CATEGORY DISTRIBUTIONS")
+                report.append("="*50)
+                
+                report.append("\nInstance Category Distribution (sorted by count):")
+                instance_items = sorted(self.metrics[split]["category_stats"].items(), key=lambda x: x[1], reverse=True)
+                for category, count in instance_items:
+                    percentage = (count / self.metrics[split]["total_instances"]) * 100 if self.metrics[split]["total_instances"] > 0 else 0
+                    report.append(f"  {category}: {count:,} instances ({percentage:.1f}%)")
+                
+                if self.metrics[split]["group_category_stats"]:
+                    report.append("\nGroup Category Distribution (sorted by count):")
+                    group_items = sorted(self.metrics[split]["group_category_stats"].items(), key=lambda x: x[1], reverse=True)
+                    total_groups = sum(self.metrics[split]["group_category_stats"].values())
+                    for category, count in group_items:
+                        percentage = (count / total_groups) * 100 if total_groups > 0 else 0
+                        report.append(f"  {category}: {count:,} groups ({percentage:.1f}%)")
+                
+                report.append("="*50)
+            
 
             
 
@@ -389,21 +521,61 @@ class DatasetMetrics:
             categories = list(self.metrics[split]["category_stats"].keys())
             counts = list(self.metrics[split]["category_stats"].values())
             sns.barplot(x=categories, y=counts)
-            plt.xticks(rotation=45, ha='right')
-            plt.title(f"Instance Distribution by Category - {split.upper()}")
+            plt.xticks(rotation=45, ha='right', fontsize=18, fontweight='bold')
+            plt.yticks(fontsize=18, fontweight='bold')
+            plt.xlabel("Category", fontsize=20, fontweight='bold')
+            plt.ylabel("Number of Instances", fontsize=20, fontweight='bold')
             plt.tight_layout()
-            plt.savefig(split_dir / "category_distribution.png")
+            plt.savefig(split_dir / "category_distribution.png", dpi=300, bbox_inches='tight')
             plt.close()
             
-            # Expression type distribution
-            plt.figure(figsize=(10, 6))
+            # Group category distribution
+            if self.metrics[split]["group_category_stats"]:
+                plt.figure(figsize=(12, 6))
+                group_categories = list(self.metrics[split]["group_category_stats"].keys())
+                group_counts = list(self.metrics[split]["group_category_stats"].values())
+                
+                # Sort by count for better visualization
+                group_data = sorted(zip(group_categories, group_counts), key=lambda x: x[1], reverse=True)
+                group_categories_sorted, group_counts_sorted = zip(*group_data) if group_data else ([], [])
+                
+                sns.barplot(x=group_categories_sorted, y=group_counts_sorted)
+                plt.xticks(rotation=45, ha='right', fontsize=22, fontweight='bold')
+                plt.yticks(fontsize=22, fontweight='bold')
+                plt.xlabel("Group Category", fontsize=24, fontweight='bold')
+                plt.ylabel("Number of Groups", fontsize=24, fontweight='bold')
+                plt.tight_layout()
+                plt.savefig(split_dir / "group_category_distribution.png", dpi=300, bbox_inches='tight')
+                plt.close()
+            
+            # Expression type distribution (improved)
+            plt.figure(figsize=(12, 8))
             expr_types = list(self.metrics[split]["expression_types"].keys())
             expr_counts = list(self.metrics[split]["expression_types"].values())
-            sns.barplot(x=expr_types, y=expr_counts)
-            plt.xticks(rotation=45, ha='right')
-            plt.title(f"Expression Type Distribution - {split.upper()}")
+            
+            # Sort by count for better visualization
+            expr_data = sorted(zip(expr_types, expr_counts), key=lambda x: x[1], reverse=True)
+            expr_types_sorted, expr_counts_sorted = zip(*expr_data) if expr_data else ([], [])
+            
+            # Use different colors for each type
+            colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd'][:len(expr_types_sorted)]
+            bars = plt.bar(expr_types_sorted, expr_counts_sorted, color=colors)
+            
+            # Add count labels on bars
+            for bar, count in zip(bars, expr_counts_sorted):
+                height = bar.get_height()
+                plt.text(bar.get_x() + bar.get_width()/2., height + height*0.01,
+                        f'{count:,}', ha='center', va='bottom', fontweight='bold')
+            
+            plt.xlabel("Expression Type", fontsize=20)
+            plt.ylabel("Number of Expressions", fontsize=20)
+            plt.xticks(rotation=0, fontsize=18)
+            plt.yticks(fontsize=18)
+            
+            # Add grid for better readability
+            plt.grid(axis='y', alpha=0.3)
             plt.tight_layout()
-            plt.savefig(split_dir / "expression_type_distribution.png")
+            plt.savefig(split_dir / "expression_type_distribution.png", dpi=300, bbox_inches='tight')
             plt.close()
             
             # Expressions per instance histogram
@@ -416,6 +588,148 @@ class DatasetMetrics:
                 plt.tight_layout()
                 plt.savefig(split_dir / "expressions_per_instance.png")
                 plt.close()
+            
+            # Word cloud generation skipped for individual splits (only generated for total)
+        
+        # Generate combined dataset category distribution plot (instances only)
+        print("Creating combined dataset instance category distribution plot...")
+        combined_dir = output_dir / "combined"
+        combined_dir.mkdir(exist_ok=True)
+        
+        # Combined Instance Category Distribution (both train and val)
+        instance_categories = list(self.metrics["total"]["category_stats"].keys())
+        instance_counts = list(self.metrics["total"]["category_stats"].values())
+        
+        if instance_categories and instance_counts:
+            # Sort by count for better visualization
+            instance_data = sorted(zip(instance_categories, instance_counts), key=lambda x: x[1], reverse=True)
+            instance_categories_sorted, instance_counts_sorted = zip(*instance_data)
+            
+            # Create a modern, clean chart
+            plt.figure(figsize=(18, 12))
+            
+            # Generate distinct colors for each category using a high-quality colormap
+            colors = cm.tab20(np.linspace(0, 1, len(instance_categories_sorted)))
+            
+            # Create bars with enhanced styling
+            bars = plt.bar(instance_categories_sorted, instance_counts_sorted, 
+                          color=colors, edgecolor='white', linewidth=1.5,
+                          alpha=0.9)
+            
+            # Add count labels on bars with better formatting
+            for bar, count in zip(bars, instance_counts_sorted):
+                height = bar.get_height()
+                plt.text(bar.get_x() + bar.get_width()/2., height + height*0.005,
+                        f'{count:,}', ha='center', va='bottom', 
+                        fontweight='bold', fontsize=16, color='black')
+            
+            # Enhanced styling with larger fonts
+            plt.xlabel("Category", fontsize=20, labelpad=25)
+            plt.ylabel("Number of Instances", fontsize=20, labelpad=25)
+            plt.xticks(rotation=45, ha='right', fontsize=18)
+            plt.yticks(fontsize=18)
+            
+            # Add subtle grid for readability
+            plt.grid(axis='y', alpha=0.2, linestyle='--', linewidth=0.8)
+            
+            # Remove top and right spines for cleaner look
+            ax = plt.gca()
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            ax.spines['left'].set_linewidth(1.2)
+            ax.spines['bottom'].set_linewidth(1.2)
+            
+            # Improve layout and margins
+            plt.tight_layout()
+            plt.subplots_adjust(bottom=0.15)  # Extra space for rotated labels
+            
+            plt.savefig(combined_dir / "instance_category_distribution.png", 
+                       dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
+            plt.close()
+        
+        # Generate combined dataset group category distribution plot
+        if self.metrics["total"]["group_category_stats"]:
+            print("Creating combined dataset group category distribution plot...")
+            
+            # Combined Group Category Distribution (both train and val)
+            group_categories = list(self.metrics["total"]["group_category_stats"].keys())
+            group_counts = list(self.metrics["total"]["group_category_stats"].values())
+            
+            if group_categories and group_counts:
+                # Sort by count for better visualization
+                group_data = sorted(zip(group_categories, group_counts), key=lambda x: x[1], reverse=True)
+                group_categories_sorted, group_counts_sorted = zip(*group_data)
+                
+                # Create a modern, clean chart
+                plt.figure(figsize=(18, 12))
+                
+                # Generate distinct colors for each category using a high-quality colormap
+                colors = cm.tab20(np.linspace(0, 1, len(group_categories_sorted)))
+                
+                # Create bars with enhanced styling
+                bars = plt.bar(group_categories_sorted, group_counts_sorted, 
+                              color=colors, edgecolor='white', linewidth=1.5,
+                              alpha=0.9)
+                
+                # Add count labels on bars with better formatting
+                for bar, count in zip(bars, group_counts_sorted):
+                    height = bar.get_height()
+                    plt.text(bar.get_x() + bar.get_width()/2., height + height*0.005,
+                            f'{count:,}', ha='center', va='bottom', 
+                            fontweight='bold', fontsize=16, color='black')
+                
+                # Enhanced styling with larger fonts
+                plt.xlabel("Group Category", fontsize=24, fontweight='bold', labelpad=25)
+                plt.ylabel("Number of Groups", fontsize=24, fontweight='bold', labelpad=25)
+                plt.xticks(rotation=45, ha='right', fontsize=22, fontweight='bold')
+                plt.yticks(fontsize=22, fontweight='bold')
+                
+                # Add subtle grid for readability
+                plt.grid(axis='y', alpha=0.2, linestyle='--', linewidth=0.8)
+                
+                # Remove top and right spines for cleaner look
+                ax = plt.gca()
+                ax.spines['top'].set_visible(False)
+                ax.spines['right'].set_visible(False)
+                ax.spines['left'].set_linewidth(1.2)
+                ax.spines['bottom'].set_linewidth(1.2)
+                
+                # Improve layout and margins
+                plt.tight_layout()
+                plt.subplots_adjust(bottom=0.15)  # Extra space for rotated labels
+                
+                plt.savefig(combined_dir / "group_category_distribution.png", 
+                           dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
+                plt.close()
+        
+        # Generate total dataset word cloud
+        if self.metrics["total"]["expression_texts"] and WORDCLOUD_AVAILABLE:
+            print("Creating total dataset expression word cloud...")
+            # Combine all expression texts into a single string
+            all_text = " ".join(self.metrics["total"]["expression_texts"])
+            
+            # Create word cloud
+            wordcloud = WordCloud(
+                width=1600, 
+                height=800, 
+                background_color='white',
+                max_words=200,
+                colormap='viridis',
+                relative_scaling=0.5,
+                random_state=42
+            ).generate(all_text)
+            
+            # Plot word cloud
+            plt.figure(figsize=(20, 10))
+            plt.imshow(wordcloud, interpolation='bilinear')
+            plt.axis('off')
+            plt.tight_layout()
+            plt.savefig(combined_dir / "expression_wordcloud.png", dpi=300, bbox_inches='tight')
+            plt.close()
+            
+            print(f"    Total word cloud saved ({len(self.metrics['total']['expression_texts']):,} expressions)")
+        elif self.metrics["total"]["expression_texts"] and not WORDCLOUD_AVAILABLE:
+            print("    Skipping total word cloud (wordcloud package not available)")
         
         print(f"Visualizations saved to {output_dir}")
 

@@ -1,7 +1,8 @@
 import os
 import io
+import json
 import xml.etree.ElementTree as ET
-from flask import Flask, render_template_string, send_file, request, redirect
+from flask import Flask, render_template_string, send_file, request, redirect, jsonify
 import cv2
 from pathlib import Path
 from collections import defaultdict
@@ -18,6 +19,7 @@ app = Flask(__name__)
 DEFAULT_DATASET_DIR = "dataset"
 ANNOTATIONS_DIR = None
 IMAGES_DIR = None
+VISUALIZATIONS_DIR = "saved_visualizations"  # Directory to save visualizations
 
 # Cache for image listings
 IMAGE_LISTINGS = {}
@@ -572,8 +574,8 @@ def index():
                         <li>
                             <div class="expression-item">
                                 <span>{{ expr }}</span>
-                                <a href="/download/{{ patch_idx }}/{{ loop.index0 }}?split={{ split }}&image_id={{ image_id }}&item_idx={{ item_idx }}&type={{ item_type }}&expr_type=original" 
-                                   class="download-btn">📥 Download</a>
+                                <button onclick="saveVisualization({{ patch_idx }}, {{ loop.index0 }}, 'original')" 
+                                        class="download-btn">💾 Save</button>
                             </div>
                         </li>
                         {% endfor %}
@@ -589,8 +591,8 @@ def index():
                         <li>
                             <div class="expression-item">
                                 <span>{{ expr }}</span>
-                                <a href="/download/{{ patch_idx }}/{{ loop.index0 }}?split={{ split }}&image_id={{ image_id }}&item_idx={{ item_idx }}&type={{ item_type }}&expr_type=enhanced" 
-                                   class="download-btn">📥 Download</a>
+                                <button onclick="saveVisualization({{ patch_idx }}, {{ loop.index0 }}, 'enhanced')" 
+                                        class="download-btn">💾 Save</button>
                             </div>
                         </li>
                         {% endfor %}
@@ -606,8 +608,8 @@ def index():
                         <li>
                             <div class="expression-item">
                                 <span>{{ expr }}</span>
-                                <a href="/download/{{ patch_idx }}/{{ loop.index0 }}?split={{ split }}&image_id={{ image_id }}&item_idx={{ item_idx }}&type={{ item_type }}&expr_type=unique" 
-                                   class="download-btn">📥 Download</a>
+                                <button onclick="saveVisualization({{ patch_idx }}, {{ loop.index0 }}, 'unique')" 
+                                        class="download-btn">💾 Save</button>
                             </div>
                         </li>
                         {% endfor %}
@@ -658,6 +660,49 @@ def index():
                 const url = new URL(window.location.href);
                 url.searchParams.set('show_masks', newShowMasks);
                 window.location.href = url.toString();
+            }
+            
+            function saveVisualization(patchIdx, exprIdx, exprType) {
+                const params = new URLSearchParams(window.location.search);
+                const split = params.get('split') || 'train';
+                const imageId = params.get('image_id');
+                const itemIdx = params.get('item_idx') || '0';
+                const type = params.get('type') || 'all';
+                
+                const url = `/save/${patchIdx}/${exprIdx}?split=${split}&image_id=${imageId}&item_idx=${itemIdx}&type=${type}&expr_type=${exprType}`;
+                
+                // Show loading state
+                event.target.textContent = '⏳ Saving...';
+                event.target.disabled = true;
+                
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            event.target.textContent = '✅ Saved!';
+                            // Reset button after 2 seconds
+                            setTimeout(() => {
+                                event.target.textContent = '💾 Save';
+                                event.target.disabled = false;
+                            }, 2000);
+                        } else {
+                            event.target.textContent = '❌ Error';
+                            alert('Error saving visualization: ' + (data.error || 'Unknown error'));
+                            setTimeout(() => {
+                                event.target.textContent = '💾 Save';
+                                event.target.disabled = false;
+                            }, 2000);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        event.target.textContent = '❌ Error';
+                        alert('Error saving visualization: ' + error.message);
+                        setTimeout(() => {
+                            event.target.textContent = '💾 Save';
+                            event.target.disabled = false;
+                        }, 2000);
+                    });
             }
         </script>
     </body>
@@ -772,9 +817,9 @@ def image(patch_idx):
         mimetype='image/png'
     )
 
-@app.route('/download/<int:patch_idx>/<int:expr_idx>')
-def download_thesis_image(patch_idx, expr_idx):
-    """Download a thesis-ready image with expression, image, and mask"""
+@app.route('/save/<int:patch_idx>/<int:expr_idx>')
+def save_visualization(patch_idx, expr_idx):
+    """Save visualization files to folder instead of downloading"""
     item_type = request.args.get('type', 'all')
     split = request.args.get('split', 'train')
     image_id = request.args.get('image_id')
@@ -782,18 +827,18 @@ def download_thesis_image(patch_idx, expr_idx):
     expr_type = request.args.get('expr_type', 'original')  # original, enhanced, unique
     
     if not image_id:
-        return "Image ID not specified", 404
+        return jsonify({"error": "Image ID not specified"}), 404
     
     # Get patches for selected image
     patches = get_patches_for_image(image_id, split)
     if not patches:
-        return "No patches found for selected image", 404
+        return jsonify({"error": "No patches found for selected image"}), 404
     
     # Get items from current patch
     current_patch = patches[patch_idx % len(patches)]
     items = read_single_annotation(current_patch, split)
     if not items:
-        return "No items found in selected patch", 404
+        return jsonify({"error": "No items found in selected patch"}), 404
     
     # Filter items based on type
     if item_type == 'instance':
@@ -802,7 +847,7 @@ def download_thesis_image(patch_idx, expr_idx):
         items = [item for item in items if item.get('type') == 'group']
     
     if not items:
-        return "No items found with selected filter", 404
+        return jsonify({"error": "No items found with selected filter"}), 404
     
     # Get current item
     item_idx = item_idx % len(items)
@@ -818,36 +863,159 @@ def download_thesis_image(patch_idx, expr_idx):
         expressions = item.get('expressions', [])
     
     if expr_idx >= len(expressions):
-        return "Expression index out of range", 404
+        return jsonify({"error": "Expression index out of range"}), 404
     
     expression = expressions[expr_idx]
     
     # Load and process the image
     img = cv2.imread(item['image_path'])
     if img is None:
-        return "Image not found", 404
+        return jsonify({"error": "Image not found"}), 404
     
-    # Create thesis-ready composite image
-    composite_img = create_thesis_composite(img, item, expression, current_patch, split, expr_type)
-    
-    # Generate filename
+    # Generate base filename and folder name
     safe_expr = re.sub(r'[^a-zA-Z0-9\-_\s]', '', expression)[:50]
     safe_expr = re.sub(r'\s+', '_', safe_expr)
     
     object_type = "group" if item['type'] == 'group' else "instance"
     object_id = item.get('group_id', item.get('obj_id', 'unknown'))
     
-    filename = f"thesis_{image_id}_{current_patch.replace('.xml', '')}_{object_type}_{object_id}_{expr_type}_{safe_expr}.png"
+    folder_name = f"{image_id}_{current_patch.replace('.xml', '')}_{object_type}_{object_id}_{expr_type}_{safe_expr}"
     
-    # Convert to bytes
-    _, buffer = cv2.imencode('.png', composite_img)
+    # Create specific folder for this visualization
+    visualization_folder = Path(VISUALIZATIONS_DIR) / folder_name
+    visualization_folder.mkdir(parents=True, exist_ok=True)
     
-    return send_file(
-        io.BytesIO(buffer.tobytes()),
-        mimetype='image/png',
-        as_attachment=True,
-        download_name=filename
-    )
+    # Save original image
+    original_img = img.copy()
+    original_filename = "image.png"
+    original_path = visualization_folder / original_filename
+    cv2.imwrite(str(original_path), original_img)
+    
+    # Create and save mask image
+    mask_img = create_mask_image_only(img, item, current_patch, split)
+    mask_filename = "mask.png"
+    mask_path = visualization_folder / mask_filename
+    cv2.imwrite(str(mask_path), mask_img)
+    
+    # Create JSON metadata - ensure all values are JSON serializable
+    def make_json_serializable(obj):
+        """Convert numpy arrays and other non-serializable types to lists"""
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, (list, tuple)):
+            return [make_json_serializable(item) for item in obj]
+        elif isinstance(obj, dict):
+            return {key: make_json_serializable(value) for key, value in obj.items()}
+        else:
+            return obj
+    
+    metadata = {
+        "expression": str(expression),
+        "expression_type": str(expr_type),
+        "image_file": str(original_filename),
+        "mask_file": str(mask_filename),
+        "folder_name": str(folder_name),
+        "image_id": str(image_id),
+        "patch_file": str(current_patch),
+        "split": str(split),
+        "object_type": str(object_type),
+        "object_id": str(object_id),
+        "bbox": make_json_serializable(item['bbox']),
+        "category": str(item['category'])
+    }
+    
+    # Add type-specific metadata
+    if item['type'] == 'group':
+        metadata["member_ids"] = make_json_serializable(item.get('member_ids', []))
+        metadata["member_bboxes"] = make_json_serializable(item.get('member_bboxes', []))
+    
+    json_filename = "metadata.json"
+    json_path = visualization_folder / json_filename
+    try:
+        with open(json_path, 'w') as f:
+            json.dump(metadata, f, indent=2)
+    except Exception as e:
+        return jsonify({"error": f"Failed to save metadata: {str(e)}"}), 500
+    
+    return jsonify({
+        "success": True,
+        "message": f"Visualization saved successfully",
+        "folder": str(visualization_folder),
+        "files": {
+            "image": str(original_path),
+            "mask": str(mask_path),
+            "metadata": str(json_path)
+        }
+    })
+
+def create_mask_image_only(img, item, patch_name, split):
+    """Create only the mask image (black background with white mask)"""
+    
+    # Parse XML file for mask operations
+    tree = ET.parse(os.path.join(ANNOTATIONS_DIR, split, 'annotations', patch_name))
+    root = tree.getroot()
+    
+    # Create a dictionary of object IDs to their segmentation data
+    seg_data_dict = {}
+    for obj in root.findall('object'):
+        obj_id = obj.find('id').text
+        seg_elem = obj.find('segmentation')
+        if seg_elem is not None:
+            try:
+                seg_data = eval(seg_elem.text)
+                if isinstance(seg_data, dict) and 'size' in seg_data and 'counts' in seg_data:
+                    seg_data_dict[obj_id] = seg_data
+            except Exception as e:
+                print(f"Error processing mask for object {obj_id}: {e}")
+
+    def create_mask_from_segdata(img_shape, seg_data):
+        """Create a black image with white mask"""
+        try:
+            rle = {'size': seg_data['size'], 'counts': seg_data['counts'].encode('utf-8')}
+            mask = mask_util.decode(rle)
+            
+            # Create black image
+            mask_img = np.zeros(img_shape, dtype=np.uint8)
+            # Set mask areas to white
+            mask_img[mask == 1] = [255, 255, 255]
+            
+            return mask_img
+        except Exception as e:
+            print(f"Error creating mask image: {e}")
+            return np.zeros(img_shape, dtype=np.uint8)
+    
+    # Create mask image (black with white mask)
+    mask_img = np.zeros_like(img)
+    img_height, img_width = img.shape[:2]
+    
+    if item['type'] == 'instance':
+        # Create mask for instance
+        if item['obj_id'] in seg_data_dict:
+            mask_img = create_mask_from_segdata(img.shape, seg_data_dict[item['obj_id']])
+    else:
+        # For groups, use group mask if available
+        if item.get('group_segmentation'):
+            try:
+                mask_img = create_mask_from_segdata(img.shape, item['group_segmentation'])
+            except Exception as e:
+                print(f"Error creating group mask image: {e}")
+                # Fallback to combining individual member masks
+                combined_mask = np.zeros((img_height, img_width), dtype=np.uint8)
+                for member_id in item.get('member_ids', []):
+                    if member_id in seg_data_dict:
+                        try:
+                            rle = {'size': seg_data_dict[member_id]['size'], 
+                                   'counts': seg_data_dict[member_id]['counts'].encode('utf-8')}
+                            member_mask = mask_util.decode(rle)
+                            combined_mask = np.logical_or(combined_mask, member_mask).astype(np.uint8)
+                        except Exception as e:
+                            print(f"Error processing member mask {member_id}: {e}")
+                
+                # Create black image with white combined mask
+                mask_img = np.zeros_like(img)
+                mask_img[combined_mask == 1] = [255, 255, 255]
+    
+    return mask_img
 
 def create_thesis_composite(img, item, expression, patch_name, split, expr_type):
     """Create a thesis-ready composite image with original image, mask image, and expression"""
@@ -992,14 +1160,18 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Rule-Based Expression Viewer')
     parser.add_argument('--dataset_dir', type=str, default=DEFAULT_DATASET_DIR,
                       help=f'Path to dataset directory (default: {DEFAULT_DATASET_DIR})')
+    parser.add_argument('--output_dir', type=str, default=VISUALIZATIONS_DIR,
+                      help=f'Path to output directory for saved visualizations (default: {VISUALIZATIONS_DIR})')
     args = parser.parse_args()
     
     # Update global paths
     ANNOTATIONS_DIR = os.path.join(args.dataset_dir, "patches_rules_expressions_unique")
     IMAGES_DIR = os.path.join(args.dataset_dir, "patches")
+    VISUALIZATIONS_DIR = args.output_dir
     
     print(f"Using dataset directory: {args.dataset_dir}")
     print(f"Annotations directory: {ANNOTATIONS_DIR}")
     print(f"Images directory: {IMAGES_DIR}")
+    print(f"Visualizations output directory: {VISUALIZATIONS_DIR}")
     
     app.run(debug=True, port=5004) 
