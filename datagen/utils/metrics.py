@@ -661,14 +661,17 @@ class DatasetMetrics:
                 group_data = sorted(zip(group_categories, group_counts), key=lambda x: x[1], reverse=True)
                 group_categories_sorted, group_counts_sorted = zip(*group_data)
                 
+                # Clean category names for better display (remove underscores, convert to lowercase to match instance chart)
+                group_categories_cleaned = [cat.replace('_', ' ').lower() for cat in group_categories_sorted]
+                
                 # Create a modern, clean chart
                 plt.figure(figsize=(18, 12))
                 
                 # Generate distinct colors for each category using a high-quality colormap
-                colors = cm.tab20(np.linspace(0, 1, len(group_categories_sorted)))
+                colors = cm.tab20(np.linspace(0, 1, len(group_categories_cleaned)))
                 
                 # Create bars with enhanced styling
-                bars = plt.bar(group_categories_sorted, group_counts_sorted, 
+                bars = plt.bar(group_categories_cleaned, group_counts_sorted, 
                               color=colors, edgecolor='white', linewidth=1.5,
                               alpha=0.9)
                 
