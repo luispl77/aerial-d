@@ -94,9 +94,10 @@
 \usepackage{sectsty}
 %%
 %% Redefine the font size of the 'section' and 'subsection' headings
-\newcommand{\myFontSize}{\fontsize{10}{0}\selectfont}
-\sectionfont{\myFontSize}       % 10pt, Bold face (default)
-\subsectionfont{\rm\myFontSize} % 10pt, Plain face
+\newcommand{\myFontSize}{\fontsize{11}{0}\selectfont}
+\newcommand{\mySubFontSize}{\fontsize{10}{0}\selectfont}
+\sectionfont{\myFontSize\bfseries}       % 11pt, Bold face
+\subsectionfont{\mySubFontSize\bfseries} % 10pt, Bold face
 
 %% Select alternative section titles.
 %% http://www.ctan.org/tex-archive/help/Catalogue/entries/titlesec.html
@@ -104,13 +105,13 @@
 %%
 %% Left indent, before and after spacing
 %% (The starred version kills the indentation of the paragraph following the title)
-\titlespacing*{\section}{0pt}{10pt}{0pt}
-\titlespacing*{\subsection}{0pt}{10pt}{0pt}
+\titlespacing*{\section}{0pt}{12pt}{6pt}
+\titlespacing*{\subsection}{0pt}{10pt}{4pt}
 
 %% Section numbers with trailing dots using titlesec (secdot not available)
 %% Alternative implementation using titlesec package
 \titleformat{\section}{\myFontSize\bfseries}{\thesection.}{1em}{}
-\titleformat{\subsection}{\rm\myFontSize}{\thesubsection.}{1em}{}
+\titleformat{\subsection}{\mySubFontSize\bfseries}{\thesubsection.}{1em}{}
 
 % These are exact settings for a A4 page with top margin of
 % 25 mm, bottom margin of 30 mm, left and right margins of 25 mm,
