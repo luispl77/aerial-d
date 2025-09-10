@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024/TeX Live for SUSE Linux) (preloaded format=pdflatex 2025.3.6)  9 SEP 2025 12:30
+This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024/TeX Live for SUSE Linux) (preloaded format=pdflatex 2025.3.6)  9 SEP 2025 15:22
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -310,8 +310,6 @@ LaTeX Font Info:    Trying to load font information for U+msb on input line 156
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ) (./ExtendedAbstract_abstr.tex)
 (./ExtendedAbstract_intro.tex
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
 <./images/6samples.png, id=1, 714.67pt x 714.67pt>
 File: ./images/6samples.png Graphic file (type png)
 <use ./images/6samples.png>
@@ -323,19 +321,19 @@ Underfull \vbox (badness 10000) has occurred while \output is active []
  [1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}
 
 
-]
+ <./images/6samples.png>]
 Underfull \hbox (badness 1107) in paragraph at lines 26--27
 \OT1/cmr/m/n/10 ing good gen-er-al-iza-tion per-for-mance of mod-els
  []
 
 ) (./ExtendedAbstract_backg.tex) (./ExtendedAbstract_imple.tex
-<./images/rule_based_generation.png, id=15, 938.00438pt x 936.49875pt>
+<./images/rule_based_generation.png, id=16, 938.00438pt x 936.49875pt>
 File: ./images/rule_based_generation.png Graphic file (type png)
 <use ./images/rule_based_generation.png>
 Package pdftex.def Info: ./images/rule_based_generation.png  used on input line
  15.
 (pdftex.def)             Requested size: 159.33473pt x 159.07407pt.
-<./images/example_group.png, id=16, 445.665pt x 446.66875pt>
+<./images/example_group.png, id=17, 445.665pt x 446.66875pt>
 File: ./images/example_group.png Graphic file (type png)
 <use ./images/example_group.png>
 Package pdftex.def Info: ./images/example_group.png  used on input line 57.
@@ -345,35 +343,43 @@ Underfull \hbox (badness 10000) in paragraph at lines 77--77
 []|\OT1/cmr/bx/n/8 Expression
  []
 
-<./images/distillation.png, id=17, 566.115pt x 341.275pt>
+<./images/distillation.png, id=18, 566.115pt x 341.275pt>
 File: ./images/distillation.png Graphic file (type png)
 <use ./images/distillation.png>
 Package pdftex.def Info: ./images/distillation.png  used on input line 86.
 (pdftex.def)             Requested size: 178.0983pt x 107.36159pt.
-<./images/expression_wordcloud.png, id=18, 1416.492pt x 715.473pt>
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+<./images/expression_wordcloud.png, id=19, 1416.492pt x 715.473pt>
 File: ./images/expression_wordcloud.png Graphic file (type png)
 <use ./images/expression_wordcloud.png>
 Package pdftex.def Info: ./images/expression_wordcloud.png  used on input line 
 95.
 (pdftex.def)             Requested size: 222.62204pt x 112.4365pt.
-<./images/group_category_distribution.png, id=19, 1293.1512pt x 982.1493pt>
+<./images/group_category_distribution.png, id=20, 1293.1512pt x 970.1043pt>
 File: ./images/group_category_distribution.png Graphic file (type png)
 <use ./images/group_category_distribution.png>
 Package pdftex.def Info: ./images/group_category_distribution.png  used on inpu
 t line 104.
-(pdftex.def)             Requested size: 218.51521pt x 165.95908pt.
-<./images/instance_category_distribution.png, id=20, 1293.1512pt x 970.1043pt>
+(pdftex.def)             Requested size: 218.51521pt x 163.92377pt.
+<./images/instance_category_distribution.png, id=21, 1293.1512pt x 970.1043pt>
 File: ./images/instance_category_distribution.png Graphic file (type png)
 <use ./images/instance_category_distribution.png>
 Package pdftex.def Info: ./images/instance_category_distribution.png  used on i
 nput line 108.
 (pdftex.def)             Requested size: 218.51521pt x 163.92377pt.
-) (./ExtendedAbstract_resul.tex
-Underfull \vbox (badness 4108) has occurred while \output is active []
 
- [2 <./images/6samples.png> <./images/distillation.png> <./images/expression_wo
-rdcloud.png>]) (./ExtendedAbstract_concl.tex) (./ExtendedAbstract_ackno.tex)
-(./ExtendedAbstract.bbl
+Overfull \hbox (113.04436pt too wide) in paragraph at lines 120--131
+ [][] 
+ []
+
+)
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [2 <./images/distillation.png> <./images/expression_wordcloud.png>]
+(./ExtendedAbstract_resul.tex) (./ExtendedAbstract_concl.tex)
+(./ExtendedAbstract_ackno.tex) (./ExtendedAbstract.bbl
 
 LaTeX Warning: Empty `thebibliography' environment on input line 3.
 
@@ -387,16 +393,12 @@ category_distribution.png> <./images/instance_category_distribution.png>]
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2024-02-20>
  ***********
-
-
-LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
-
  ) 
 Here is how much of TeX's memory you used:
- 4247 strings out of 474132
- 62588 string characters out of 5753346
- 1957187 words of memory out of 5000000
- 26519 multiletter control sequences out of 15000+600000
+ 4251 strings out of 474132
+ 62678 string characters out of 5753346
+ 1955187 words of memory out of 5000000
+ 26523 multiletter control sequences out of 15000+600000
  567684 words of font info for 74 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  57i,13n,65p,1451b,399s stack positions out of 10000i,1000n,20000p,200000b,200000s
@@ -410,7 +412,7 @@ msfonts/cm/cmr8.pfb></usr/share/texmf/fonts/type1/public/amsfonts/cm/cmr9.pfb><
 nts/type1/public/amsfonts/cm/cmtt9.pfb></usr/share/texmf/fonts/type1/public/ams
 fonts/symbols/msam10.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfrm1000
 .pfb>
-Output written on ExtendedAbstract.pdf (4 pages, 16080146 bytes).
+Output written on ExtendedAbstract.pdf (4 pages, 16068182 bytes).
 PDF statistics:
  93 PDF objects out of 1000 (max. 8388607)
  48 compressed objects within 1 object stream

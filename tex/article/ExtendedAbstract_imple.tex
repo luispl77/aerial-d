@@ -110,3 +110,22 @@ Unique & the set of four big vehicles parked in a single row in the upper center
 \caption{Category distribution analysis of Aerial-D dataset. Left: Distribution of group annotations showing the prevalence of different object categories in group-level referring expressions. Right: Distribution of individual instance annotations across semantic categories, demonstrating the dataset's coverage of aerial object types.}
 \label{fig:category_distributions}
 \end{figure*}
+
+Table \ref{tab:llm_enhancement_stats} quantifies the impact of LLM enhancement, showing that the distillation pipeline successfully tripled the dataset size from the original 506,194 rule-based expressions to 1,522,523 total expressions. The LLM enhancement process contributed nearly equal numbers of language variations (496,895) and unique visual detail expressions (519,434), demonstrating the effectiveness of the two-pronged enhancement strategy in achieving both linguistic diversity and contextual richness.
+
+\begin{table}[H]
+\centering
+\caption{LLM Enhancement Expression Distribution}
+\label{tab:llm_enhancement_stats}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+\textbf{Expression Source} & \textbf{Train} & \textbf{Val} & \textbf{Total} \\
+\midrule
+Rule-Based Expressions & 371,360 & 134,834 & 506,194 \\
+LLM Enhanced (Language Variations) & 364,396 & 132,499 & 496,895 \\
+LLM Unique (Visual Details) & 382,038 & 137,396 & 519,434 \\
+\midrule
+\textbf{Total Expressions} & \textbf{1,117,794} & \textbf{404,729} & \textbf{1,522,523} \\
+\bottomrule
+\end{tabular}
+\end{table}
