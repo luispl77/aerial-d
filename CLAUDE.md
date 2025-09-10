@@ -318,6 +318,20 @@ tex/
 4. **Technical Details**: Only AFTER motivation, problem, and solution intro
    - Specific algorithms, parameters, thresholds, etc.
 
+### 11. **Natural Story Writing - CRITICAL GUIDELINES**
+
+**NEVER be robotic or use unexplained technical terms. ALWAYS write as a natural story:**
+
+1. **Tell the transformation story**: Explain how we take existing datasets (instance segmentation, semantic segmentation) and transform their objects into natural language targets
+2. **Avoid technical jargon**: NEVER use terms like "spatial context", "uniqueness filtering", "dynamic thresholds" without first explaining what you mean in simple terms
+3. **Explain the core challenge**: Focus on the interesting problem - how to describe objects using only what we know from annotations (bounding boxes, masks, categories)
+4. **Natural flow**: Write like you're explaining to someone what you're actually doing, not listing technical specifications
+5. **Explain before naming**: When you need to introduce a process, first explain what it does, then you can give it a name. Don't throw around unexplained terms.
+
+**Example of WRONG approach**: "To provide spatial context for object localization, we implement uniqueness filtering"
+
+**Example of CORRECT approach**: "The core challenge is figuring out how to describe these objects using only what we know from their bounding boxes and masks. When multiple objects end up with identical characteristics and generate the exact same expressions, we solve this by taking all expressions and matching them against each other - when we find duplicates, we cancel both out as ambiguous."
+
 **Example of WRONG approach**: "Spatial relationship calculation employs an angle-based directional system..."
 
 **Example of CORRECT approach**: "In order to enable complex referring expressions that describe objects relative to other instances, the system implements spatial relationship calculation. This addresses cases where grid positioning alone cannot uniquely identify objects in crowded scenes. The system employs an angle-based directional system..."
