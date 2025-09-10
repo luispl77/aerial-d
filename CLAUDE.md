@@ -332,6 +332,21 @@ tex/
 
 **Example of CORRECT approach**: "The core challenge is figuring out how to describe these objects using only what we know from their bounding boxes and masks. When multiple objects end up with identical characteristics and generate the exact same expressions, we solve this by taking all expressions and matching them against each other - when we find duplicates, we cancel both out as ambiguous."
 
+### 12. **CRITICAL: Polish Rough Language Into Academic Writing**
+
+**When the user provides rough, informal explanations, DO NOT copy verbatim. Your job is to:**
+
+1. **Fix typos and grammar**: Clean up all spelling mistakes, punctuation, and grammatical errors
+2. **Convert informal to formal**: Transform casual language into proper academic prose
+3. **Maintain the user's ideas**: Keep all the technical concepts and flow exactly as intended
+4. **Polish the presentation**: Make it publication-ready while preserving the user's voice and structure
+
+**Example of WRONG approach**: Copying "we let the model see and pay attention to the surrounding features" directly
+
+**Example of CORRECT approach**: Transform into "we enable the model to analyze and incorporate surrounding contextual features"
+
+**NEVER just copy rough language - always polish it into proper academic writing while maintaining the exact technical meaning and flow.**
+
 **Example of WRONG approach**: "Spatial relationship calculation employs an angle-based directional system..."
 
 **Example of CORRECT approach**: "In order to enable complex referring expressions that describe objects relative to other instances, the system implements spatial relationship calculation. This addresses cases where grid positioning alone cannot uniquely identify objects in crowded scenes. The system employs an angle-based directional system..."
