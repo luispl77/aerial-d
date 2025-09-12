@@ -117,6 +117,54 @@ Unique & the set of four big vehicles parked in a single row in the upper center
 \label{fig:llm_distillation}
 \end{figure}
 
+\subsection{Historic Image Filter Augmentation}
+\label{subsec:historic_filters}
+
+To enhance model robustness to varying image quality conditions commonly encountered in historical aerial photography, we introduce a systematic historic image filter augmentation approach. Historical aerial imagery often exhibits degradation patterns including reduced contrast, color desaturation, and noise artifacts that can significantly impact model performance when trained exclusively on high-quality modern imagery.
+
+Our historic filter augmentation randomly selects one of three distinct transformations with equal probability during training, simulating common degradation patterns found in archival aerial photography. The system employs a random selection strategy where each image receives exactly one historic effect, ensuring consistent processing while maintaining diversity in the training augmentations.
+
+The three historic filters are implemented as follows:
+
+\textbf{Basic Black and White Filter:} Converts color images to grayscale using OpenCV's standard conversion:
+\begin{equation}
+I_{bw} = \text{cvtColor}(I_{original}, \text{COLOR\_BGR2GRAY})
+\end{equation}
+
+\textbf{Black and White with Grain Filter:} Combines grayscale conversion with contrast adjustment and film grain simulation:
+\begin{align}
+I_{gamma} &= (I_{bw} / 255.0)^{\gamma} \times 255.0 \\
+I_{contrast} &= (I_{gamma} - \mu) \times c + \mu \\
+I_{grain} &= I_{contrast} + \mathcal{N}(0, \sigma_{grain}^2)
+\end{align}
+where $\gamma = 1.1$, $c = 0.85$ (contrast factor), $\mu$ is the image mean, and $\sigma_{grain} = 0.1 \times 255$ for film grain intensity.
+
+\textbf{Sepia with Noise Filter:} Applies sepia tone transformation followed by additive noise:
+\begin{align}
+I_{sepia} &= I_{original} \times \begin{bmatrix}
+0.272 & 0.534 & 0.131 \\
+0.349 & 0.686 & 0.168 \\
+0.393 & 0.769 & 0.189
+\end{bmatrix} \\
+I_{final} &= I_{sepia} + \mathcal{U}(0, 50)
+\end{align}
+where the sepia transformation matrix is applied using OpenCV's transform function, and uniform noise $\mathcal{U}(0, 50)$ is added to simulate photographic grain.
+
+Figure \ref{fig:historic_filters} demonstrates the visual effects of each filter applied to a representative aerial image patch, showing how these transformations simulate the characteristic appearance of historical aerial photography while preserving essential spatial and structural information necessary for segmentation tasks.
+
+\begin{figure*}[t]
+\centering
+% Placeholder for historic filter comparison figure
+\fbox{\parbox{\textwidth}{\centering\vspace{2cm}
+\textbf{PLACEHOLDER: Historic Filter Comparison Figure}\\
+\vspace{0.5cm}
+Original image and three filtered versions:\\
+(1) Original, (2) Grayscale, (3) Sepia, (4) Noise
+\vspace{2cm}}}
+\caption{Comparison of original aerial image patch with three historic filter transformations: grayscale conversion, sepia toning, and Gaussian noise addition. These filters simulate common degradation patterns in historical aerial photography.}
+\label{fig:historic_filters}
+\end{figure*}
+
 \subsection{Final Dataset Statistics}
 
 The completed AerialD dataset represents a comprehensive resource for aerial referring expression segmentation, containing over 1.5 million expressions across diverse object categories and linguistic patterns. The dataset achieves substantial scale with 37,288 total patches containing 259,709 annotated samples, maintaining balanced distribution between individual objects (128,715 instances with 889,354 expressions) and groups (130,994 groups with 633,169 expressions).
