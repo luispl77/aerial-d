@@ -110,7 +110,7 @@ Unique & the set of four big vehicles parked in a single row in the upper center
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.8\columnwidth]{./images/distillation.png}
+\includegraphics[width=\columnwidth]{./images/distillation.png}
 \caption{Knowledge distillation pipeline for scalable LLM enhancement. A small sample of 500 expressions is processed through OpenAI's O3 model to generate high-quality training targets, which are then used to fine-tune Gemma3 12B via QLora. The fine-tuned model enables cost-effective local inference to enhance the full dataset of 300,000 expressions using vLLM on a single GPU.}
 \label{fig:llm_distillation}
 \end{figure}
@@ -146,20 +146,42 @@ The systematic generation pipeline produces expressions through seventeen distin
 
 Table \ref{tab:llm_enhancement_stats} quantifies the impact of LLM enhancement, showing that the distillation pipeline successfully tripled the dataset size from the original 506,194 rule-based expressions to 1,522,523 total expressions. The LLM enhancement process contributed nearly equal numbers of language variations (496,895) and unique visual detail expressions (519,434), demonstrating the effectiveness of the two-pronged enhancement strategy in achieving both linguistic diversity and contextual richness.
 
+Our dataset comparison presented in Table \ref{tab:dataset_comparison} reveals that Aerial-D represents a significant advancement in aerial referring segmentation datasets. With over 1.5 million referring expressions, it surpasses the largest existing dataset by more than 30-fold. Aerial-D is the first dataset to achieve fully automated annotation generation without manual intervention, combining rule-based expression generation with LLM enhancement. The dataset supports both single-object and multi-object referring expressions, making it more comprehensive than previous datasets that focus primarily on single-object scenarios.
+
+% Dataset comparison table
+\begin{table*}[t]
+\centering
+\caption{Comparison with Existing RRSIS Datasets}
+\label{tab:dataset_comparison}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lccccccr@{}}
+\toprule
+\textbf{Dataset} & \textbf{Image Resolution} & \textbf{Images} & \textbf{Annotations} & \textbf{Single-object} & \textbf{Multi-object} & \textbf{Resolution} & \textbf{Annotation Generation} \\
+\midrule
+RefSegRS & 0.13m & 4420 & 4420 & \checkmark & $\times$ & 512 & Manual \\
+RRSIS-D & 0.5m-30m & 17402 & 17402 & \checkmark & $\times$ & 800 & Semi-auto \\
+NWPU-Refer & 0.12m-0.5m & 15003 & 49745 & \checkmark & \checkmark & 1024-2048 & Manual \\
+\midrule
+\textbf{AERIAL-D} & \textbf{0.3m-4.5m} & \textbf{43,514} & \textbf{1,545,994} & \textbf{\checkmark} & \textbf{\checkmark} & \textbf{480} & \textbf{Automated + LLM} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
 \begin{table}[H]
 \centering
 \caption{Expression Distribution by Source}
 \label{tab:llm_enhancement_stats}
-\small
-\begin{tabular}{@{}lrrr@{}}
+\footnotesize
+\begin{tabular}{@{}lcc@{}}
 \toprule
-\textbf{Source} & \textbf{Train} & \textbf{Val} & \textbf{Total} \\
+\textbf{Source} & \textbf{Train} & \textbf{Total} \\
 \midrule
-Rule-Based & 371,360 & 134,834 & 506,194 \\
-LLM Language Variations & 364,396 & 132,499 & 496,895 \\
-LLM Visual Details & 382,038 & 137,396 & 519,434 \\
+Rule-Based & 371K & 506K \\
+LLM Language Variations & 364K & 497K \\
+LLM Visual Details & 382K & 519K \\
 \midrule
-\textbf{Total} & \textbf{1,117,794} & \textbf{404,729} & \textbf{1,522,523} \\
+\textbf{Total} & \textbf{1,118K} & \textbf{1,523K} \\
 \bottomrule
 \end{tabular}
 \end{table}

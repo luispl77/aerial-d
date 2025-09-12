@@ -9,11 +9,19 @@
 \subsection{Model Architecture}
 \label{subsec:model_architecture}
 
+Our approach implements the RefSegRS architecture, which combines text and visual understanding for precise object segmentation in aerial imagery. The architecture leverages two robust vision foundation models: SigLIP2 for vision-language encoding and SAM for mask generation. We implemented this architecture from scratch in PyTorch, employing LoRA (Low-Rank Adaptation) for efficient fine-tuning while maintaining strong pre-trained representations from the foundation models. The model targets query and value projection layers in both vision encoders and query, key, value, and output projection layers in the text encoder.
+
 \subsection{Experimental Setup}
 \label{subsec:experimental_setup}
 
+Our training configuration uses a batch size of 4 with gradient accumulation steps of 2, achieving an effective batch size of 8 samples. The model employs the SigLIP2-SO400M model for vision-language encoding and SAM-ViT-Base for mask generation. Training uses AdamW optimizer with initial learning rate of 1e-4, weight decay of 0.01, and polynomial learning rate decay with power factor 0.9. Mixed-precision computation and gradient clipping with maximum norm of 1.0 ensure training stability. All images are resized to 384×384 pixels to match SigLIP2 input requirements.
+
+Our experimental design centers on training models using Aerial-D and evaluating performance through cross-dataset evaluation on three established aerial referring segmentation benchmarks: RefSegRS, RRSIS-D, and NWPU-Refer. This cross-evaluation approach validates the generalization capabilities of models trained on our dataset when applied to different aerial imagery domains.
+
 \subsection{Evaluation Results}
 \label{subsec:evaluation_results}
+
+Our evaluation demonstrates that the model trained on Aerial-D generalizes effectively to other aerial referring segmentation datasets. The cross-dataset performance evaluation in Table \ref{tab:cross_dataset_results} shows that our approach maintains reasonable performance when applied to RefSegRS, RRSIS-D, and NWPU-Refer datasets, despite being trained exclusively on Aerial-D. This generalization capability indicates that the diversity and scale of expressions in our dataset enable the model to adapt to different annotation styles, object categories, and expression patterns found in other aerial imagery domains.
 
 % Cross-dataset performance table
 \begin{table*}[t]
@@ -54,28 +62,15 @@ Urban1960SatSeg & -- & -- & -- & -- & N/A & -- & N/A \\
 \end{tabular}
 \end{table*}
 
-% Dataset comparison table
-\begin{table*}[t]
-\centering
-\caption{Comparison with Existing RRSIS Datasets}
-\label{tab:dataset_comparison}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{@{}lccccccr@{}}
-\toprule
-\textbf{Dataset} & \textbf{Image Resolution} & \textbf{Images} & \textbf{Annotations} & \textbf{Single-object} & \textbf{Multi-object} & \textbf{Resolution} & \textbf{Annotation Generation} \\
-\midrule
-RefSegRS & 0.13m & 4420 & 4420 & \checkmark & $\times$ & 512 & Manual \\
-RRSIS-D & 0.5m-30m & 17402 & 17402 & \checkmark & $\times$ & 800 & Semi-auto \\
-NWPU-Refer & 0.12m-0.5m & 15003 & 49745 & \checkmark & \checkmark & 1024-2048 & Manual \\
-\midrule
-\textbf{AERIAL-D} & \textbf{0.3m-4.5m} & \textbf{43,514} & \textbf{1,545,994} & \textbf{\checkmark} & \textbf{\checkmark} & \textbf{480} & \textbf{Automated + LLM} \\
-\bottomrule
-\end{tabular}%
-}
-\end{table*}
 
 \subsection{Ablation Studies}
 \label{subsec:ablation_studies}
+
+To evaluate the individual contributions of different expression enhancement strategies, we conduct an ablation study comparing models trained on different subsets of Aerial-D. The primary motivation is to determine whether the LLM enhancement process positively impacts model performance and to quantify the benefits of each enhancement type. Our training set contains approximately 371K rule-based expressions, 364K language variation expressions, and 382K unique visual detail expressions, totaling 1.12M training expressions.
+
+To ensure fair comparison across training configurations, we carefully control the total number of training samples each model observes. The individual subset models train for multiple epochs to match the sample count of the combined dataset trained for fewer epochs, preventing performance differences from arising simply from training data quantity rather than quality and diversity.
+
+The ablation results in Table \ref{tab:ablation_expression_types} demonstrate that the combined model, utilizing all expression types, achieves the best performance across evaluation metrics on Aerial-D. Notably, different subsets show varying benefits for different target datasets: Enhanced Only performs best on RRSIS-D, while Unique Expressions Only excels on NWPU-Refer. This indicates that smaller, focused subsets can be more data-efficient and faster to train than the full combined dataset, while still achieving competitive or superior performance on specific target domains. The results suggest that practitioners can strategically select training subsets based on their target application domain to optimize both training efficiency and performance.
 
 % Ablation expression types table
 \begin{table*}[t]
