@@ -6,6 +6,8 @@
 \section{Aerial-D Dataset Construction}
 \label{sec:approach}
 
+This section details our comprehensive approach to constructing Aerial-D, the largest referring segmentation dataset for aerial imagery. Our methodology combines automated rule-based expression generation with large language model enhancement to achieve both scale and linguistic diversity. We begin by establishing our source datasets, then describe our rule-based pipeline for generating referring expressions from existing annotations, followed by our novel knowledge distillation approach for cost-effective LLM enhancement, and conclude with comprehensive dataset statistics demonstrating the scope and characteristics of the final resource.
+
 \subsection{Source Datasets}
 
 The AerialD dataset is constructed from two primary sources of aerial imagery with fundamentally different annotation paradigms. The iSAID dataset provides instance segmentation annotations with 655,451 instances across 15 object categories including ships, vehicles, planes, buildings, and infrastructure elements such as harbors and bridges. The dataset contains 2,806 high-resolution aerial images with varying dimensions and spatial resolutions ranging from 0.1m to 4.5m per pixel. In contrast, the LoveDA dataset offers semantic segmentation annotations capturing land cover patterns across 5,987 images at 1024×1024 resolution with 0.3m spatial resolution. It provides pixel-level classification into six categories: buildings, roads, water bodies, agricultural areas, forests, and barren land.

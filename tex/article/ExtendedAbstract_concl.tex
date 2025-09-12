@@ -6,3 +6,21 @@
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
 
+This work presents a comprehensive approach to open-vocabulary segmentation of aerial photographs through the development of AerialSeg and the AerialD dataset. By building upon the RSRefSeg architecture and implementing a systematic pipeline for dataset generation, we have demonstrated the feasibility of extending referring segmentation capabilities to the aerial domain.
+
+Our rule-based annotation system successfully transforms existing semantic and instance segmentation datasets into rich referring segmentation resources, enabling the creation of natural language descriptions for objects in overhead imagery. The integration of spatial relationships, size comparisons, and color analysis provides a foundation for generating diverse and contextually relevant referring expressions that capture the unique characteristics of aerial scenes.
+
+The enhancement of our dataset through large language models represents a significant advancement in dataset quality and diversity. By leveraging models such as Gemma3, we have shown that automatically generated referring expressions can be refined to achieve more natural and varied language patterns while maintaining semantic accuracy. This approach demonstrates the potential for scalable dataset creation that combines rule-based precision with the linguistic sophistication of modern language models.
+
+Our experimental results validate the effectiveness of the RSRefSeg architecture when adapted to aerial imagery, showing promising performance on the task of open-vocabulary segmentation in overhead scenes. The combination of SigLIP and SAM backbones, enhanced through parameter-efficient LoRA fine-tuning, provides a robust foundation for handling the unique challenges of aerial image understanding.
+
+\subsection{Future Work}
+
+The field of open-vocabulary aerial image segmentation presents numerous opportunities for advancement, particularly through the integration of emerging multimodal technologies. A promising direction lies in leveraging new large language models that possess pixel-level segmentation capabilities, such as vision-language models with inherent understanding of spatial relationships and object boundaries.
+
+These advanced models could serve dual purposes in future work. First, they could replace or augment the current RSRefSeg architecture as the base segmentation model, potentially offering more sophisticated understanding of the relationship between natural language descriptions and visual content. Their integrated approach to vision and language processing could eliminate the need for separate encoder architectures and complex fusion mechanisms.
+
+Second, and perhaps more significantly, such models could revolutionize the dataset generation process itself. Beyond their current use for enhancing referring expressions, pixel-aware language models could generate entirely new segmentation masks based on textual descriptions, creating truly synthetic yet realistic aerial imagery datasets. This capability would enable the creation of datasets that are not constrained by the original annotations of existing semantic segmentation datasets, allowing for the generation of novel object configurations, rare scenarios, and specialized use cases that may be difficult to capture in real-world aerial photography.
+
+This approach would make the segmentation system truly general in what it can segment, moving beyond the limitations of predefined object categories toward genuine open-vocabulary capabilities. The combination of advanced language models for both architecture and data generation could establish a new paradigm for aerial image understanding that is both more flexible and more comprehensive than current approaches.
+
