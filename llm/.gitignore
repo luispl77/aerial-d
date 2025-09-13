@@ -17,3 +17,5 @@ merged_model*/
 gemma-aerial-12b
 gemma-aerial-12b_old
 */__pycache__/
+debug*
+temp*
