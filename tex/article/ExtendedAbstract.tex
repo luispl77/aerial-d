@@ -39,10 +39,27 @@
 %% or use the epsfig package if you prefer to use the old commands
 %% \usepackage{epsfig}
 \usepackage{graphicx} % Enhanced LaTeX Graphics
+% Improve double-column float handling and reduce whitespace from floats
+% (Avoid extra packages that may be unavailable in the build env)
 % Page geometry: tighter margins for better content fit
 \usepackage[a4paper,top=15mm,bottom=20mm,left=15mm,right=15mm]{geometry}
 % Slightly reduce space between columns
 \setlength{\columnsep}{6mm}
+
+% Tighter vertical spacing around floats/captions to avoid large gaps
+\setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
+\setlength{\dbltextfloatsep}{8pt plus 2pt minus 2pt}
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
+\setlength{\abovecaptionskip}{3pt}
+\setlength{\belowcaptionskip}{0pt}
+
+% Encourage flexible float placement to reduce unwanted gaps
+\renewcommand{\topfraction}{0.95}
+\renewcommand{\bottomfraction}{0.85}
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\floatpagefraction}{0.8}
+\renewcommand{\dbltopfraction}{0.95}
+\renewcommand{\dblfloatpagefraction}{0.8}
 
 % For colored text
 \usepackage{xcolor}
