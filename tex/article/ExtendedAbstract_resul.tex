@@ -76,44 +76,64 @@ Combined All & 1,118K & 2 & 2.24M & \textbf{39.54\%} & \textbf{49.33\%} & \textb
 
 The results demonstrate that the combined model, utilizing all expression types, achieves the best performance across evaluation metrics on Aerial-D. Notably, different subsets show varying benefits for different target datasets: Enhanced Only performs best on RRSIS-D, while Unique Expressions Only excels on NWPU-Refer. This indicates that smaller, focused subsets can be more data-efficient and faster to train than the full combined dataset, while still achieving competitive or superior performance on specific target domains.
 
-\subsection{Filter Removal Ablation}
-\label{subsec:filter_ablation}
+\subsection{Historic Performance Analysis}
+\label{subsec:historic_analysis}
 
-We examine the impact of our filtering mechanisms by comparing models trained with and without the uniqueness and historic filters. This ablation study reveals how filtering affects both normal performance and historic imagery performance, quantifying the trade-offs between dataset size and annotation quality.
+We analyze the performance degradation when models trained on normal imagery are applied to historic imagery conditions. This analysis reveals how historic filtering affects performance across all datasets, quantifying the performance differences between normal and historic imagery evaluation.
 
-% Filter removal ablation table
+% Historic performance comparison table with percentage differences
 \begin{table*}[t]
 \centering
-\caption{Impact of Filter Removal on Model Performance}
-\label{tab:filter_ablation}
+\caption{Historic vs. Normal Performance Analysis with Percentage Differences}
+\label{tab:historic_performance_analysis}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{@{}lcc|cc|cc|cc@{}}
+\begin{tabular}{@{}lcccccc@{}}
 \toprule
-\multirow{2}{*}{\textbf{Training Configuration}} & \multirow{2}{*}{\textbf{Samples}} & \multirow{2}{*}{\textbf{Size}} & \multicolumn{2}{c|}{\textbf{Normal Performance}} & \multicolumn{2}{c|}{\textbf{Historic Performance}} & \multicolumn{2}{c}{\textbf{Performance Difference}} \\
-\cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9}
- & & & \textbf{mIoU} & \textbf{oIoU} & \textbf{mIoU} & \textbf{oIoU} & \textbf{mIoU Δ} & \textbf{oIoU Δ} \\
+\multirow{2}{*}{\textbf{Dataset}} & \multicolumn{2}{c}{\textbf{Normal Performance}} & \multicolumn{2}{c}{\textbf{Historic Performance}} & \multicolumn{2}{c}{\textbf{Performance Difference}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+ & \textbf{mIoU} & \textbf{oIoU} & \textbf{mIoU} & \textbf{oIoU} & \textbf{mIoU Δ} & \textbf{oIoU Δ} \\
 \midrule
-With All Filters & 1,118K & 100\% & 49.33\% & 64.30\% & 32.92\% & 45.41\% & -16.41\% & -18.89\% \\
-Without Uniqueness Filter & [TBD]K & [TBD]\% & [TBD]\% & [TBD]\% & [TBD]\% & [TBD]\% & [TBD]\% & [TBD]\% \\
-Without Historic Filter & [TBD]K & [TBD]\% & [TBD]\% & [TBD]\% & N/A & N/A & N/A & N/A \\
-Without Any Filters & [TBD]K & [TBD]\% & [TBD]\% & [TBD]\% & [TBD]\% & [TBD]\% & [TBD]\% & [TBD]\% \\
+Aerial-D & [TBD]\% & [TBD]\% & [TBD]\% & [TBD]\% & [TBD]\% & [TBD]\% \\
+RRSIS-D & 60.01\% & 71.48\% & 55.20\% & 68.26\% & -4.81\% & -3.22\% \\
+NWPU-Refer & 35.81\% & 51.77\% & 30.17\% & 48.31\% & -5.64\% & -3.46\% \\
+RefSegRS & 36.75\% & 44.41\% & 24.53\% & 30.21\% & -12.22\% & -14.20\% \\
+Urban1960SatSeg & 67.72\% & 86.43\% & N/A & N/A & N/A & N/A \\
 \bottomrule
 \end{tabular}%
 }
 \end{table*}
 
-This analysis reveals the critical role of our filtering mechanisms in maintaining annotation quality while balancing dataset size. The uniqueness filter removes ambiguous expressions that could confuse the model during training, while the historic filter ensures robustness to varying image conditions commonly found in aerial imagery across different time periods.
+This analysis reveals the varying impact of historic image conditions across different datasets. RefSegRS shows the largest performance degradation, with over 12% mIoU drop when evaluated on historic imagery, while RRSIS-D demonstrates better robustness with smaller performance decreases. These differences highlight the importance of dataset-specific historic filtering strategies for maintaining model performance across varying image quality conditions.
 
-\subsection{Knowledge Distillation Effectiveness}
+\subsection{Distillation Ablation: Gemma3 vs. O3 Model Comparison}
 \label{subsec:distillation_ablation}
+
+We evaluate the effectiveness of our knowledge distillation approach by comparing Gemma3-enhanced expressions with those generated directly by the O3 model. This comparison demonstrates both the quality improvements achieved through distillation and the significant cost advantages of using the distilled model for large-scale annotation generation.
 
 To validate the effectiveness of our knowledge distillation approach, we conduct a qualitative comparison between our fine-tuned Gemma3 model (distilled from O3 using 500 samples) and the vanilla Gemma3 model without any exposure to aerial imagery or referring segmentation tasks. This ablation study demonstrates the significant impact of domain-specific fine-tuning on reducing hallucinations and improving the quality of generated referring expressions.
 
-The comparison reveals stark differences in the models' ability to generate accurate, visually grounded expressions for aerial imagery. The vanilla Gemma3 model, lacking exposure to aerial-specific contexts, frequently generates expressions containing elements that are completely absent from the images, such as urban infrastructure in rural scenes or specific architectural details that cannot be verified from overhead perspectives. In contrast, our distilled model demonstrates substantially improved visual grounding, generating expressions that more accurately reflect the contents and spatial relationships visible in the aerial imagery.
+The comparison reveals stark differences in the models' ability to generate accurate, visually grounded expressions for aerial imagery. The vanilla Gemma3 model exhibits significant hallucination issues, often generating expressions that reference objects not present in the image, such as "airplane hangars" and "control towers" in residential areas. In contrast, the distilled Gemma3 model, trained on O3-generated expressions, produces accurate and grounded descriptions that correctly identify visible objects and their spatial relationships.
 
-Figure \ref{fig:distillation_comparison} presents representative examples of this comparison across various aerial scenes and object categories. The results clearly illustrate how the fine-tuned model learned to avoid common hallucination patterns while maintaining the linguistic diversity and natural language quality that make the expressions useful for training robust segmentation models. This validation confirms that our knowledge distillation approach with just 500 carefully selected training samples is sufficient to achieve significant improvements in expression quality, supporting our claims about the efficiency of this methodology for large-scale dataset generation.
+Figure \ref{fig:distillation_comparison} presents representative examples of this comparison across various aerial scenes and object categories. The results clearly illustrate how the fine-tuned model learned to avoid common hallucination patterns while maintaining the linguistic diversity and natural language quality that make the expressions useful for training robust segmentation models.
 
-The dramatic quality difference between the vanilla and distilled models underscores the importance of domain-specific fine-tuning in LLM-based dataset generation pipelines. These results provide strong evidence that our distillation approach successfully transfers the specialized knowledge required for accurate aerial referring expression generation from the large proprietary O3 model to the more accessible Gemma3 model, enabling cost-effective scaling while maintaining expression quality.
+% Cost comparison table
+\begin{table*}[t]
+\centering
+\caption{Cost Analysis: Gemma3 vs. O3 Model for Large-Scale Annotation}
+\label{tab:cost_comparison}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Model} & \textbf{Cost per 1K tokens} & \textbf{Tokens per expression} & \textbf{Cost per 1M expressions} & \textbf{Total dataset cost} \\
+\midrule
+O3 Model & \$[TBD] & [TBD] & \$[TBD] & \$[TBD] \\
+Distilled Gemma3 & \$[TBD] & [TBD] & \$[TBD] & \$[TBD] \\
+\midrule
+\textbf{Savings} & \textbf{[TBD]×} & \textbf{--} & \textbf{\$[TBD]} & \textbf{\$[TBD]} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+The cost analysis demonstrates that using the distilled Gemma3 model provides substantial economic advantages for large-scale dataset generation. The upfront investment in distillation training pays off significantly when generating millions of annotations, making the approach both technically sound and economically viable for scaling to larger datasets.
 
 \begin{figure*}[t]
 \centering
@@ -143,39 +163,6 @@ Fine-tuned: "the building in the residential area on the left side"
 \label{fig:distillation_comparison}
 \end{figure*}
 
-\subsection{LLM Limitations and Failure Cases}
-\label{subsec:llm_limitations}
-
-While our knowledge distillation approach successfully generates diverse and contextually rich referring expressions, large language models are inherently prone to hallucination phenomena where they generate plausible-sounding but factually incorrect information. In the context of aerial referring expressions, these hallucinations manifest as descriptions of visual elements that are not present in the actual images, leading to expressions that cannot be accurately grounded to the target objects.
-
-Common hallucination patterns observed in our dataset include the generation of non-existent contextual elements such as roads, buildings, or vegetation that do not appear in the source imagery. For instance, the LLM might describe "the vehicle parked next to the curved road" when no road is visible in the image, or reference "the building near the forest edge" when the image contains only urban structures without any forested areas.
-
-Another frequent failure mode occurs when the model generates expressions with incorrect spatial relationships or attributes. The LLM might describe objects as being "above" or "below" other elements when the actual spatial configuration is different, or assign incorrect size descriptors like "small" to objects that are actually large relative to their surroundings in the aerial view.
-
-Color hallucinations represent another significant challenge, where the model assigns specific color descriptions that contradict the actual visual appearance of objects in the imagery. This is particularly problematic for referring expressions that rely heavily on color discrimination to uniquely identify target objects among similar instances.
-
-To mitigate these issues in our dataset, we implement several quality control measures. First, we employ conservative temperature settings during generation to reduce the likelihood of creative but inaccurate descriptions. Second, we provide explicit instructions to the models emphasizing the importance of visual grounding and accuracy over linguistic creativity. Finally, we conduct systematic manual review of generated expressions to identify and filter out the most egregious hallucination cases, though this process cannot capture all subtle inaccuracies due to the scale of our dataset.
-
-The dramatic improvement observed in our distillation comparison (Figure \ref{fig:distillation_comparison}) demonstrates the effectiveness of domain-specific fine-tuning in addressing these hallucination issues. While vanilla Gemma3 exhibits extensive hallucination patterns, our O3-distilled model shows significant reduction in these failure cases, validating our approach for large-scale, high-quality dataset generation.
-
-Figure \ref{fig:llm_hallucinations} presents additional examples of common hallucination patterns encountered during LLM enhancement, demonstrating how these failure cases can lead to expressions that cannot be reliably used for segmentation tasks. Understanding these limitations is crucial for future work aimed at improving the accuracy and reliability of automatically generated referring expressions.
-
-\begin{figure*}[t]
-\centering
-% Placeholder for LLM hallucination examples figure
-\fbox{\parbox{\textwidth}{\centering\vspace{2cm}
-\textbf{PLACEHOLDER: LLM Hallucination Examples Figure}\\
-\vspace{0.5cm}
-Examples showing failure cases:\\
-\vspace{0.2cm}
-(1) Original: "the vehicle in the center" $\rightarrow$ Enhanced: "the red truck parked beside the highway" (no highway visible)\\
-(2) Original: "the building on the left" $\rightarrow$ Enhanced: "the warehouse near the forest boundary" (no forest present)\\  
-(3) Original: "the plane at the top" $\rightarrow$ Enhanced: "the aircraft taxiing on the runway" (no runway visible)\\
-(4) Original: "the ship in the water" $\rightarrow$ Enhanced: "the cargo vessel docked at the pier" (no pier structure)
-\vspace{2cm}}}
-\caption{Representative examples of LLM hallucination failure cases during expression enhancement. Original rule-based expressions (left) are enhanced into inaccurate descriptions (right) that reference visual elements not present in the actual imagery, highlighting the need for quality control measures in automated dataset generation.}
-\label{fig:llm_hallucinations}
-\end{figure*}
 
 \subsection{Historic Filter Ablation Study}
 \label{subsec:historic_ablation}

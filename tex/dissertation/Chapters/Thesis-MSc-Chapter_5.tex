@@ -136,32 +136,33 @@ Combined All & 1,118K & 2 & 2.24M & \textbf{39.54\%} & \textbf{49.33\%} & \textb
 The results demonstrate that the combined model, utilizing all expression types, achieves the best performance across all evaluation metrics on the AerialD validation set. This validates our hypothesis that LLM enhancement provides measurable benefits to model performance. The language variation expressions contribute to improved linguistic understanding and generalization to diverse phrasing patterns, while the unique visual detail expressions enhance the model's ability to ground referring expressions in rich contextual information.
 
 % #############################################################################
-\subsection{Filter Removal Ablation}
+\subsection{Historic Performance Analysis}
 
-We examine the impact of our filtering mechanisms by comparing models trained with and without the uniqueness and historic filters. This ablation study reveals how filtering affects both normal performance and historic imagery performance, quantifying the trade-offs between dataset size and annotation quality.
+We analyze the performance degradation when models trained on normal imagery are applied to historic imagery conditions. This analysis reveals how historic filtering affects performance across all datasets, quantifying the performance differences between normal and historic imagery evaluation.
 
-% Filter removal ablation table
+% Historic performance comparison table with percentage differences
 \begin{table}[H]
 \centering
-\caption{Impact of Filter Removal on Model Performance}
-\label{tab:filter_ablation}
+\caption{Historic vs. Normal Performance Analysis with Percentage Differences}
+\label{tab:historic_performance_analysis}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{@{}lcc|cc|cc|cc@{}}
+\begin{tabular}{@{}lcccccc@{}}
 \toprule
-\multirow{2}{*}{\textbf{Training Configuration}} & \multirow{2}{*}{\textbf{Samples}} & \multirow{2}{*}{\textbf{Size}} & \multicolumn{2}{c|}{\textbf{Normal Performance}} & \multicolumn{2}{c|}{\textbf{Historic Performance}} & \multicolumn{2}{c}{\textbf{Performance Difference}} \\
-\cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9}
- & & & \textbf{mIoU} & \textbf{oIoU} & \textbf{mIoU} & \textbf{oIoU} & \textbf{mIoU Δ} & \textbf{oIoU Δ} \\
+\multirow{2}{*}{\textbf{Dataset}} & \multicolumn{2}{c}{\textbf{Normal Performance}} & \multicolumn{2}{c}{\textbf{Historic Performance}} & \multicolumn{2}{c}{\textbf{Performance Difference}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+ & \textbf{mIoU} & \textbf{oIoU} & \textbf{mIoU} & \textbf{oIoU} & \textbf{mIoU Δ} & \textbf{oIoU Δ} \\
 \midrule
-With All Filters & 1,118K & 100\% & 49.33\% & 64.30\% & 32.92\% & 45.41\% & -16.41\% & -18.89\% \\
-Without Uniqueness Filter & [TBD]K & [TBD]\% & [TBD]\% & [TBD]\% & [TBD]\% & [TBD]\% & [TBD]\% & [TBD]\% \\
-Without Historic Filter & [TBD]K & [TBD]\% & [TBD]\% & [TBD]\% & N/A & N/A & N/A & N/A \\
-Without Any Filters & [TBD]K & [TBD]\% & [TBD]\% & [TBD]\% & [TBD]\% & [TBD]\% & [TBD]\% & [TBD]\% \\
+Aerial-D & [TBD]\% & [TBD]\% & [TBD]\% & [TBD]\% & [TBD]\% & [TBD]\% \\
+RRSIS-D & 60.01\% & 71.48\% & 55.20\% & 68.26\% & -4.81\% & -3.22\% \\
+NWPU-Refer & 35.81\% & 51.77\% & 30.17\% & 48.31\% & -5.64\% & -3.46\% \\
+RefSegRS & 36.75\% & 44.41\% & 24.53\% & 30.21\% & -12.22\% & -14.20\% \\
+Urban1960SatSeg & 67.72\% & 86.43\% & N/A & N/A & N/A & N/A \\
 \bottomrule
 \end{tabular}%
 }
 \end{table}
 
-This analysis reveals the critical role of our filtering mechanisms in maintaining annotation quality while balancing dataset size. The uniqueness filter removes ambiguous expressions that could confuse the model during training, while the historic filter ensures robustness to varying image conditions and lighting scenarios commonly found in aerial imagery across different time periods.
+This analysis reveals the varying impact of historic image conditions across different datasets. RefSegRS shows the largest performance degradation, with over 12% mIoU drop when evaluated on historic imagery, while RRSIS-D demonstrates better robustness with smaller performance decreases. These differences highlight the importance of dataset-specific historic filtering strategies for maintaining model performance across varying image quality conditions.
 
 % #############################################################################
 \subsection{Distillation Ablation: Gemma3 vs. O3 Model Comparison}
