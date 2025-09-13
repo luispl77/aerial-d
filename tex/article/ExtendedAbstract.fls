@@ -271,6 +271,7 @@ INPUT ./ExtendedAbstract_resul.tex
 INPUT ./ExtendedAbstract_resul.tex
 INPUT ./ExtendedAbstract_resul.tex
 INPUT ExtendedAbstract_resul.tex
+INPUT /usr/share/texmf/fonts/tfm/public/cm/cmti9.tfm
 INPUT /usr/share/texmf/fonts/tfm/jknappen/ec/tcrm1000.tfm
 INPUT /usr/share/texmf/fonts/tfm/jknappen/ec/tcbx1000.tfm
 INPUT /usr/share/texmf/fonts/tfm/jknappen/ec/tcrm0800.tfm
@@ -287,7 +288,6 @@ INPUT ExtendedAbstract_concl.tex
 INPUT ./ExtendedAbstract.bbl
 INPUT ./ExtendedAbstract.bbl
 INPUT ExtendedAbstract.bbl
-INPUT /usr/share/texmf/fonts/tfm/public/cm/cmti9.tfm
 INPUT ExtendedAbstract.aux
 INPUT ./ExtendedAbstract.out
 INPUT ./ExtendedAbstract.out
