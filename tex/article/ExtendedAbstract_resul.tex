@@ -11,19 +11,19 @@ This section presents our comprehensive experimental evaluation of Aerial-D thro
 \subsection{Model Architecture}
 \label{subsec:model_architecture}
 
-Our approach implements the RSRefSeg architecture, which combines text and visual understanding for precise object segmentation in aerial imagery. The architecture leverages two robust vision foundation models: SigLIP2 for vision-language encoding and SAM for mask generation. We implemented this architecture from scratch in PyTorch, employing LoRA (Low-Rank Adaptation) for efficient fine-tuning while maintaining strong pre-trained representations from the foundation models. The model targets query and value projection layers in both vision encoders and query, key, value, and output projection layers in the text encoder.
+Our approach implements the RSRefSeg architecture\cite{chen2025rsrefseg}, which combines text and visual understanding for precise object segmentation in aerial imagery. The architecture leverages two robust vision foundation models: SigLIP2\cite{siglip2} for vision-language encoding and SAM\cite{sam} for mask generation. We implemented this architecture from scratch in PyTorch, employing LoRA (Low-Rank Adaptation)\cite{lora} for efficient fine-tuning while maintaining strong pre-trained representations from the foundation models. The model targets query and value projection layers in both vision encoders and query, key, value, and output projection layers in the text encoder.
 
 \subsection{Experimental Setup}
 \label{subsec:experimental_setup}
 
-Our training configuration uses a batch size of 4 with gradient accumulation steps of 2, achieving an effective batch size of 8 samples. The model employs the SigLIP2-SO400M model for vision-language encoding and SAM-ViT-Base for mask generation. Training uses AdamW optimizer with initial learning rate of 1e-4, weight decay of 0.01, and polynomial learning rate decay with power factor 0.9. Mixed-precision computation and gradient clipping with maximum norm of 1.0 ensure training stability. All images are resized to 384×384 pixels to match SigLIP2 input requirements. Historic filters are applied on-the-fly during training to randomly present grayscale, grain/contrast roll-off, or sepia/noise variants without fixed per-image probabilities.
+Our training configuration uses a batch size of 4 with gradient accumulation steps of 2, achieving an effective batch size of 8 samples. The model employs the SigLIP2-SO400M model for vision-language encoding and SAM-ViT-Base for mask generation. Training uses AdamW optimizer\cite{adamw} with initial learning rate of 1e-4, weight decay of 0.01, and polynomial learning rate decay with power factor 0.9. Mixed-precision computation and gradient clipping with maximum norm of 1.0 ensure training stability. All images are resized to 384×384 pixels to match SigLIP2 input requirements. Historic filters are applied on-the-fly during training to randomly present grayscale, grain/contrast roll-off, or sepia/noise variants without fixed per-image probabilities.
 
 Our experimental design centers on training models using Aerial-D and evaluating performance through cross-dataset evaluation on three established aerial referring segmentation benchmarks: RefSegRS, RRSIS-D, and NWPU-Refer. This cross-evaluation approach validates the generalization capabilities of models trained on our dataset when applied to different aerial imagery domains.
 
 \subsection{Evaluation Results}
 \label{subsec:evaluation_results}
 
-Our evaluation demonstrates the effectiveness of training a unified model on multiple datasets. The combined training performance evaluation in Table \ref{tab:combined_training_results} shows our main experimental results, where the model is trained on all five datasets (Aerial-D, RRSIS-D, NWPU-Refer, RefSegRS, and Urban1960SatSeg) and evaluated across different domains. This approach enables the model to leverage the diversity of expression styles and object categories across datasets while maintaining strong performance on each evaluation set.
+Our evaluation demonstrates the effectiveness of training a unified model on multiple datasets. The combined training performance evaluation in Table \ref{tab:combined_training_results} shows our main experimental results, where the model is trained on all five datasets (Aerial-D, RRSIS-D\cite{liu2024rotated}, NWPU-Refer\cite{yang2024large}, RefSegRS\cite{yuan2023rrsis}, and Urban1960SatSeg\cite{hao2025urban1960satseg}) and evaluated across different domains. This approach enables the model to leverage the diversity of expression styles and object categories across datasets while maintaining strong performance on each evaluation set.
 
 % Combined training performance table
 \begin{table*}[t]
@@ -100,7 +100,7 @@ The results demonstrate that the combined model, utilizing all expression types,
 \subsection{Distillation Ablation: Gemma3 vs. o3 Model Comparison}
 \label{subsec:distillation_ablation}
 
-We evaluate the effectiveness of our knowledge distillation approach by comparing Gemma3-enhanced expressions with those generated directly by the o3 model. This comparison demonstrates both the quality improvements achieved through distillation and the significant cost advantages of using the distilled model for large-scale annotation generation.
+We evaluate the effectiveness of our knowledge distillation approach by comparing Gemma3\cite{gemma3}-enhanced expressions with those generated directly by the o3 model\cite{o3}. This comparison demonstrates both the quality improvements achieved through distillation and the significant cost advantages of using the distilled model for large-scale annotation generation.
 
 To validate the effectiveness of our knowledge distillation approach, we conduct a qualitative comparison between our fine-tuned Gemma3 model (distilled from o3 using 500 samples) and the vanilla Gemma3 model without any exposure to aerial imagery or referring segmentation tasks. This ablation study demonstrates the significant impact of domain-specific fine-tuning on reducing hallucinations and improving the quality of generated referring expressions.
 
