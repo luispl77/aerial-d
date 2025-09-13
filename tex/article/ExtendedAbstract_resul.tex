@@ -141,65 +141,31 @@ The cost analysis demonstrates that using the distilled Gemma3 model provides su
 
 \begin{figure*}[t]
 \centering
-% Placeholder for distillation comparison figure with three-way comparison
-\fbox{\parbox{\textwidth}{\centering\vspace{3cm}
-\textbf{PLACEHOLDER: Three-Model Qualitative Comparison Figure}\\
-\vspace{0.5cm}
-\textbf{[IMAGE + TABLE FORMAT - Similar to existing LLM enhancement figure]}\\
-\vspace{0.3cm}
-\textbf{Expression Set 1:}\\
-\begin{tabular}{|l|p{12cm}|}
-\hline
-Original & [PLACEHOLDER - Original rule-based expression] \\
-\hline
-O3 Enhanced & [PLACEHOLDER - O3 model enhancement] \\
-\hline
-Gemma3 Base & [PLACEHOLDER - Base Gemma3 model enhancement] \\
-\hline
-Gemma3-Aerial-12B & [PLACEHOLDER - Fine-tuned Gemma3 enhancement] \\
-\hline
-\end{tabular}\\
-\vspace{0.5cm}
-\textbf{Expression Set 2:}\\
-\begin{tabular}{|l|p{12cm}|}
-\hline
-Original & [PLACEHOLDER - Original rule-based expression] \\
-\hline
-O3 Enhanced & [PLACEHOLDER - O3 model enhancement] \\
-\hline
-Gemma3 Base & [PLACEHOLDER - Base Gemma3 model enhancement] \\
-\hline
-Gemma3-Aerial-12B & [PLACEHOLDER - Fine-tuned Gemma3 enhancement] \\
-\hline
-\end{tabular}\\
-\vspace{0.5cm}
-\textbf{Expression Set 3:}\\
-\begin{tabular}{|l|p{12cm}|}
-\hline
-Original & [PLACEHOLDER - Original rule-based expression] \\
-\hline
-O3 Enhanced & [PLACEHOLDER - O3 model enhancement] \\
-\hline
-Gemma3 Base & [PLACEHOLDER - Base Gemma3 model enhancement] \\
-\hline
-Gemma3-Aerial-12B & [PLACEHOLDER - Fine-tuned Gemma3 enhancement] \\
-\hline
-\end{tabular}\\
-\vspace{0.5cm}
-\textbf{Expression Set 4:}\\
-\begin{tabular}{|l|p{12cm}|}
-\hline
-Original & [PLACEHOLDER - Original rule-based expression] \\
-\hline
-O3 Enhanced & [PLACEHOLDER - O3 model enhancement] \\
-\hline
-Gemma3 Base & [PLACEHOLDER - Base Gemma3 model enhancement] \\
-\hline
-Gemma3-Aerial-12B & [PLACEHOLDER - Fine-tuned Gemma3 enhancement] \\
-\hline
-\end{tabular}
-\vspace{3cm}}}
-\caption{Qualitative comparison between O3, vanilla Gemma3 base model, and our fine-tuned Gemma3-Aerial-12B model across four representative aerial imagery examples. The table shows how each model enhances the original rule-based expressions, demonstrating the progression from basic rule-based descriptions through various levels of language model enhancement.}
+\begin{minipage}{0.5\textwidth}
+\centering
+\includegraphics[width=0.7\textwidth]{./images/3llm.png}
+\end{minipage}%
+\begin{minipage}{0.5\textwidth}
+\centering
+\hspace{-1cm}
+\raisebox{-0.3\height}{%
+\footnotesize
+\begin{tabular}{@{}p{2cm}p{5cm}@{}}
+\toprule
+\textbf{Expression Type} & \textbf{Example} \\
+\midrule
+Original & the orange baseball diamond in the top left \\
+\midrule
+O3 Enhanced & the orange baseball diamond with the light pole near home plate in the upper left \\
+\midrule
+Gemma3 Base & the bright orange baseball diamond to the left of another similar baseball diamond in the top left \\
+\midrule
+Gemma3-Aerial-12B & the bright orange baseball field with a chainlink fence surrounded by grass to the north and trees to the west \\
+\bottomrule
+\end{tabular}%
+}
+\end{minipage}
+\caption{Qualitative comparison between O3, vanilla Gemma3 base model, and our fine-tuned Gemma3-Aerial-12B model on aerial imagery. The table shows how each model enhances the original rule-based expression, demonstrating the progression from basic rule-based descriptions through various levels of language model enhancement.}
 \label{fig:distillation_comparison}
 \end{figure*}
 
