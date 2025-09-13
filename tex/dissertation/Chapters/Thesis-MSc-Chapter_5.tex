@@ -169,6 +169,14 @@ This analysis reveals the varying impact of historic image conditions across dif
 
 We evaluate the effectiveness of our knowledge distillation approach by comparing Gemma3-enhanced expressions with those generated directly by the O3 model. This comparison demonstrates both the quality improvements achieved through distillation and the significant cost advantages of using the distilled model for large-scale annotation generation.
 
+% Qualitative comparison figure
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{Images/3llm.png}
+\caption{Qualitative comparison between O3, the base Gemma3 model, and our fine‑tuned Gemma3‑Aerial‑12B model on aerial imagery. The examples illustrate how each model enhances the original rule‑based expression, from baseline phrasing to richer, domain‑appropriate descriptions.}
+\label{fig:distillation_comparison}
+\end{figure}
+
 % LLM comparison table showing hallucinations and quality
 \begin{table}[H]
 \centering

@@ -195,6 +195,18 @@ The collected high-quality outputs then serve as training data for fine-tuning G
 \label{fig:llm_distillation}
 \end{figure}
 
+% #############################################################################
+\subsection{Historic Image Filters}
+
+To evaluate and improve robustness under archival imaging conditions, we apply simple historic image transformations that emulate common degradations found in mid‑century aerial photographs. These include grayscale conversion, sepia toning, and additive noise that reduces contrast and introduces grain while preserving spatial structure relevant for segmentation.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{Images/filters.png}
+\caption{Comparison of original aerial image patch with three historic filter transformations: grayscale conversion, sepia toning, and Gaussian noise addition. These filters simulate common degradation patterns in historical aerial photography.}
+\label{fig:historic_filters}
+\end{figure}
+
 
 % #############################################################################
 \section{Final Dataset Statistics}
@@ -207,6 +219,22 @@ The completed AerialD dataset represents a comprehensive resource for aerial ref
 \includegraphics[width=\textwidth]{Images/dataset.png}
 \caption{Representative examples from AerialD dataset showing diverse referring expressions with corresponding aerial images and ground truth masks.}
 \label{fig:dataset_examples}
+\end{figure}
+
+% Additional representative examples
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{Images/6samples.png}
+\caption{Additional representative examples from the AerialD dataset showing diverse referring expressions with corresponding aerial images and ground truth masks.}
+\label{fig:dataset_examples_more}
+\end{figure}
+
+% Expression word cloud
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{Images/expression_wordcloud.png}
+\caption{Word cloud visualization of the most frequent terms in AerialD referring expressions, highlighting domain‑specific vocabulary and spatial descriptors.}
+\label{fig:expression_wordcloud}
 \end{figure}
 
 Table \ref{tab:dataset_stats} presents the overall dataset composition, revealing 37,288 total patches containing 259,709 annotated samples with expressions. The dataset maintains a balanced distribution between individual objects (128,715 instances with 889,354 expressions) and groups (130,994 groups with 633,169 expressions), with an average of approximately 7 expressions per individual object and 5 expressions per group. The substantial scale demonstrates the comprehensive coverage achieved through our systematic generation pipeline.
@@ -308,6 +336,21 @@ Table \ref{tab:expression_types} provides a detailed taxonomy of the 17 distinct
 }
 \end{table}
 
+% Category distribution figures
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{Images/group_category_distribution.png}
+\end{minipage}\hfill
+\begin{minipage}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{Images/instance_category_distribution.png}
+\end{minipage}
+\caption{Category distribution analysis of AerialD. Left: distribution of group annotations showing the prevalence of different object categories in group‑level referring expressions. Right: distribution of individual instance annotations across semantic categories.}
+\label{fig:category_distributions}
+\end{figure}
+
 Finally, Table \ref{tab:llm_enhancement_stats} quantifies the impact of LLM enhancement, showing that the distillation pipeline successfully tripled the dataset size from the original 506,194 rule-based expressions to 1,522,523 total expressions. The LLM enhancement process contributed nearly equal numbers of language variations (496,895) and unique visual detail expressions (519,434), demonstrating the effectiveness of the two-pronged enhancement strategy in achieving both linguistic diversity and contextual richness.
 
 % LLM enhancement stats table
@@ -329,6 +372,3 @@ LLM Unique (Visual Details) & 382,038 & 137,396 & 519,434 \\
 \end{table}
 
 The construction of the AerialD dataset represents a significant advancement in aerial referring expression segmentation resources, providing comprehensive coverage of object categories, spatial relationships, and linguistic diversity. The resulting dataset serves as a foundation for training and evaluating sophisticated referring segmentation models that can understand complex natural language descriptions in aerial imagery contexts.
-
-
-

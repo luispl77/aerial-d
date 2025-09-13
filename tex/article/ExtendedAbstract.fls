@@ -182,6 +182,7 @@ INPUT ./ExtendedAbstract_abstr.tex
 INPUT ./ExtendedAbstract_abstr.tex
 INPUT ExtendedAbstract_abstr.tex
 INPUT /usr/share/texmf/fonts/tfm/public/cm/cmbx9.tfm
+INPUT /usr/share/texmf/fonts/tfm/public/cm/cmtt9.tfm
 INPUT ./ExtendedAbstract_intro.tex
 INPUT ./ExtendedAbstract_intro.tex
 INPUT ./ExtendedAbstract_intro.tex
@@ -194,13 +195,13 @@ INPUT ./images/6samples.png
 INPUT ./images/6samples.png
 INPUT ./images/6samples.png
 INPUT ./images/6samples.png
-INPUT /var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map
 INPUT ./ExtendedAbstract_backg.tex
 INPUT ./ExtendedAbstract_backg.tex
 INPUT ./ExtendedAbstract_backg.tex
 INPUT ./ExtendedAbstract_backg.tex
 INPUT ExtendedAbstract_backg.tex
 INPUT /usr/share/texmf/fonts/tfm/public/cm/cmbx10.tfm
+INPUT /var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map
 INPUT /usr/share/texmf/fonts/tfm/jknappen/ec/tcrm0900.tfm
 INPUT ./images/rsrefseg.png
 INPUT ./images/rsrefseg.png
@@ -306,6 +307,7 @@ INPUT /usr/share/texmf/fonts/type1/public/amsfonts/cm/cmr9.pfb
 INPUT /usr/share/texmf/fonts/type1/public/amsfonts/cm/cmsy10.pfb
 INPUT /usr/share/texmf/fonts/type1/public/amsfonts/cm/cmsy9.pfb
 INPUT /usr/share/texmf/fonts/type1/public/amsfonts/cm/cmti9.pfb
+INPUT /usr/share/texmf/fonts/type1/public/amsfonts/cm/cmtt9.pfb
 INPUT /usr/share/texmf/fonts/type1/public/amsfonts/symbols/msam10.pfb
 INPUT /usr/share/texmf/fonts/type1/public/cm-super/sfbx1000.pfb
 INPUT /usr/share/texmf/fonts/type1/public/cm-super/sfrm0800.pfb
