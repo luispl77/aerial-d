@@ -120,7 +120,7 @@ Unique & the set of four big vehicles parked in a single row in the upper center
 \subsection{Historic Image Filter Augmentation}
 \label{subsec:historic_filters}
 
-In order to improve robustness to archival image conditions, we augment training with three parametric transformations that reproduce characteristic degradations of historical aerial photographs: monochrome capture, contrast roll‑off with film grain, and sepia toning with scan noise. Each image is transformed by exactly one effect, sampled uniformly with probability $p=\tfrac{1}{3}$ per effect.
+In order to improve robustness to archival image conditions, we augment training with three parametric transformations that reproduce characteristic degradations of historical aerial photographs: monochrome capture, contrast roll‑off with film grain, and sepia toning with scan noise. 
 
 Let $I_{orig}(x)\in[0,255]^3$ denote the RGB image at pixel $x$, and let $\operatorname{clip}(\cdot)$ clamp values to $[0,255]$.
 
