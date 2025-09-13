@@ -6,19 +6,21 @@
 \section{Experiments}
 \label{sec:experiments}
 
-This section presents our comprehensive experimental evaluation of Aerial-D through both model training and cross-dataset generalization studies. We begin by describing our model architecture and training configuration, then present extensive evaluation results demonstrating the effectiveness of models trained on our dataset when applied to existing aerial referring segmentation benchmarks. Our experiments include ablation studies that examine the individual contributions of different expression enhancement strategies, providing insights into the optimal training configurations for various target domains.
+This section presents a comprehensive experimental evaluation of Aerial-D that spans model training, cross-dataset generalization, and targeted ablations. We first describe the model architecture and training setup, then report cross-dataset results on established aerial referring segmentation benchmarks. Beyond aggregate performance, we also include: (i) ablation of expression enhancement strategies; (ii) ablation of historic-filter training; and (iii) qualitative comparison across language models (o3, base Gemma3, and our distilled Gemma3-Aerial model), coupled with a cost analysis of these alternatives.
 
 \subsection{Model Architecture}
 \label{subsec:model_architecture}
 
-Our approach implements the RSRefSeg architecture\cite{chen2025rsrefseg}, which combines text and visual understanding for precise object segmentation in aerial imagery. The architecture leverages two robust vision foundation models: SigLIP2\cite{siglip2} for vision-language encoding and SAM\cite{sam} for mask generation. We implemented this architecture from scratch in PyTorch, employing LoRA (Low-Rank Adaptation)\cite{lora} for efficient fine-tuning while maintaining strong pre-trained representations from the foundation models. The model targets query and value projection layers in both vision encoders and query, key, value, and output projection layers in the text encoder.
+In selecting the architecture for our experiments, we prioritized a model that can interpret natural-language descriptions while producing pixel-accurate masks in aerial scenes. Generic segmentation systems rarely meet both requirements under the domain shift of remote sensing, where objects are small, repetitive, and densely arranged. We therefore adopt RSRefSeg as our backbone for referring segmentation: it pairs a strong language–image encoder (SigLIP2) with a state-of-the-art mask decoder (SAM), enabling robust semantic grounding alongside precise mask generation, and we adapt it to the remote-sensing domain using LoRA for parameter-efficient fine-tuning. This choice is further supported by the strong performance reported for RSRefSeg on RRSIS-D\cite{liu2024rotated}, providing a proven baseline for aerial referring segmentation and reducing risk in our evaluation.
+
+Concretely, we implement the RSRefSeg architecture\cite{chen2025rsrefseg} in PyTorch, as illustrated in Figure~\ref{fig:rsrefseg_arch}. The design couples SigLIP2\cite{siglip2} for vision–language encoding with SAM\cite{sam} for mask generation. We adopt LoRA (Low-Rank Adaptation)\cite{lora} for parameter‑efficient fine‑tuning while preserving the strong pretraining of both backbones. In practice, we adapt the query and value projection layers in the vision encoders and the query, key, value, and output projection layers in the text encoder.
 
 \subsection{Experimental Setup}
 \label{subsec:experimental_setup}
 
-Our training configuration uses a batch size of 4 with gradient accumulation steps of 2, achieving an effective batch size of 8 samples. The model employs the SigLIP2-SO400M model for vision-language encoding and SAM-ViT-Base for mask generation. Training uses AdamW optimizer\cite{adamw} with initial learning rate of 1e-4, weight decay of 0.01, and polynomial learning rate decay with power factor 0.9. Mixed-precision computation and gradient clipping with maximum norm of 1.0 ensure training stability. All images are resized to 384×384 pixels to match SigLIP2 input requirements. Historic filters are applied on-the-fly during training to randomly present grayscale, grain/contrast roll-off, or sepia/noise variants without fixed per-image probabilities.
+Our training configuration uses a batch size of 4 with gradient accumulation steps of 2, achieving an effective batch size of 8 samples. The model employs \texttt{SigLIP2-SO400M} for vision–language encoding and \texttt{SAM-ViT-Large} for mask generation when training the combined model. We adopt LoRA with rank \(r=32\) for parameter-efficient adaptation. Training uses AdamW optimizer\cite{adamw} with initial learning rate of 1e-4, weight decay of 0.01, and polynomial learning rate decay with power factor 0.9. Mixed-precision computation and gradient clipping with maximum norm of 1.0 ensure training stability. All images are resized to 384×384 pixels to match SigLIP2 input requirements. Historic filters are applied to 20\% of training images; for each selected image, one of three variants—grayscale, grain/contrast roll-off, or sepia/noise—is chosen uniformly at random (probability 1/3 each).
 
-Our experimental design centers on training models using Aerial-D and evaluating performance through cross-dataset evaluation on three established aerial referring segmentation benchmarks: RefSegRS, RRSIS-D, and NWPU-Refer. This cross-evaluation approach validates the generalization capabilities of models trained on our dataset when applied to different aerial imagery domains.
+We train a single combined model on all five datasets—Aerial-D, RRSIS-D\cite{liu2024rotated}, NWPU-Refer\cite{yang2024large}, RefSegRS\cite{yuan2023rrsis}, and Urban1960SatSeg\cite{hao2025urban1960satseg}—and evaluate on these same five datasets. To assess robustness under degradation beyond our own data, we also report results on historic-filtered variants of the three non-historic external datasets (RRSIS-D, NWPU-Refer, RefSegRS). In addition, to study generalization to a lighter decoder, we evaluate a configuration using \texttt{SAM-ViT-Base} at test time.
 
 \subsection{Evaluation Results}
 \label{subsec:evaluation_results}
@@ -46,7 +48,7 @@ Urban1960SatSeg & 74.80\% & 58.74\% & 28.46\% & 67.72\% & N/A & 86.43\% & N/A \\
 \end{table*}
 
 
-\subsection{Aerial-D Generalization Results}
+\subsection{Expression Enhancement Ablation}
 \label{subsec:ablation_studies}
 
 To evaluate the individual contributions of different expression enhancement strategies, we conduct an ablation study comparing models trained on different subsets of Aerial-D. The primary motivation is to determine whether the LLM enhancement process positively impacts model performance and to quantify the benefits of each enhancement type. Our training set contains approximately 371K rule-based expressions, 364K language variation expressions, and 382K unique visual detail expressions, totaling 1.12M training expressions.
@@ -56,7 +58,7 @@ To ensure fair comparison across training configurations, we carefully control t
 % Ablation expression types table with explicit epochs and samples
 \begin{table*}[t]
 \centering
-\caption{Aerial-D Generalization Results Across Four Datasets}
+\caption{Expression Enhancement Ablation Across Four Datasets}
 \label{tab:ablation_expression_types}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{@{}lcc|cc|cc|cc|cc@{}}
@@ -100,11 +102,9 @@ The results demonstrate that the combined model, utilizing all expression types,
 \subsection{Distillation Ablation: Gemma3 vs. o3 Model Comparison}
 \label{subsec:distillation_ablation}
 
-We evaluate the effectiveness of our knowledge distillation approach by comparing Gemma3\cite{gemma3}-enhanced expressions with those generated directly by the o3 model\cite{o3}. This comparison demonstrates both the quality improvements achieved through distillation and the significant cost advantages of using the distilled model for large-scale annotation generation.
+In order to obtain high-quality language supervision without incurring prohibitive annotation costs, we distill from o3 into a local Gemma3 model and evaluate the impact of removing that distillation. The challenge is that proprietary models like o3 yield strong expressions but are expensive at scale, while an unadapted Gemma3 base model can hallucinate or miss domain-specific cues in aerial imagery. We therefore compare three sources of expressions: direct o3 outputs, the vanilla Gemma3 base, and our Gemma3-Aerial model distilled from o3 using 500 samples.
 
-To validate the effectiveness of our knowledge distillation approach, we conduct a qualitative comparison between our fine-tuned Gemma3 model (distilled from o3 using 500 samples) and the vanilla Gemma3 model without any exposure to aerial imagery or referring segmentation tasks. This ablation study demonstrates the significant impact of domain-specific fine-tuning on reducing hallucinations and improving the quality of generated referring expressions.
-
-The comparison reveals stark differences in the models' ability to generate accurate, visually grounded expressions for aerial imagery. The vanilla Gemma3 model exhibits significant hallucination issues, often generating expressions that reference objects not present in the image, such as "airplane hangars" and "control towers" in residential areas. In contrast, the distilled Gemma3 model, trained on o3-generated expressions, produces accurate and grounded descriptions that correctly identify visible objects and their spatial relationships.
+This ablation shows that removing distillation degrades the accuracy and grounding of generated expressions: the vanilla Gemma3 model frequently references objects not present in the scene, whereas the distilled Gemma3-Aerial model consistently produces grounded descriptions that align with visible structures and simple spatial relations. At the same time, distillation dramatically reduces cost while preserving the qualitative benefits of stronger supervision.
 
 Figure \ref{fig:distillation_comparison} presents representative examples of this comparison across various aerial scenes and object categories. The results clearly illustrate how the fine-tuned model learned to avoid common hallucination patterns while maintaining the linguistic diversity and natural language quality that make the expressions useful for training robust segmentation models.
 
@@ -164,7 +164,7 @@ Gemma3-Aerial-12B & the orange baseball field with a chainlink fence surrounded 
 \subsection{Historic Filter Ablation Study}
 \label{subsec:historic_ablation}
 
-To isolate the impact of historic image filter training, we conduct an ablation study comparing models trained with and without historic filters applied during training. This study uses a model trained on all datasets (Aerial-D, RRSIS-D, NWPU-Refer, RefSegRS, and UrbanSatSeg1960) but without any historic image filters applied to the first four datasets - only UrbanSatSeg1960 contains historic imagery. The results in Table \ref{tab:historic_ablation_results} demonstrate the effectiveness of historic filter augmentation for improving model robustness to degraded image conditions commonly found in historical aerial photography.
+To better handle degraded conditions typical of historical aerial imagery, we ablate the use of historic filters during training. Models trained exclusively on modern imagery often fail under reduced contrast, film grain, or monochrome tones; therefore, we compare training with and without on-the-fly filter augmentation while holding other factors constant. We train on Aerial-D, RRSIS-D, NWPU-Refer, RefSegRS, and Urban1960SatSeg, but suppress filters on the first four datasets (only Urban1960SatSeg inherently contains historic imagery). The results in Table \ref{tab:historic_ablation_results} show that historic-filter augmentation improves robustness on degraded test conditions without compromising performance on original imagery.
 
 % Historic filter ablation table
 \begin{table*}[t]
