@@ -8,49 +8,59 @@
 % The following line allows to ref this chapter
 \label{chap:architecture}
 
-This chapter reviews existing work in aerial image segmentation datasets, referring segmentation models, and related approaches.
+This chapter reviews existing work in aerial image segmentation datasets, ranging from traditional semantic and instance segmentation datasets to specialized referring segmentation datasets and historical imagery applications.
 
 % #############################################################################
 \section{Aerial Image Segmentation Datasets}
 
-Overview of datasets used for aerial imagery analysis and referring segmentation tasks.
+The foundation for effective aerial image understanding lies in comprehensive datasets that capture the diversity and complexity of remote sensing imagery. This section examines the evolution from traditional segmentation datasets to specialized referring segmentation datasets and historical imagery applications.
 
-[Reference to iSAID dataset] % \cite{placeholder_isaid}
+\subsection{Traditional Aerial Segmentation Datasets}
+
+Early efforts in aerial image segmentation focused on providing basic semantic and instance annotations for common remote sensing tasks. These foundational datasets established important benchmarks and annotation standards that continue to influence modern dataset construction.
+
+The iSAID dataset represents a significant advancement in instance segmentation for aerial imagery, providing detailed object-level annotations across diverse geographical regions. Building upon the DOTA dataset foundation, iSAID offers precise instance boundaries for 15 different categories commonly found in aerial imagery, including vehicles, buildings, and infrastructure elements. The dataset contains over 655,000 annotated instances across high-resolution imagery, establishing a comprehensive benchmark for instance-level understanding in remote sensing applications.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.8\textwidth]{Images/isaid_examples.png}
-\caption{iSAID dataset examples showing instance segmentation and semantic segmentation annotations for aerial imagery.}
+\caption{iSAID dataset examples showing instance segmentation annotations for aerial imagery, demonstrating the detailed object-level boundaries across diverse geographical contexts.}
 \label{fig:isaid_examples}
 \end{figure}
 
-[Reference to LoveDA dataset] % \cite{placeholder_loveda}
+The LoveDA dataset takes a complementary approach, focusing on semantic segmentation for land cover and infrastructure analysis. Unlike instance-based approaches, LoveDA provides dense pixel-level annotations for seven primary land cover categories including buildings, roads, water, barren land, forest, agriculture, and background. The dataset emphasizes multi-domain applicability by incorporating both urban and rural imagery collected from different geographical regions, enabling research into domain adaptation techniques for aerial image analysis.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.8\textwidth]{Images/loveda.png}
-\caption{LoveDA dataset examples showing semantic segmentation annotations for land use and land cover classification in aerial imagery.}
+\caption{LoveDA dataset examples showing semantic segmentation annotations for land use and land cover classification, highlighting the dense pixel-level labeling approach across urban and rural contexts.}
 \label{fig:loveda_examples}
 \end{figure}
 
-[Reference to Potsdam and Vaihingen semantic segmentation datasets] % \cite{placeholder_potsdam} \cite{placeholder_vaihingen}
+\subsection{Referring Segmentation Datasets}
 
-[Reference to RefSegRS referring segmentation dataset] % \cite{placeholder_refsegrs}
+Traditional segmentation datasets provide important foundations, but they lack the natural language interface necessary for interactive aerial image analysis. Referring segmentation datasets address this limitation by combining visual annotations with natural language descriptions, enabling text-guided segmentation capabilities.
 
-[Reference to RRSIS-D dataset] % \cite{placeholder_rrsis_d}
+RefSegRS pioneered the field of referring segmentation for remote sensing imagery, introducing the first dataset to combine aerial imagery with natural language referring expressions. Built upon the SkyScapes dataset foundation, RefSegRS contains 4,420 triplets of images, referring expressions, and corresponding segmentation masks. The dataset focuses on establishing basic referring segmentation capabilities for aerial imagery, with expressions emphasizing spatial relationships, object attributes, and contextual descriptions that are characteristic of remote sensing analysis workflows.
+
+RRSIS-D expanded upon the RefSegRS foundation by introducing larger scale and semi-automated annotation approaches. The dataset contains 17,402 triplets derived from the RSVGD dataset, incorporating Segment Anything Model (SAM) assistance to accelerate annotation generation while maintaining quality standards. RRSIS-D addresses scale limitations of earlier datasets while introducing more diverse expression types across 20 different object categories and seven attribute dimensions, enabling more comprehensive evaluation of referring segmentation approaches.
 
 \begin{figure}[htbp]
 \centering
 \subfigure[RefSegRS dataset example samples.]{\includegraphics[width=0.45\textwidth]{Images/refsegrs.png}\label{fig:refsegrs}}
 \hfill
 \subfigure[RRSIS-D dataset example samples.]{\includegraphics[width=0.45\textwidth]{Images/rrsisd.png}\label{fig:rrsisd}}
-\caption{Examples from aerial referring segmentation datasets showing diverse referring expressions with corresponding images and ground truth masks.}
+\caption{Examples from early aerial referring segmentation datasets showing the evolution from basic referring expressions to more diverse and comprehensive annotation approaches.}
 \label{fig:aerial_datasets}
 \end{figure}
 
-[Reference to NWPU-Refer dataset] % \cite{placeholder_nwpu}
+NWPU-Refer represents the current state-of-the-art in aerial referring segmentation datasets, significantly expanding both scale and annotation sophistication. The dataset contains 49,745 triplets sourced from multiple global aerial imagery collections, providing comprehensive coverage across different geographical regions and imaging conditions. NWPU-Refer introduces enhanced annotation quality through purely manual annotation processes, resulting in more natural and diverse referring expressions. The dataset incorporates 32 object categories with six attribute dimensions, enabling evaluation of fine-grained referring segmentation capabilities that closely match real-world aerial image analysis requirements.
 
-[diagram for NWPU-Refer dataset example samples]
+\subsection{Historical Imagery Segmentation}
+
+While contemporary aerial datasets provide important foundations for modern remote sensing analysis, historical imagery represents a largely unexplored domain with significant research and practical value. Historical aerial imagery offers unique insights into temporal changes in land use, urban development patterns, and environmental evolution that cannot be captured through contemporary imagery alone. However, the scarcity of annotated historical datasets has limited progress in this important application area.
+
+The UrbanSatSeg1960 dataset addresses this gap by providing semantic segmentation annotations for historical urban aerial imagery from the 1960s era. This specialized dataset focuses on urban environments captured during a pivotal period of global urbanization, offering ground truth annotations for land cover categories relevant to historical analysis including buildings, roads, vegetation, and open spaces. UrbanSatSeg1960 enables research into historical imagery understanding while providing essential training data for temporal analysis applications that require consistent segmentation capabilities across different imaging eras.
 
 \begin{table}[htbp]
 \centering

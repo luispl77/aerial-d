@@ -144,11 +144,6 @@ INPUT ./ExtendedAbstract_backg.tex
 INPUT ./ExtendedAbstract_backg.tex
 INPUT ExtendedAbstract_backg.tex
 INPUT /usr/share/texmf/fonts/tfm/public/cm/cmbx10.tfm
-INPUT ./images/rsrefseg.png
-INPUT ./images/rsrefseg.png
-INPUT ./images/rsrefseg.png
-INPUT ./images/rsrefseg.png
-INPUT ./images/rsrefseg.png
 INPUT ./ExtendedAbstract_imple.tex
 INPUT ./ExtendedAbstract_imple.tex
 INPUT ./ExtendedAbstract_imple.tex

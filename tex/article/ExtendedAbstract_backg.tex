@@ -6,15 +6,31 @@
 \section{Related Work}
 \label{sec:related}
 
-Our work builds upon two primary research areas: the development of comprehensive aerial image datasets that capture the unique characteristics of overhead imagery, and the evolution of specialized architectures for referring remote sensing image segmentation. This section examines the progression from traditional semantic and instance segmentation datasets to modern referring segmentation benchmarks, and reviews the architectural innovations that have advanced the state of the art in language-driven aerial image analysis.
+In this section we overview existing related work in aerial imagery, examining the datasets that have shaped the field including semantic and instance segmentation as well as referring expression and historical imagery datasets, and the model architectures developed for RRSIS (Referring Remote Sensing Instance Segmentation).
 
 \subsection{Aerial Image Datasets}
 
-The development of aerial image understanding has been significantly advanced by the creation of comprehensive datasets that capture the unique characteristics of overhead imagery. Traditional aerial datasets initially focused on semantic and instance segmentation tasks, with iSAID (instance segmentation in Aerial Images Dataset) providing fine-grained instance-level annotations for objects in high-resolution satellite images, and LoveDA (Land-cOVEr Domain Adaptive semantic segmentation) offering semantic segmentation annotations across diverse geographical regions with domain adaptation challenges.
+We begin by examining the datasets that have been fundamental to advancing aerial image understanding, starting with traditional instance and semantic segmentation approaches, progressing through referring expression datasets, and concluding with historical imagery applications.
 
-The emergence of referring segmentation in aerial imagery marked a significant evolution in dataset development. RefSegRS introduced the first referring remote sensing image segmentation dataset, establishing the foundation for language-driven segmentation in overhead imagery. This pioneering work demonstrated the feasibility of combining natural language descriptions with aerial image segmentation, opening new research directions in the remote sensing community.
+\subsubsection{Instance and Semantic Segmentation Datasets}
 
-Building upon this foundation, RRSIS-D (Referring Remote Sensing Image Segmentation Dataset) expanded the scope and complexity of referring segmentation in aerial domains, providing more comprehensive annotations and challenging scenarios that better reflect real-world applications. More recently, NWPU-Refer has further advanced the field by introducing additional complexity and scale, contributing to the growing ecosystem of referring segmentation datasets for aerial imagery. These datasets collectively demonstrate the increasing recognition of the importance of natural language interfaces for aerial image analysis tasks.
+Traditional aerial datasets initially focused on providing foundational segmentation capabilities for overhead imagery analysis. The iSAID dataset represents a foundational contribution to instance segmentation for aerial imagery, providing detailed object-level annotations across diverse geographical regions. Building upon the DOTA dataset foundation, iSAID offers precise instance boundaries for 15 different categories commonly found in aerial imagery, including vehicles, buildings, and infrastructure elements. The dataset contains over 655,000 annotated instances across high-resolution imagery, establishing a comprehensive benchmark for instance-level understanding in remote sensing applications.
+
+The LoveDA dataset takes a complementary approach, focusing on semantic segmentation for land cover and infrastructure analysis. Unlike instance-based approaches, LoveDA provides dense pixel-level annotations for seven primary land cover categories including buildings, roads, water, barren land, forest, agriculture, and background. The dataset emphasizes multi-domain applicability by incorporating both urban and rural imagery collected from different geographical regions, enabling research into domain adaptation techniques for aerial image analysis.
+
+\subsubsection{Referring Segmentation Datasets}
+
+The emergence of referring segmentation in aerial imagery marked a significant evolution in dataset development, introducing natural language interfaces for interactive image analysis. RefSegRS pioneered the field by introducing the first referring remote sensing image segmentation dataset, establishing the foundation for language-driven segmentation in overhead imagery. Built upon the SkyScapes dataset foundation, RefSegRS contains 4,420 triplets of images, referring expressions, and corresponding segmentation masks. The dataset focuses on establishing basic referring segmentation capabilities for aerial imagery, with expressions emphasizing spatial relationships, object attributes, and contextual descriptions characteristic of remote sensing analysis workflows.
+
+RRSIS-D expanded upon the RefSegRS foundation by introducing larger scale and semi-automated annotation approaches. The dataset contains 17,402 triplets derived from the RSVGD dataset, incorporating Segment Anything Model (SAM) assistance to accelerate annotation generation while maintaining quality standards. RRSIS-D addresses scale limitations of earlier datasets while introducing more diverse expression types across 20 different object categories and seven attribute dimensions, enabling more comprehensive evaluation of referring segmentation approaches.
+
+NWPU-Refer represents the current state-of-the-art in aerial referring segmentation datasets, significantly expanding both scale and annotation sophistication. The dataset contains 49,745 triplets sourced from multiple global aerial imagery collections, providing comprehensive coverage across different geographical regions and imaging conditions. NWPU-Refer introduces enhanced annotation quality through purely manual annotation processes, resulting in more natural and diverse referring expressions. The dataset incorporates 32 object categories with six attribute dimensions, enabling evaluation of fine-grained referring segmentation capabilities that closely match real-world aerial image analysis requirements.
+
+\subsubsection{Historical Aerial Imagery Datasets}
+
+While contemporary aerial datasets provide important foundations for modern remote sensing analysis, historical imagery represents a largely unexplored domain with significant research and practical value. Historical aerial imagery offers unique insights into temporal changes in land use, urban development patterns, and environmental evolution that cannot be captured through contemporary imagery alone. However, the scarcity of annotated historical datasets has limited progress in this important application area.
+
+The UrbanSatSeg1960 dataset addresses this gap by providing semantic segmentation annotations for historical urban aerial imagery from the 1960s era. This specialized dataset focuses on urban environments captured during a pivotal period of global urbanization, offering ground truth annotations for land cover categories relevant to historical analysis including buildings, roads, vegetation, and open spaces. UrbanSatSeg1960 enables research into historical imagery understanding while providing essential training data for temporal analysis applications that require consistent segmentation capabilities across different imaging eras.
 
 \subsection{Architectures for RRSIS}
 
@@ -22,14 +38,7 @@ The development of specialized architectures for referring remote sensing image 
 
 The NWPU-Refer contribution further advanced architectural design by incorporating more sophisticated attention mechanisms and multi-scale processing capabilities tailored to the characteristics of aerial scenes. Each of these works has contributed distinct architectural components that have collectively advanced the state of the art in referring segmentation for remote sensing applications.
 
-Among these developments, RSRefSeg has emerged as a particularly robust architecture that leverages both SigLIP and SAM as its foundational backbones. As illustrated in Figure \ref{fig:rsrefseg_architecture}, RSRefSeg achieves state-of-the-art performance when trained and evaluated on RRSIS-D, establishing it as a solid foundational architecture for work in this area. The architecture employs a dual-encoder approach utilizing SigLIP for text and image feature extraction, followed by SAM for high-quality segmentation mask generation.
+Among these developments, RSRefSeg has emerged as a particularly robust architecture that leverages both SigLIP and SAM as its foundational backbones. RSRefSeg achieves state-of-the-art performance when trained and evaluated on RRSIS-D, establishing it as a solid foundational architecture for work in this area. The architecture employs a dual-encoder approach utilizing SigLIP for text and image feature extraction, followed by SAM for high-quality segmentation mask generation.
 
 The RSRefSeg architecture consists of several key components that work in concert to achieve robust referring segmentation. The SigLIP encoders process both natural language descriptions and visual content, while specialized prompter networks serve as adapters that transform SigLIP features into SAM-compatible prompt embeddings. The system leverages local and global activation mechanisms for fine-grained text-image alignment, and employs parameter-efficient LoRA fine-tuning to maintain the strong pre-trained capabilities of both foundation models while enabling adaptation to the aerial domain.
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=0.85\textwidth]{./images/rsrefseg.png}
-\caption{RSRefSeg architecture combining SigLIP text-image encoding with SAM mask generation for referring segmentation tasks. The architecture employs dual encoders with specialized prompter networks to bridge vision-language understanding with precise segmentation.}
-\label{fig:rsrefseg_architecture}
-\end{figure*}
 
