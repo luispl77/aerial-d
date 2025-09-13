@@ -73,11 +73,11 @@ To address these limitations, we employ a multimodal Large Language Model (LLM) 
 
 This dual approach transforms basic expressions like "the group of 4 large vehicles in the top center" into linguistically diverse alternatives such as "the cluster of four big vehicles near the upper middle" and visually detailed descriptions like "the four large vehicles lined up side by side just below the pale paved strip at the very top middle", where the model identifies and references contextual elements not captured in the original datasets, such as the "pale paved strip" and the "grassy area".
 
-However, the full dataset contains approximately 300,000 captured targets including both objects and groups. To generate expressions, we process each target individually, meaning we would need 300,000 separate LLM requests. Using production-grade LLMs at this scale—for example, OpenAI’s O3 model with strong visual capabilities—would cost thousands of dollars; Table \ref{tab:cost_comparison} reports the exact breakdown, making direct application prohibitively expensive for research-scale dataset construction.
+However, the full dataset contains approximately 300,000 captured targets including both objects and groups. To generate expressions, we process each target individually, meaning we would need 300,000 separate LLM requests. Using production-grade LLMs at this scale—for example, OpenAI’s o3 model with strong visual capabilities—would cost thousands of dollars; Table \ref{tab:cost_comparison} reports the exact breakdown, making direct application prohibitively expensive for research-scale dataset construction.
 
-To address this scalability challenge, we employ a knowledge distillation approach, as illustrated in Figure \ref{fig:llm_distillation}. We utilize OpenAI’s O3 model and compare it against a much more lightweight open‑weights model, Gemma3. We obtain 500 high‑quality outputs from O3 on a representative random subset of targets from the initial dataset. These outputs serve as training data for supervised fine‑tuning using the parameter‑efficient QLoRA method on Gemma3‑12B.
+To address this scalability challenge, we employ a knowledge distillation approach, as illustrated in Figure \ref{fig:llm_distillation}. We utilize OpenAI’s o3 model and compare it against a much more lightweight open‑weights model, Gemma3. We obtain 500 high‑quality outputs from o3 on a representative random subset of targets from the initial dataset. These outputs serve as training data for supervised fine‑tuning using the parameter‑efficient QLoRA method on Gemma3‑12B.
 
-The custom‑tailored fine‑tuned Gemma3 model can then process all 300,000 targets using a single GPU, resulting in a much cheaper and more efficient method. Notably, the distilled model’s output quality approaches O3’s once fine‑tuned; qualitative comparisons in Figure \ref{fig:distillation_comparison} show closely matched enhancements with markedly reduced hallucinations relative to the base Gemma3 model.
+The custom‑tailored fine‑tuned Gemma3 model can then process all 300,000 targets using a single GPU, resulting in a much cheaper and more efficient method. Notably, the distilled model’s output quality approaches o3’s once fine‑tuned; qualitative comparisons in Figure \ref{fig:distillation_comparison} show closely matched enhancements with markedly reduced hallucinations relative to the base Gemma3 model.
 
 \begin{figure*}[t]
 \centering
@@ -238,6 +238,6 @@ LLM Visual Details & 382K & 519K \\
 \begin{figure}[!b]
 \centering
 \includegraphics[width=\columnwidth]{./images/distillation.png}
-\caption{Knowledge distillation pipeline for scalable LLM enhancement. A small sample of 500 expressions is processed through OpenAI's O3 model to generate high-quality training targets, which are then used to fine-tune Gemma3‑12B via QLoRA. The fine‑tuned model enables cost‑effective local inference to enhance the full dataset using vLLM on a single GPU.}
+\caption{Knowledge distillation pipeline for scalable LLM enhancement. A small sample of 500 expressions is processed through OpenAI's o3 model to generate high-quality training targets, which are then used to fine-tune Gemma3‑12B via QLoRA. The fine‑tuned model enables cost‑effective local inference to enhance the full dataset using vLLM on a single GPU.}
 \label{fig:llm_distillation}
 \end{figure}

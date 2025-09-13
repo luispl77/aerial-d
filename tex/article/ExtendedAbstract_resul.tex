@@ -97,28 +97,28 @@ Combined All & 1,118K & 2 & % \textbf{39.54\%} &
 The results demonstrate that the combined model, utilizing all expression types, achieves the best performance across evaluation metrics on Aerial-D. Notably, different subsets show varying benefits for different target datasets: Enhanced Only performs best on RRSIS-D, while Unique Expressions Only excels on NWPU-Refer. This indicates that smaller, focused subsets can be more data-efficient and faster to train than the full combined dataset, while still achieving competitive or superior performance on specific target domains.
 
 
-\subsection{Distillation Ablation: Gemma3 vs. O3 Model Comparison}
+\subsection{Distillation Ablation: Gemma3 vs. o3 Model Comparison}
 \label{subsec:distillation_ablation}
 
-We evaluate the effectiveness of our knowledge distillation approach by comparing Gemma3-enhanced expressions with those generated directly by the O3 model. This comparison demonstrates both the quality improvements achieved through distillation and the significant cost advantages of using the distilled model for large-scale annotation generation.
+We evaluate the effectiveness of our knowledge distillation approach by comparing Gemma3-enhanced expressions with those generated directly by the o3 model. This comparison demonstrates both the quality improvements achieved through distillation and the significant cost advantages of using the distilled model for large-scale annotation generation.
 
-To validate the effectiveness of our knowledge distillation approach, we conduct a qualitative comparison between our fine-tuned Gemma3 model (distilled from O3 using 500 samples) and the vanilla Gemma3 model without any exposure to aerial imagery or referring segmentation tasks. This ablation study demonstrates the significant impact of domain-specific fine-tuning on reducing hallucinations and improving the quality of generated referring expressions.
+To validate the effectiveness of our knowledge distillation approach, we conduct a qualitative comparison between our fine-tuned Gemma3 model (distilled from o3 using 500 samples) and the vanilla Gemma3 model without any exposure to aerial imagery or referring segmentation tasks. This ablation study demonstrates the significant impact of domain-specific fine-tuning on reducing hallucinations and improving the quality of generated referring expressions.
 
-The comparison reveals stark differences in the models' ability to generate accurate, visually grounded expressions for aerial imagery. The vanilla Gemma3 model exhibits significant hallucination issues, often generating expressions that reference objects not present in the image, such as "airplane hangars" and "control towers" in residential areas. In contrast, the distilled Gemma3 model, trained on O3-generated expressions, produces accurate and grounded descriptions that correctly identify visible objects and their spatial relationships.
+The comparison reveals stark differences in the models' ability to generate accurate, visually grounded expressions for aerial imagery. The vanilla Gemma3 model exhibits significant hallucination issues, often generating expressions that reference objects not present in the image, such as "airplane hangars" and "control towers" in residential areas. In contrast, the distilled Gemma3 model, trained on o3-generated expressions, produces accurate and grounded descriptions that correctly identify visible objects and their spatial relationships.
 
 Figure \ref{fig:distillation_comparison} presents representative examples of this comparison across various aerial scenes and object categories. The results clearly illustrate how the fine-tuned model learned to avoid common hallucination patterns while maintaining the linguistic diversity and natural language quality that make the expressions useful for training robust segmentation models.
 
 % Cost comparison table
 \begin{table}[t]
 \centering
-\caption{Cost Analysis: Gemma3 vs. O3 Model for Large-Scale Annotation\protect\footnotemark}
+\caption{Cost Analysis: Gemma3 vs. o3 Model for Large-Scale Annotation\protect\footnotemark}
 \label{tab:cost_comparison}
 \resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}lcc@{}}
 \toprule
 \textbf{Model} & \textbf{Cost per request} & \textbf{Cost for 300K requests} \\
 \midrule
-O3 Model & \$0.020728 & \$6,218.32 \\
+o3 Model & \$0.020728 & \$6,218.32 \\
 Distilled Gemma3 & \$0.000087 & \$26.01 \\
 \midrule
 \textbf{Savings} & \textbf{238× cheaper} & \textbf{\$6,192.31 (99.6\%)} \\
@@ -126,7 +126,7 @@ Distilled Gemma3 & \$0.000087 & \$26.01 \\
 \end{tabular}%
 }
 \end{table}
-\footnotetext{Cost calculations based on API pricing — O3: \$2.00 per million input tokens, \$8.00 per million output tokens (OpenAI API platform); Gemma3-12B: \$0.035 per million input tokens, \$0.141 per million output tokens (OpenRouter inference provider). Average tokens per request: O3 (1,670.8 input, 2,173.3 output), Gemma3 (1,330.0 input, 284.7 output). Calculations based on 15 sample requests.}
+\footnotetext{Cost calculations based on API pricing — o3: \$2.00 per million input tokens, \$8.00 per million output tokens (OpenAI API platform); Gemma3-12B: \$0.035 per million input tokens, \$0.141 per million output tokens (OpenRouter inference provider). Average tokens per request: o3 (1,670.8 input, 2,173.3 output), Gemma3 (1,330.0 input, 284.7 output). Calculations based on 15 sample requests.}
 
 The cost analysis demonstrates that using the distilled Gemma3 model provides substantial economic advantages for large-scale dataset generation. The upfront investment in distillation training pays off significantly when generating millions of annotations, making the approach both technically sound and economically viable for scaling to larger datasets.
 
@@ -147,7 +147,7 @@ The cost analysis demonstrates that using the distilled Gemma3 model provides su
 \midrule
 Original & the orange baseball diamond in the top left \\
 \midrule
-O3 Enhanced & the orange baseball diamond with the light pole near home plate in the upper left \\
+o3 Enhanced & the orange baseball diamond with the light pole near home plate in the upper left \\
 \midrule
 Gemma3 Base & the bright orange baseball diamond to the left of another similar baseball diamond in the top left \\
 \midrule
@@ -156,7 +156,7 @@ Gemma3-Aerial-12B & the orange baseball field with a chainlink fence surrounded 
 \end{tabular}%
 }
 \end{minipage}
-\caption{Qualitative comparison between O3, vanilla Gemma3 base model, and our fine-tuned Gemma3-Aerial-12B model on aerial imagery. The table shows how each model enhances the original rule-based expression, demonstrating the progression from basic rule-based descriptions through various levels of language model enhancement.}
+\caption{Qualitative comparison between o3, vanilla Gemma3 base model, and our fine-tuned Gemma3-Aerial-12B model on aerial imagery. The table shows how each model enhances the original rule-based expression, demonstrating the progression from basic rule-based descriptions through various levels of language model enhancement.}
 \label{fig:distillation_comparison}
 \end{figure*}
 
