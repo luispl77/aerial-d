@@ -63,9 +63,7 @@ def parse_arguments():
     parser.add_argument('--seed', type=int, default=42,
                         help='Random seed for reproducibility')
     
-    # Model configuration
-    parser.add_argument('--gemma3_model_name', type=str, default='./gemma-aerial-12b',
-                        help='Model name for Gemma3 vLLM server (you can switch between distilled and normal)')
+    # No model configuration needed - models are hardcoded
     
     # Processing options
     parser.add_argument('--crop_fraction', type=float, default=0.5,
@@ -283,7 +281,7 @@ def visualize_and_save_object(image_path, bboxes, output_path):
             width, height = x2 - x1, y2 - y1
             
             rect = patches.Rectangle((x1, y1), width, height, 
-                                   linewidth=1, edgecolor='red', facecolor='none')
+                                   linewidth=3, edgecolor='red', facecolor='none')
             ax.add_patch(rect)
         
         ax.set_xlim(0, image.width)
@@ -400,7 +398,7 @@ def encode_base64_content_from_file(image_path):
         return None
 
 def setup_clients(args):
-    """Setup OpenAI clients for both models."""
+    """Setup OpenAI clients for all three models."""
     clients = {}
     
     # Setup OpenAI O3 client
@@ -414,9 +412,15 @@ def setup_clients(args):
             base_url="https://api.openai.com/v1",
         )
     
-    # Setup Gemma3 client (hardcoded URL)
-    clients['gemma3'] = OpenAI(
+    # Setup Gemma3 fine-tuned client (port 8000)
+    clients['gemma3_finetuned'] = OpenAI(
         base_url="http://0.0.0.0:8000/v1",
+        api_key="token-abc123",  # vLLM doesn't require real API key
+    )
+    
+    # Setup Gemma3 base client (port 8001)
+    clients['gemma3_base'] = OpenAI(
+        base_url="http://0.0.0.0:8001/v1",
         api_key="token-abc123",  # vLLM doesn't require real API key
     )
     
@@ -452,11 +456,12 @@ def parse_annotations(annotation_path):
                 'ymax': int(obj.find('bndbox/ymax').text)
             }
         
-        # Get existing expressions
+        # Get existing expressions (only original ones with id, not enhanced/unique)
         expressions = []
         if obj.find('expressions') is not None:
             for expr in obj.findall('expressions/expression'):
-                if expr.text is not None and expr.text.strip():
+                # Only include expressions with 'id' attribute (original expressions)
+                if expr.get('id') is not None and expr.text is not None and expr.text.strip():
                     expressions.append(expr.text.strip())
         
         # Only process objects with bbox and expressions
@@ -494,11 +499,12 @@ def parse_annotations(annotation_path):
                     if single_bbox:
                         bboxes = [single_bbox]
             
-            # Get existing expressions
+            # Get existing expressions (only original ones with id, not enhanced/unique)
             expressions = []
             if group.find('expressions') is not None:
                 for expr in group.findall('expressions/expression'):
-                    if expr.text is not None and expr.text.strip():
+                    # Only include expressions with 'id' attribute (original expressions)
+                    if expr.get('id') is not None and expr.text is not None and expr.text.strip():
                         expressions.append(expr.text.strip())
             
             # Only process groups with segmentation/bboxes and expressions
@@ -730,7 +736,7 @@ def process_single_sample(sample_data, clients, args, sample_idx):
         if main_image_base64 is None or second_image_base64 is None:
             raise Exception("Failed to encode images to base64")
         
-        # Process with both models
+        # Process with all three models
         results = {}
         
         # Model 1: OpenAI O3
@@ -755,17 +761,29 @@ def process_single_sample(sample_data, clients, args, sample_idx):
                 'total_tokens': None
             }
         
-        # Model 2: Gemma3 (configurable model name)
-        print(f"  Processing with Gemma3 ({args.gemma3_model_name})...")
+        # Model 2: Gemma3 Fine-tuned (./gemma-aerial-12b)
+        print("  Processing with Gemma3 Fine-tuned (./gemma-aerial-12b)...")
         for attempt in range(args.max_retries):
             result = call_model_api(
-                clients['gemma3'], args.gemma3_model_name, system_prompt, user_prompt,
+                clients['gemma3_finetuned'], "./gemma-aerial-12b", system_prompt, user_prompt,
                 main_image_base64, second_image_base64, is_o3=False
             )
             if result['success']:
                 break
-            print(f"    Gemma3 attempt {attempt + 1} failed: {result['error']}")
-        results['gemma3_result'] = result
+            print(f"    Gemma3 Fine-tuned attempt {attempt + 1} failed: {result['error']}")
+        results['gemma3_finetuned_result'] = result
+        
+        # Model 3: Gemma3 Base (google/gemma-3-12b-it)
+        print("  Processing with Gemma3 Base (google/gemma-3-12b-it)...")
+        for attempt in range(args.max_retries):
+            result = call_model_api(
+                clients['gemma3_base'], "google/gemma-3-12b-it", system_prompt, user_prompt,
+                main_image_base64, second_image_base64, is_o3=False
+            )
+            if result['success']:
+                break
+            print(f"    Gemma3 Base attempt {attempt + 1} failed: {result['error']}")
+        results['gemma3_base_result'] = result
         
         # Move visualization files to output directory
         output_viz_path = os.path.join(args.output_dir, viz_filename)
@@ -813,7 +831,7 @@ def process_single_sample(sample_data, clients, args, sample_idx):
         print(f"    Results saved: {sample_id}.json")
         
         # Print success status for each model
-        for model_name, result_key in [('O3', 'o3_result'), ('Gemma3', 'gemma3_result')]:
+        for model_name, result_key in [('O3', 'o3_result'), ('Gemma3-FT', 'gemma3_finetuned_result'), ('Gemma3-Base', 'gemma3_base_result')]:
             result = results[result_key]
             if result['success']:
                 tokens_info = ""
@@ -846,7 +864,7 @@ def main():
     print(f"Dataset: {args.dataset_root}")
     print(f"Split: {args.split}")
     print(f"Number of samples: {args.num_samples}")
-    print(f"Gemma3 model: {args.gemma3_model_name}")
+    print(f"Models: O3, Gemma3-FT (./gemma-aerial-12b), Gemma3-Base (google/gemma-3-12b-it)")
     print(f"Random seed: {args.seed}")
     print(f"Output directory: {args.output_dir}")
     
