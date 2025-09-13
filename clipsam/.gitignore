@@ -7,3 +7,4 @@ aeriald
 __pycache__
 .env
 style_transfer_results
+utils/filter_examples
