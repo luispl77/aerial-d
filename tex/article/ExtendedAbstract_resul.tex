@@ -11,7 +11,7 @@ This section presents our comprehensive experimental evaluation of Aerial-D thro
 \subsection{Model Architecture}
 \label{subsec:model_architecture}
 
-Our approach implements the RefSegRS architecture, which combines text and visual understanding for precise object segmentation in aerial imagery. The architecture leverages two robust vision foundation models: SigLIP2 for vision-language encoding and SAM for mask generation. We implemented this architecture from scratch in PyTorch, employing LoRA (Low-Rank Adaptation) for efficient fine-tuning while maintaining strong pre-trained representations from the foundation models. The model targets query and value projection layers in both vision encoders and query, key, value, and output projection layers in the text encoder.
+Our approach implements the RSRefSeg architecture, which combines text and visual understanding for precise object segmentation in aerial imagery. The architecture leverages two robust vision foundation models: SigLIP2 for vision-language encoding and SAM for mask generation. We implemented this architecture from scratch in PyTorch, employing LoRA (Low-Rank Adaptation) for efficient fine-tuning while maintaining strong pre-trained representations from the foundation models. The model targets query and value projection layers in both vision encoders and query, key, value, and output projection layers in the text encoder.
 
 \subsection{Experimental Setup}
 \label{subsec:experimental_setup}
@@ -119,47 +119,87 @@ Figure \ref{fig:distillation_comparison} presents representative examples of thi
 % Cost comparison table
 \begin{table*}[t]
 \centering
-\caption{Cost Analysis: Gemma3 vs. O3 Model for Large-Scale Annotation}
+\caption{Cost Analysis: Gemma3 vs. O3 Model for Large-Scale Annotation (300K requests)}
 \label{tab:cost_comparison}
 \begin{tabular}{@{}lcccc@{}}
 \toprule
-\textbf{Model} & \textbf{Cost per 1K tokens} & \textbf{Tokens per expression} & \textbf{Cost per 1M expressions} & \textbf{Total dataset cost} \\
+\textbf{Model} & \textbf{Avg. input tokens} & \textbf{Avg. output tokens} & \textbf{Cost per request} & \textbf{Cost for 300K requests} \\
 \midrule
-O3 Model & \$[TBD] & [TBD] & \$[TBD] & \$[TBD] \\
-Distilled Gemma3 & \$[TBD] & [TBD] & \$[TBD] & \$[TBD] \\
+O3 Model & 1,670.8 & 2,173.3 & \$0.020728 & \$6,218.32 \\
+Distilled Gemma3 & 1,330.0 & 284.7 & \$0.000087 & \$26.01 \\
 \midrule
-\textbf{Savings} & \textbf{[TBD]×} & \textbf{--} & \textbf{\$[TBD]} & \textbf{\$[TBD]} \\
+\textbf{Savings} & \textbf{1.26× fewer} & \textbf{7.6× fewer} & \textbf{238× cheaper} & \textbf{\$6,192.31 (99.6\%)} \\
 \bottomrule
 \end{tabular}
 \end{table*}
+
+\footnotesize
+\textit{Note: Cost calculations based on API pricing - O3: \$2.00 per million input tokens, \$8.00 per million output tokens (OpenAI API platform); Gemma3-12B: \$0.035 per million input tokens, \$0.141 per million output tokens (OpenRouter inference provider). Average tokens per request calculated from 15 sample requests.}
+\normalsize
 
 The cost analysis demonstrates that using the distilled Gemma3 model provides substantial economic advantages for large-scale dataset generation. The upfront investment in distillation training pays off significantly when generating millions of annotations, making the approach both technically sound and economically viable for scaling to larger datasets.
 
 \begin{figure*}[t]
 \centering
-% Placeholder for distillation comparison figure
+% Placeholder for distillation comparison figure with three-way comparison
 \fbox{\parbox{\textwidth}{\centering\vspace{3cm}
-\textbf{PLACEHOLDER: Knowledge Distillation Comparison Figure}\\
+\textbf{PLACEHOLDER: Three-Model Qualitative Comparison Figure}\\
 \vspace{0.5cm}
-Side-by-side comparison of Vanilla Gemma3 vs. Fine-tuned Gemma3:\\
+\textbf{[IMAGE + TABLE FORMAT - Similar to existing LLM enhancement figure]}\\
 \vspace{0.3cm}
-\textbf{Image 1: Airport scene with planes}\\
-Vanilla: "the white aircraft parked near the terminal building with passengers boarding" (no terminal visible)\\
-Fine-tuned: "the aircraft on the tarmac in the upper right section"\\
-\vspace{0.3cm}
-\textbf{Image 2: Rural area with vehicles}\\
-Vanilla: "the red car stopped at the traffic light intersection" (no traffic lights or intersection)\\
-Fine-tuned: "the vehicle on the dirt road in the center of the image"\\
-\vspace{0.3cm}
-\textbf{Image 3: Harbor with ships}\\
-Vanilla: "the cargo ship being loaded by cranes at the busy port terminal" (no cranes or terminal visible)\\
-Fine-tuned: "the ship in the water near the harbor structure"\\
-\vspace{0.3cm}
-\textbf{Image 4: Residential area}\\
-Vanilla: "the house with the red roof and white fence surrounded by gardens" (details not visible from aerial view)\\
-Fine-tuned: "the building in the residential area on the left side"
+\textbf{Expression Set 1:}\\
+\begin{tabular}{|l|p{12cm}|}
+\hline
+Original & [PLACEHOLDER - Original rule-based expression] \\
+\hline
+O3 Enhanced & [PLACEHOLDER - O3 model enhancement] \\
+\hline
+Gemma3 Base & [PLACEHOLDER - Base Gemma3 model enhancement] \\
+\hline
+Gemma3-Aerial-12B & [PLACEHOLDER - Fine-tuned Gemma3 enhancement] \\
+\hline
+\end{tabular}\\
+\vspace{0.5cm}
+\textbf{Expression Set 2:}\\
+\begin{tabular}{|l|p{12cm}|}
+\hline
+Original & [PLACEHOLDER - Original rule-based expression] \\
+\hline
+O3 Enhanced & [PLACEHOLDER - O3 model enhancement] \\
+\hline
+Gemma3 Base & [PLACEHOLDER - Base Gemma3 model enhancement] \\
+\hline
+Gemma3-Aerial-12B & [PLACEHOLDER - Fine-tuned Gemma3 enhancement] \\
+\hline
+\end{tabular}\\
+\vspace{0.5cm}
+\textbf{Expression Set 3:}\\
+\begin{tabular}{|l|p{12cm}|}
+\hline
+Original & [PLACEHOLDER - Original rule-based expression] \\
+\hline
+O3 Enhanced & [PLACEHOLDER - O3 model enhancement] \\
+\hline
+Gemma3 Base & [PLACEHOLDER - Base Gemma3 model enhancement] \\
+\hline
+Gemma3-Aerial-12B & [PLACEHOLDER - Fine-tuned Gemma3 enhancement] \\
+\hline
+\end{tabular}\\
+\vspace{0.5cm}
+\textbf{Expression Set 4:}\\
+\begin{tabular}{|l|p{12cm}|}
+\hline
+Original & [PLACEHOLDER - Original rule-based expression] \\
+\hline
+O3 Enhanced & [PLACEHOLDER - O3 model enhancement] \\
+\hline
+Gemma3 Base & [PLACEHOLDER - Base Gemma3 model enhancement] \\
+\hline
+Gemma3-Aerial-12B & [PLACEHOLDER - Fine-tuned Gemma3 enhancement] \\
+\hline
+\end{tabular}
 \vspace{3cm}}}
-\caption{Qualitative comparison between vanilla Gemma3 and our O3-distilled fine-tuned Gemma3 model on new aerial images. The vanilla model exhibits extensive hallucinations by generating details not visible in the aerial imagery, while the fine-tuned model produces accurate, visually grounded expressions that avoid hallucinated elements.}
+\caption{Qualitative comparison between O3, vanilla Gemma3 base model, and our fine-tuned Gemma3-Aerial-12B model across four representative aerial imagery examples. The table shows how each model enhances the original rule-based expressions, demonstrating the progression from basic rule-based descriptions through various levels of language model enhancement.}
 \label{fig:distillation_comparison}
 \end{figure*}
 
@@ -188,4 +228,3 @@ Urban1960SatSeg & -- & -- & -- & -- & N/A & -- & N/A \\
 \bottomrule
 \end{tabular}
 \end{table*}
-
