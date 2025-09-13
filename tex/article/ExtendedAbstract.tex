@@ -142,6 +142,16 @@
 % New command to refer to equations as Eq.(1),Eq.(2),...
 \newcommand{\eqnref}[1]{Eq.(\ref{#1})}
 
+% Enable hyperlinks and PDF bookmarks (load last)
+% - Makes citations, refs, and URLs clickable
+% - Generates a PDF outline (bookmarks) for sections/subsections
+\usepackage[hidelinks,bookmarksopen=true,bookmarksnumbered=true]{hyperref}
+\hypersetup{
+  pdftitle={Open-Vocabulary Semantic Segmentation of Aerial Photos},
+  pdfauthor={Luis Pedro Soares Marnoto Gaspar Lopes},
+  pdfcreator={LaTeX with hyperref}
+}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Title, authors and addresses
 
