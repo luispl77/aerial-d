@@ -174,11 +174,8 @@ These effects mimic tonal range reduction and graininess typical of mid‑centur
 
 \subsection{Final Dataset Statistics}
 
-The completed Aerial-D dataset represents a comprehensive resource for aerial referring expression segmentation, containing over 1.5 million expressions across diverse object categories and linguistic patterns. The dataset achieves substantial scale with 37,288 total patches containing 259,709 annotated samples, maintaining balanced distribution between individual objects (128,715 instances with 889,354 expressions) and groups (130,994 groups with 633,169 expressions).
+The rule-based generation yields 506{,}194 starting expressions and identifies 259{,}709 annotated targets across the corpus (Table~\ref{tab:llm_enhancement_stats}). Building on this base, the LLM enhancement is prompted to produce one language variation for each original expression and two unique visual‑detail expressions for each target, adding 496{,}895 and 519{,}434 expressions respectively and resulting in 1{,}522{,}523 total expressions.
 
-The dataset encompasses both discrete objects from iSAID and semantic land cover categories from LoveDA, ensuring comprehensive representation of aerial imagery content. Small vehicles represent the most abundant category with 41,353 individual instances, while specialized categories like helicopters and baseball diamonds provide targeted coverage for specific aerial object types.
-
-The systematic generation pipeline produces expressions through seventeen distinct templates, ranging from simple category references to complex multi-attribute descriptions. The LLM enhancement process successfully tripled the dataset size from 506,194 rule-based expressions to 1,522,523 total expressions, with nearly equal contributions from language variations (496,895) and unique visual detail expressions (519,434). This demonstrates the effectiveness of the two-pronged enhancement strategy in achieving both linguistic diversity and contextual richness essential for robust model training.
 
 \begin{figure}[!t]
 \centering
@@ -201,9 +198,8 @@ The systematic generation pipeline produces expressions through seventeen distin
 \label{fig:category_distributions}
 \end{figure*}
 
-Table \ref{tab:llm_enhancement_stats} quantifies the impact of LLM enhancement, showing that the distillation pipeline successfully tripled the dataset size from the original 506,194 rule-based expressions to 1,522,523 total expressions. The LLM enhancement process contributed nearly equal numbers of language variations (496,895) and unique visual detail expressions (519,434), demonstrating the effectiveness of the two-pronged enhancement strategy in achieving both linguistic diversity and contextual richness.
 
-Our dataset comparison presented in Table \ref{tab:dataset_comparison} reveals that Aerial-D represents a significant advancement in aerial referring segmentation datasets. With over 1.5 million referring expressions, it surpasses the largest existing dataset by more than 30-fold. Aerial-D is the first dataset to achieve fully automated annotation generation without manual intervention, combining rule-based expression generation with LLM enhancement. The dataset supports both single-object and multi-object referring expressions, making it more comprehensive than previous datasets that focus primarily on single-object scenarios.
+Table \ref{tab:dataset_comparison} compares Aerial-D with prior RRSIS datasets and shows how it scales along three axes: images, targets per image, and expressions per target. First, Aerial-D contains nearly three times as many images as previous datasets. Second, each image typically includes many segmented targets. Third, each target is paired with multiple referring expressions. Together, these factors yield more than 1.5 million referring expressions, making Aerial-D the largest RRSIS resource to date. Beyond scale, Aerial-D is one of the first to use a fully automatic pipeline that combines rule-based generation with LLM enhancement and supports both single-object and multi-object references.
 
 % Dataset comparison table
 \begin{table*}[t]
