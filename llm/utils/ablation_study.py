@@ -856,6 +856,103 @@ def process_single_sample(sample_data, clients, args, sample_idx):
                 except:
                     pass
 
+def calculate_cost_analysis(output_dir):
+    """Calculate token usage statistics and cost estimates."""
+    # Pricing per 1M tokens
+    GEMMA3_INPUT_RATE = 0.035  # $0.035 per 1M input tokens
+    GEMMA3_OUTPUT_RATE = 0.141  # $0.141 per 1M output tokens
+    O3_INPUT_RATE = 2.0  # $2.00 per 1M input tokens
+    O3_OUTPUT_RATE = 8.0  # $8.00 per 1M output tokens
+    
+    # Collect token usage from all JSON files
+    o3_input_tokens = []
+    o3_output_tokens = []
+    gemma3_finetuned_input_tokens = []
+    gemma3_finetuned_output_tokens = []
+    gemma3_base_input_tokens = []
+    gemma3_base_output_tokens = []
+    
+    json_files = [f for f in os.listdir(output_dir) if f.endswith('.json')]
+    
+    for json_file in json_files:
+        json_path = os.path.join(output_dir, json_file)
+        try:
+            with open(json_path, 'r') as f:
+                data = json.load(f)
+            
+            # Extract O3 tokens
+            if 'o3_result' in data and data['o3_result'].get('success'):
+                if data['o3_result'].get('input_tokens'):
+                    o3_input_tokens.append(data['o3_result']['input_tokens'])
+                if data['o3_result'].get('output_tokens'):
+                    o3_output_tokens.append(data['o3_result']['output_tokens'])
+            
+            # Extract Gemma3 Fine-tuned tokens
+            if 'gemma3_finetuned_result' in data and data['gemma3_finetuned_result'].get('success'):
+                if data['gemma3_finetuned_result'].get('input_tokens'):
+                    gemma3_finetuned_input_tokens.append(data['gemma3_finetuned_result']['input_tokens'])
+                if data['gemma3_finetuned_result'].get('output_tokens'):
+                    gemma3_finetuned_output_tokens.append(data['gemma3_finetuned_result']['output_tokens'])
+            
+            # Extract Gemma3 Base tokens
+            if 'gemma3_base_result' in data and data['gemma3_base_result'].get('success'):
+                if data['gemma3_base_result'].get('input_tokens'):
+                    gemma3_base_input_tokens.append(data['gemma3_base_result']['input_tokens'])
+                if data['gemma3_base_result'].get('output_tokens'):
+                    gemma3_base_output_tokens.append(data['gemma3_base_result']['output_tokens'])
+                    
+        except Exception as e:
+            print(f"   Warning: Could not parse {json_file}: {e}")
+            continue
+    
+    print(f"   Analyzed {len(json_files)} result files")
+    
+    # Calculate averages and costs
+    def calculate_model_costs(model_name, input_tokens, output_tokens, input_rate, output_rate):
+        if not input_tokens or not output_tokens:
+            print(f"   {model_name}: No token data available")
+            return
+        
+        avg_input = sum(input_tokens) / len(input_tokens)
+        avg_output = sum(output_tokens) / len(output_tokens)
+        
+        # Cost per request (rates are per 1M tokens)
+        cost_per_input_token = input_rate / 1_000_000
+        cost_per_output_token = output_rate / 1_000_000
+        
+        cost_per_request = (avg_input * cost_per_input_token) + (avg_output * cost_per_output_token)
+        
+        # Cost for 300k requests
+        cost_300k = cost_per_request * 300_000
+        
+        print(f"   {model_name}:")
+        print(f"     • Average input tokens per request: {avg_input:.1f}")
+        print(f"     • Average output tokens per request: {avg_output:.1f}")
+        print(f"     • Cost per request: ${cost_per_request:.6f}")
+        print(f"     • Cost for 300k requests: ${cost_300k:.2f}")
+        print()
+        
+        return cost_300k
+    
+    # Calculate costs for each model
+    o3_cost = calculate_model_costs("O3", o3_input_tokens, o3_output_tokens, O3_INPUT_RATE, O3_OUTPUT_RATE)
+    
+    # Combine both Gemma3 models for overall Gemma3 statistics
+    all_gemma3_input = gemma3_finetuned_input_tokens + gemma3_base_input_tokens  
+    all_gemma3_output = gemma3_finetuned_output_tokens + gemma3_base_output_tokens
+    gemma3_cost = calculate_model_costs("Gemma3 (Combined)", all_gemma3_input, all_gemma3_output, GEMMA3_INPUT_RATE, GEMMA3_OUTPUT_RATE)
+    
+    # Also show individual Gemma3 models
+    calculate_model_costs("Gemma3 Fine-tuned", gemma3_finetuned_input_tokens, gemma3_finetuned_output_tokens, GEMMA3_INPUT_RATE, GEMMA3_OUTPUT_RATE)
+    calculate_model_costs("Gemma3 Base", gemma3_base_input_tokens, gemma3_base_output_tokens, GEMMA3_INPUT_RATE, GEMMA3_OUTPUT_RATE)
+    
+    # Total comparison
+    if o3_cost and gemma3_cost:
+        print(f"   💰 Total Cost Comparison for 300k requests:")
+        print(f"     • O3: ${o3_cost:.2f}")
+        print(f"     • Gemma3: ${gemma3_cost:.2f}")
+        print(f"     • Savings using Gemma3: ${o3_cost - gemma3_cost:.2f} ({((o3_cost - gemma3_cost) / o3_cost * 100):.1f}% cheaper)")
+
 def main():
     """Main function."""
     args = parse_arguments()
@@ -901,6 +998,10 @@ def main():
             successful_samples += 1
         else:
             failed_samples += 1
+    
+    # Calculate cost analysis
+    print(f"\n📊 Cost Analysis")
+    calculate_cost_analysis(args.output_dir)
     
     # Final summary
     print(f"\n🎉 Ablation Study Complete!")
