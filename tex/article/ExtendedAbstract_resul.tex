@@ -111,7 +111,7 @@ Figure \ref{fig:distillation_comparison} presents representative examples of thi
 % Cost comparison table
 \begin{table}[t]
 \centering
-\caption{Cost Analysis: Gemma3 vs. O3 Model for Large-Scale Annotation\footnote{Cost calculations based on API pricing - O3: \$2.00 per million input tokens, \$8.00 per million output tokens (OpenAI API platform); Gemma3-12B: \$0.035 per million input tokens, \$0.141 per million output tokens (OpenRouter inference provider). Average tokens per request: O3 (1,670.8 input, 2,173.3 output), Gemma3 (1,330.0 input, 284.7 output). Calculations based on 15 sample requests.}}
+\caption{Cost Analysis: Gemma3 vs. O3 Model for Large-Scale Annotation\protect\footnotemark}
 \label{tab:cost_comparison}
 \resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}lcc@{}}
@@ -126,6 +126,7 @@ Distilled Gemma3 & \$0.000087 & \$26.01 \\
 \end{tabular}%
 }
 \end{table}
+\footnotetext{Cost calculations based on API pricing — O3: \$2.00 per million input tokens, \$8.00 per million output tokens (OpenAI API platform); Gemma3-12B: \$0.035 per million input tokens, \$0.141 per million output tokens (OpenRouter inference provider). Average tokens per request: O3 (1,670.8 input, 2,173.3 output), Gemma3 (1,330.0 input, 284.7 output). Calculations based on 15 sample requests.}
 
 The cost analysis demonstrates that using the distilled Gemma3 model provides substantial economic advantages for large-scale dataset generation. The upfront investment in distillation training pays off significantly when generating millions of annotations, making the approach both technically sound and economically viable for scaling to larger datasets.
 
@@ -133,7 +134,7 @@ The cost analysis demonstrates that using the distilled Gemma3 model provides su
 \centering
 \begin{minipage}{0.5\textwidth}
 \centering
-\includegraphics[width=0.7\textwidth]{./images/3llm.png}
+\includegraphics[width=0.65\textwidth]{./images/3llm.png}
 \end{minipage}%
 \begin{minipage}{0.5\textwidth}
 \centering

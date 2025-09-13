@@ -211,9 +211,9 @@ INPUT ./ExtendedAbstract_resul.tex
 INPUT ./ExtendedAbstract_resul.tex
 INPUT ./ExtendedAbstract_resul.tex
 INPUT ExtendedAbstract_resul.tex
-INPUT /usr/share/texmf/fonts/tfm/jknappen/ec/tcrm0800.tfm
 INPUT /usr/share/texmf/fonts/tfm/jknappen/ec/tcrm1000.tfm
 INPUT /usr/share/texmf/fonts/tfm/jknappen/ec/tcbx1000.tfm
+INPUT /usr/share/texmf/fonts/tfm/jknappen/ec/tcrm0800.tfm
 INPUT ./images/3llm.png
 INPUT ./images/3llm.png
 INPUT ./images/3llm.png
@@ -246,5 +246,6 @@ INPUT /usr/share/texmf/fonts/type1/public/amsfonts/cm/cmsy9.pfb
 INPUT /usr/share/texmf/fonts/type1/public/amsfonts/cm/cmtt9.pfb
 INPUT /usr/share/texmf/fonts/type1/public/amsfonts/symbols/msam10.pfb
 INPUT /usr/share/texmf/fonts/type1/public/cm-super/sfbx1000.pfb
+INPUT /usr/share/texmf/fonts/type1/public/cm-super/sfrm0800.pfb
 INPUT /usr/share/texmf/fonts/type1/public/cm-super/sfrm0900.pfb
 INPUT /usr/share/texmf/fonts/type1/public/cm-super/sfrm1000.pfb
