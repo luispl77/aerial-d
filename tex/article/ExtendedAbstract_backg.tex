@@ -34,12 +34,11 @@ Analysing historical aerial photographs introduces practical complications—red
 
 Architectures for referring segmentation in aerial imagery follow two broad paths. One family builds specialized networks tailored to overhead scenes, emphasizing multi-scale fusion and rotation handling without relying on large vision–language backbones. A second family leverages foundation models—vision encoders (e.g., CLIP or SigLIP) and segmentation decoders (e.g., SAM)—and focuses on bridging text–vision semantics for mask prediction. We outline representative approaches from both lines of work.
 
-The Rotated Multi-Scale Interaction Network (RMSIN)~\cite{liu2024rotated} exemplifies the specialized-network path. It introduces three modules—Intra-scale Interaction (IIM) for fine-grained detail, Cross-scale Interaction (CIM) for multi-resolution fusion, and Adaptive Rotated Convolution (ARC) for orientation variation—achieving improvements over strong baselines and showing the value of remote-sensing-specific inductive biases.
+By the same authors who introduced the RRSIS-D dataset, the Rotated Multi-Scale Interaction Network (RMSIN)~\cite{liu2024rotated} exemplifies the specialized-network path. It introduces three modules—Intra-scale Interaction (IIM) for fine-grained detail, Cross-scale Interaction (CIM) for multi-resolution fusion, and Adaptive Rotated Convolution (ARC) for orientation variation—achieving improvements over strong baselines and showing the value of remote-sensing-specific inductive biases. This reflects a cohesive benchmark–method pairing within that line of work.
+
+From the same authors who released the NWPU-Refer dataset, MRSNet~\cite{yang2024large} advances the specialized-network line with intra-scale and hierarchical feature interaction modules designed to better capture multi-scale context in overhead scenes, mirroring the benchmark–method linkage seen with RMSIN and RRSIS-D. In contrast, foundation-model approaches emphasize powerful pretrained backbones and light semantic bridging, trading bespoke inductive biases for transfer from large-scale pretraining.
 
 RSRefSeg~\cite{chen2025rsrefseg} represents the foundation-model path: it couples a vision–language encoder (CLIP) with a segmentation decoder (SAM) and learns a bridge mechanism (AttnPrompter) that converts text semantics into decoder-friendly prompts. With parameter-efficient fine-tuning (e.g., LoRA), this design achieves strong performance while reusing powerful pretraining. Figure~\ref{fig:rsrefseg_arch} illustrates this foundation-model architecture for referring segmentation in aerial imagery.
-
-MRSNet~\cite{yang2024large} advances the specialized-network line with intra-scale and hierarchical feature interaction modules designed to better capture multi-scale context in overhead scenes. In contrast, foundation-model approaches emphasize powerful pretrained backbones and light semantic bridging, trading bespoke inductive biases for transfer from large-scale pretraining.
-
 \begin{figure*}[t]
 \centering
 \includegraphics[width=0.9\textwidth]{./images/rsrefseg.png}
@@ -49,7 +48,7 @@ MRSNet~\cite{yang2024large} advances the specialized-network line with intra-sca
 
 \subsection{Overview}
 
-The current landscape provides three pillars for language-guided segmentation in aerial imagery. First, instance and semantic datasets such as iSAID and LoveDA supply pixel-accurate supervision for objects and land cover. Second, referring segmentation benchmarks including RefSegRS, RRSIS-D, and NWPU-Refer pair images with natural expressions and masks, enabling evaluation of language-conditioned target selection at varying scales and annotation regimes. Third, architectural developments span specialized remote-sensing networks (e.g., RMSIN, MRSNet) and foundation-model designs (e.g., RSRefSeg) that leverage strong vision and language backbones.
+The current landscape of aerial image segmentation is shaped by three pillars that enable language-guided segmentation. First, instance and semantic datasets such as iSAID and LoveDA supply pixel-accurate supervision for objects and land cover. Second, referring segmentation benchmarks including RefSegRS, RRSIS-D, and NWPU-Refer pair images with natural expressions and masks, enabling evaluation of language-conditioned target selection at varying scales and annotation regimes. Third, architectural developments span specialized remote-sensing networks (e.g., RMSIN, MRSNet) and foundation-model designs (e.g., RSRefSeg~\cite{chen2025rsrefseg}) that leverage strong vision and language backbones.
 
 Crucially, the complementary supervision in iSAID and LoveDA presents an opportunity to construct a larger and more diverse referring segmentation resource by converting instance- and land-cover annotations into language-conditioned targets—motivating the creation of Aerial-D as a comprehensive benchmark for aerial referring expressions.
 
