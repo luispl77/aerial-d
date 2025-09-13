@@ -59,16 +59,36 @@ To ensure fair comparison across training configurations, we carefully control t
 \caption{Aerial-D Generalization Results Across Four Datasets}
 \label{tab:ablation_expression_types}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{@{}lccc|ccc|ccc|ccc|ccc@{}}
+\begin{tabular}{@{}lcc|cc|cc|cc|cc@{}}
 \toprule
-\multirow{2}{*}{\textbf{Training Configuration}} & \multirow{2}{*}{\textbf{Samples}} & \multirow{2}{*}{\textbf{Epochs}} & \multirow{2}{*}{\textbf{Total}} & \multicolumn{3}{c|}{\textbf{Aerial-D}} & \multicolumn{3}{c|}{\textbf{RefSegRS}} & \multicolumn{3}{c|}{\textbf{RRSIS-D}} & \multicolumn{3}{c}{\textbf{NWPU-Refer}} \\
-\cmidrule(lr){5-7} \cmidrule(lr){8-10} \cmidrule(lr){11-13} \cmidrule(lr){14-16}
- & & & & \textbf{Pass@0.7} & \textbf{mIoU} & \textbf{oIoU} & \textbf{Pass@0.7} & \textbf{mIoU} & \textbf{oIoU} & \textbf{Pass@0.7} & \textbf{mIoU} & \textbf{oIoU} & \textbf{Pass@0.7} & \textbf{mIoU} & \textbf{oIoU} \\
+\multirow{2}{*}{\textbf{Training Configuration}} & \multirow{2}{*}{\textbf{Samples}} & \multirow{2}{*}{\textbf{Epochs}} & \multicolumn{2}{c|}{\textbf{Aerial-D}} & \multicolumn{2}{c|}{\textbf{RefSegRS}} & \multicolumn{2}{c|}{\textbf{RRSIS-D}} & \multicolumn{2}{c}{\textbf{NWPU-Refer}} \\
+\cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9} \cmidrule(lr){10-11}
+ & & & % \textbf{Pass@0.7} & 
+\textbf{mIoU} & \textbf{oIoU} & % \textbf{Pass@0.7} & 
+\textbf{mIoU} & \textbf{oIoU} & % \textbf{Pass@0.7} & 
+\textbf{mIoU} & \textbf{oIoU} & % \textbf{Pass@0.7} & 
+\textbf{mIoU} & \textbf{oIoU} \\
 \midrule
-Rule-based Only & 371K & 4 & 1.48M & 26.81\% & 34.57\% & 39.31\% & 2.55\% & 3.73\% & 0.55\% & 29.89\% & 34.22\% & 36.46\% & 13.62\% & 16.78\% & 13.70\% \\
-Enhanced Only & 364K & 4 & 1.46M & 36.39\% & 46.45\% & 56.99\% & \textbf{3.02\%} & 5.75\% & 4.99\% & \textbf{35.63\%} & \textbf{41.63\%} & \textbf{42.48\%} & \textbf{16.90\%} & 21.89\% & 16.68\% \\
-Unique Expressions Only & 382K & 4 & 1.53M & 35.75\% & 46.54\% & 63.02\% & 2.55\% & 18.32\% & 8.37\% & 20.86\% & 31.78\% & 33.73\% & 15.91\% & \textbf{24.68\%} & \textbf{29.22\%} \\
-Combined All & 1,118K & 2 & 2.24M & \textbf{39.54\%} & \textbf{49.33\%} & \textbf{64.30\%} & 1.86\% & \textbf{18.80\%} & \textbf{8.58\%} & 23.39\% & 34.07\% & 34.80\% & 15.91\% & 24.57\% & 28.27\% \\
+Rule-based Only & 371K & 4 & % 26.81\% & 
+34.57\% & 39.31\% & % 2.55\% & 
+3.73\% & 0.55\% & % 29.89\% & 
+34.22\% & 36.46\% & % 13.62\% & 
+16.78\% & 13.70\% \\
+Enhanced Only & 364K & 4 & % 36.39\% & 
+46.45\% & 56.99\% & % \textbf{3.02\%} & 
+5.75\% & 4.99\% & % \textbf{35.63\%} & 
+\textbf{41.63\%} & \textbf{42.48\%} & % \textbf{16.90\%} & 
+21.89\% & 16.68\% \\
+Unique Expressions Only & 382K & 4 & % 35.75\% & 
+46.54\% & 63.02\% & % 2.55\% & 
+18.32\% & 8.37\% & % 20.86\% & 
+31.78\% & 33.73\% & % 15.91\% & 
+\textbf{24.68\%} & \textbf{29.22\%} \\
+Combined All & 1,118K & 2 & % \textbf{39.54\%} & 
+\textbf{49.33\%} & \textbf{64.30\%} & % 1.86\% & 
+\textbf{18.80\%} & \textbf{8.58\%} & % 23.39\% & 
+34.07\% & 34.80\% & % 15.91\% & 
+24.57\% & 28.27\% \\
 \bottomrule
 \end{tabular}%
 }
@@ -76,34 +96,6 @@ Combined All & 1,118K & 2 & 2.24M & \textbf{39.54\%} & \textbf{49.33\%} & \textb
 
 The results demonstrate that the combined model, utilizing all expression types, achieves the best performance across evaluation metrics on Aerial-D. Notably, different subsets show varying benefits for different target datasets: Enhanced Only performs best on RRSIS-D, while Unique Expressions Only excels on NWPU-Refer. This indicates that smaller, focused subsets can be more data-efficient and faster to train than the full combined dataset, while still achieving competitive or superior performance on specific target domains.
 
-\subsection{Historic Performance Analysis}
-\label{subsec:historic_analysis}
-
-We analyze the performance degradation when models trained on normal imagery are applied to historic imagery conditions. This analysis reveals how historic filtering affects performance across all datasets, quantifying the performance differences between normal and historic imagery evaluation.
-
-% Historic performance comparison table with percentage differences
-\begin{table*}[t]
-\centering
-\caption{Historic vs. Normal Performance Analysis with Percentage Differences}
-\label{tab:historic_performance_analysis}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{@{}lcccccc@{}}
-\toprule
-\multirow{2}{*}{\textbf{Dataset}} & \multicolumn{2}{c}{\textbf{Normal Performance}} & \multicolumn{2}{c}{\textbf{Historic Performance}} & \multicolumn{2}{c}{\textbf{Performance Difference}} \\
-\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
- & \textbf{mIoU} & \textbf{oIoU} & \textbf{mIoU} & \textbf{oIoU} & \textbf{mIoU Δ} & \textbf{oIoU Δ} \\
-\midrule
-Aerial-D & [TBD]\% & [TBD]\% & [TBD]\% & [TBD]\% & [TBD]\% & [TBD]\% \\
-RRSIS-D & 60.01\% & 71.48\% & 55.20\% & 68.26\% & -4.81\% & -3.22\% \\
-NWPU-Refer & 35.81\% & 51.77\% & 30.17\% & 48.31\% & -5.64\% & -3.46\% \\
-RefSegRS & 36.75\% & 44.41\% & 24.53\% & 30.21\% & -12.22\% & -14.20\% \\
-Urban1960SatSeg & 67.72\% & 86.43\% & N/A & N/A & N/A & N/A \\
-\bottomrule
-\end{tabular}%
-}
-\end{table*}
-
-This analysis reveals the varying impact of historic image conditions across different datasets. RefSegRS shows the largest performance degradation, with over 12% mIoU drop when evaluated on historic imagery, while RRSIS-D demonstrates better robustness with smaller performance decreases. These differences highlight the importance of dataset-specific historic filtering strategies for maintaining model performance across varying image quality conditions.
 
 \subsection{Distillation Ablation: Gemma3 vs. O3 Model Comparison}
 \label{subsec:distillation_ablation}
@@ -117,25 +109,23 @@ The comparison reveals stark differences in the models' ability to generate accu
 Figure \ref{fig:distillation_comparison} presents representative examples of this comparison across various aerial scenes and object categories. The results clearly illustrate how the fine-tuned model learned to avoid common hallucination patterns while maintaining the linguistic diversity and natural language quality that make the expressions useful for training robust segmentation models.
 
 % Cost comparison table
-\begin{table*}[t]
+\begin{table}[t]
 \centering
-\caption{Cost Analysis: Gemma3 vs. O3 Model for Large-Scale Annotation (300K requests)}
+\caption{Cost Analysis: Gemma3 vs. O3 Model for Large-Scale Annotation\footnote{Cost calculations based on API pricing - O3: \$2.00 per million input tokens, \$8.00 per million output tokens (OpenAI API platform); Gemma3-12B: \$0.035 per million input tokens, \$0.141 per million output tokens (OpenRouter inference provider). Average tokens per request: O3 (1,670.8 input, 2,173.3 output), Gemma3 (1,330.0 input, 284.7 output). Calculations based on 15 sample requests.}}
 \label{tab:cost_comparison}
-\begin{tabular}{@{}lcccc@{}}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lcc@{}}
 \toprule
-\textbf{Model} & \textbf{Avg. input tokens} & \textbf{Avg. output tokens} & \textbf{Cost per request} & \textbf{Cost for 300K requests} \\
+\textbf{Model} & \textbf{Cost per request} & \textbf{Cost for 300K requests} \\
 \midrule
-O3 Model & 1,670.8 & 2,173.3 & \$0.020728 & \$6,218.32 \\
-Distilled Gemma3 & 1,330.0 & 284.7 & \$0.000087 & \$26.01 \\
+O3 Model & \$0.020728 & \$6,218.32 \\
+Distilled Gemma3 & \$0.000087 & \$26.01 \\
 \midrule
-\textbf{Savings} & \textbf{1.26× fewer} & \textbf{7.6× fewer} & \textbf{238× cheaper} & \textbf{\$6,192.31 (99.6\%)} \\
+\textbf{Savings} & \textbf{238× cheaper} & \textbf{\$6,192.31 (99.6\%)} \\
 \bottomrule
-\end{tabular}
-\end{table*}
-
-\footnotesize
-\textit{Note: Cost calculations based on API pricing - O3: \$2.00 per million input tokens, \$8.00 per million output tokens (OpenAI API platform); Gemma3-12B: \$0.035 per million input tokens, \$0.141 per million output tokens (OpenRouter inference provider). Average tokens per request calculated from 15 sample requests.}
-\normalsize
+\end{tabular}%
+}
+\end{table}
 
 The cost analysis demonstrates that using the distilled Gemma3 model provides substantial economic advantages for large-scale dataset generation. The upfront investment in distillation training pays off significantly when generating millions of annotations, making the approach both technically sound and economically viable for scaling to larger datasets.
 
@@ -160,7 +150,7 @@ O3 Enhanced & the orange baseball diamond with the light pole near home plate in
 \midrule
 Gemma3 Base & the bright orange baseball diamond to the left of another similar baseball diamond in the top left \\
 \midrule
-Gemma3-Aerial-12B & the bright orange baseball field with a chainlink fence surrounded by grass to the north and trees to the west \\
+Gemma3-Aerial-12B & the orange baseball field with a chainlink fence surrounded by grass to the north and trees to the west \\
 \bottomrule
 \end{tabular}%
 }

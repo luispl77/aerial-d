@@ -120,37 +120,50 @@ Unique & the set of four big vehicles parked in a single row in the upper center
 \subsection{Historic Image Filter Augmentation}
 \label{subsec:historic_filters}
 
-To enhance model robustness to varying image quality conditions commonly encountered in historical aerial photography, we introduce a systematic historic image filter augmentation approach. Historical aerial imagery often exhibits degradation patterns including reduced contrast, color desaturation, and noise artifacts that can significantly impact model performance when trained exclusively on high-quality modern imagery.
+In order to improve robustness to archival image conditions, we augment training with three parametric transformations that reproduce characteristic degradations of historical aerial photographs: monochrome capture, contrast roll‑off with film grain, and sepia toning with scan noise. Each image is transformed by exactly one effect, sampled uniformly with probability $p=\tfrac{1}{3}$ per effect.
 
-Our historic filter augmentation randomly selects one of three distinct transformations with equal probability during training, simulating common degradation patterns found in archival aerial photography. The system employs a random selection strategy where each image receives exactly one historic effect, ensuring consistent processing while maintaining diversity in the training augmentations.
+Let $I_{orig}(x)\in[0,255]^3$ denote the RGB image at pixel $x$, and let $\operatorname{clip}(\cdot)$ clamp values to $[0,255]$.
 
-The three historic filters are implemented as follows:
-
-\textbf{Basic Black and White Filter:} Converts color images to grayscale using OpenCV's standard conversion:
+We simulate grayscale capture by converting to luminance, as in \eqnref{eq:gray}:
 \begin{equation}
-I_{bw} = \text{cvtColor}(I_{original}, \text{COLOR\_BGR2GRAY})
+I_{\text{bw}}(x) = 0.299\,R(x) + 0.587\,G(x) + 0.114\,B(x).
+\label{eq:gray}
 \end{equation}
 
-\textbf{Black and White with Grain Filter:} Combines grayscale conversion with contrast adjustment and film grain simulation:
-\begin{align}
-I_{gamma} &= (I_{bw} / 255.0)^{\gamma} \times 255.0 \\
-I_{contrast} &= (I_{gamma} - \mu) \times c + \mu \\
-I_{grain} &= I_{contrast} + \mathcal{N}(0, \sigma_{grain}^2)
-\end{align}
-where $\gamma = 1.1$, $c = 0.85$ (contrast factor), $\mu$ is the image mean, and $\sigma_{grain} = 0.1 \times 255$ for film grain intensity.
+To emulate film response and grain, we first apply a mild gamma adjustment (\eqnref{eq:gamma}), then a linear contrast change around the mean (\eqnref{eq:contrast}), followed by additive Gaussian noise (\eqnref{eq:grain}):
+\begin{equation}
+I_{\gamma}(x) = 255\,\big(I_{\text{bw}}(x)/255\big)^{\gamma}.
+\label{eq:gamma}
+\end{equation}
+\begin{equation}
+I_{c}(x) = \big(I_{\gamma}(x) - \mu\big)\,c + \mu.
+\label{eq:contrast}
+\end{equation}
+\begin{equation}
+I_{\text{grain}}(x) = \operatorname{clip}\big(I_{c}(x) + \eta(x)\big),\quad \eta(x)\sim\mathcal{N}(0,\sigma^2).
+\label{eq:grain}
+\end{equation}
+We use $\gamma=1.1$, $c=0.85$, and $\sigma=0.1\times 255$ to produce mild contrast loss and film grain.
 
-\textbf{Sepia with Noise Filter:} Applies sepia tone transformation followed by additive noise:
-\begin{align}
-I_{sepia} &= I_{original} \times \begin{bmatrix}
+Finally, we apply a fixed sepia transform (\eqnref{eq:sepia}) followed by uniform sensor/scan noise (\eqnref{eq:sepia_noise}):
+\begin{equation}
+\begin{bmatrix} S_R(x) \\ S_G(x) \\ S_B(x) \end{bmatrix}
+= \operatorname{clip}\left(
+\begin{bmatrix}
 0.272 & 0.534 & 0.131 \\
 0.349 & 0.686 & 0.168 \\
 0.393 & 0.769 & 0.189
-\end{bmatrix} \\
-I_{final} &= I_{sepia} + \mathcal{U}(0, 50)
-\end{align}
-where the sepia transformation matrix is applied using OpenCV's transform function, and uniform noise $\mathcal{U}(0, 50)$ is added to simulate photographic grain.
+\end{bmatrix}
+\begin{bmatrix} R(x) \\ G(x) \\ B(x) \end{bmatrix}
+\right).
+\label{eq:sepia}
+\end{equation}
+\begin{equation}
+I_{\text{sepia}}(x) = \operatorname{clip}\big(\mathbf{S}(x) + \xi(x)\big),\quad \xi(x)\sim\mathcal{U}(0,50).
+\label{eq:sepia_noise}
+\end{equation}
 
-Figure \ref{fig:historic_filters} demonstrates the visual effects of each filter applied to a representative aerial image patch, showing how these transformations simulate the characteristic appearance of historical aerial photography while preserving essential spatial and structural information necessary for segmentation tasks.
+These effects mimic tonal range reduction and graininess typical of mid‑century aerial photography while preserving the spatial structure that segmentation relies on. Figure~\ref{fig:historic_filters} illustrates the visual impact of each transformation.
 
 \begin{figure*}[t]
 \centering

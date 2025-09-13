@@ -39,6 +39,10 @@
 %% or use the epsfig package if you prefer to use the old commands
 %% \usepackage{epsfig}
 \usepackage{graphicx} % Enhanced LaTeX Graphics
+% Page geometry: tighter margins for better content fit
+\usepackage[a4paper,top=15mm,bottom=20mm,left=15mm,right=15mm]{geometry}
+% Slightly reduce space between columns
+\setlength{\columnsep}{6mm}
 
 % For colored text
 \usepackage{xcolor}
@@ -113,19 +117,10 @@
 \titleformat{\section}{\myFontSize\bfseries}{\thesection.}{1em}{}
 \titleformat{\subsection}{\mySubFontSize\bfseries}{\thesubsection.}{1em}{}
 
-% These are exact settings for a A4 page with top margin of
-% 25 mm, bottom margin of 30 mm, left and right margins of 25 mm,
-% printable area 242 X 160 mm.
+% Slightly reduce body font size to improve layout fit
+\AtBeginDocument{\small}
 
-\setlength{\topmargin}{-10.4mm}
-\setlength{\headheight}{0.0mm}
-\setlength{\headsep}{10.0mm}
-\setlength{\textwidth}{160mm}
-\setlength{\textheight}{242mm}
-\setlength{\oddsidemargin}{0mm}
-\setlength{\evensidemargin}{0mm}
-\setlength{\marginparwidth}{0mm}
-\setlength{\marginparsep}{0mm}
+% Margins now controlled by geometry; remove manual overrides
 
 % New command to refer to equations as Eq.(1),Eq.(2),...
 \newcommand{\eqnref}[1]{Eq.(\ref{#1})}
@@ -202,4 +197,3 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \end{document}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
