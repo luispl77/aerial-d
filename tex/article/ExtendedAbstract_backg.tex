@@ -6,9 +6,11 @@
 \section{Related Work}
 \label{sec:related}
 
-This section examines the foundational datasets and architectural innovations that have shaped aerial image understanding, focusing on instance segmentation, land-cover analysis, referring segmentation, historical imagery, and specialized model architectures for remote sensing applications.
+This section reviews the datasets and architectural developments that underpin aerial image understanding, with emphasis on instance and semantic segmentation resources, referring segmentation datasets, historical imagery, and architectures tailored to remote sensing.
 
-\subsection{Foundational Datasets}
+\subsection{Aerial Imagery Datasets}
+
+Reliable progress in aerial image understanding depends on datasets that capture both discrete objects (e.g., ships, vehicles) and continuous land cover (e.g., roads, water, vegetation), as well as benchmarks that test language-based selection of specific targets. We first summarize instance and semantic segmentation resources that established pixel-level ground truth, and then discuss the emergence of referring segmentation datasets that couple images, masks, and natural language.
 
 \subsubsection{Instance and Semantic Segmentation}
 
@@ -16,25 +18,31 @@ The iSAID dataset~\cite{zamir2019isaid} established the foundation for instance 
 
 Complementing instance-level analysis, the LoveDA dataset~\cite{wang2021loveda} focused on land-cover semantic segmentation across urban and rural environments. Covering 536.15 km² with 0.3m resolution imagery, LoveDA enables domain adaptation research by addressing style differences between geographical environments, with urban scenes dominated by artificial objects and rural scenes containing natural elements.
 
-\subsubsection{Referring Segmentation Evolution}
+\subsubsection{Referring Segmentation Datasets}
 
-The transition from traditional segmentation to language-guided approaches began with RefSegRS~\cite{yuan2023rrsis}, which introduced the first referring remote sensing image segmentation dataset with 4,420 image-language-label triplets, establishing the RRSIS task and addressing challenges of small and scattered objects in remote sensing imagery.
+While instance and semantic segmentation establish pixel-accurate supervision, they assume a fixed label set. Referring segmentation reframes the problem: given a natural language phrase, the goal is to select and segment the specific object (or group) described. In aerial imagery, this line of work began with RefSegRS~\cite{yuan2023rrsis}, which introduced 4,420 image–language–mask triplets and formalized Referring Remote Sensing Instance Segmentation (RRSIS). The dataset highlighted aerial-specific challenges—small, densely packed targets and cluttered layouts—where language can disambiguate between visually similar instances.
 
-RRSIS-D~\cite{liu2024rotated} represents the largest referring remote sensing image segmentation dataset with 17,402 image-caption-mask triplets, three times larger than its predecessors. The dataset utilized semi-automated annotation through the Segment Anything Model (SAM) for efficient dataset creation while maintaining annotation quality. RRSIS-D addresses unique challenges in aerial imagery including vast spatial scales and diverse object orientations across 20 different object categories and seven attribute dimensions, providing comprehensive evaluation capabilities for referring segmentation methods.
+RRSIS-D~\cite{liu2024rotated} expanded both scale and annotation efficiency with 17,402 image–caption–mask triplets generated through a semi-automated pipeline using the Segment Anything Model (SAM). Beyond size, it targets aerial-specific phenomena—broad spatial scales and diverse object orientations—across 20 categories and seven attribute dimensions, enabling richer evaluation of language-guided selection in overhead scenes.
 
-The NWPU-Refer dataset~\cite{yang2024large} further expanded scale with 15,003 high-resolution images containing 49,745 annotated targets across 30+ countries. This dataset emphasizes purely manual annotation processes for enhanced quality and supports single-object, multi-object, and non-object segmentation scenarios across 32 object categories.
+NWPU-Refer~\cite{yang2024large} further broadens coverage with 15,003 high-resolution images and 49,745 annotated targets spanning more than 30 countries. In contrast to semi-automated pipelines, it emphasizes purely manual annotation quality and explicitly supports single-object, multi-object, and non-object scenarios across 32 categories. Together, these benchmarks trace a steady shift from fixed-category segmentation toward language-conditioned, fine-grained selection in aerial imagery.
 
 \subsubsection{Historical Imagery Applications}
 
-The Urban1960SatSeg dataset~\cite{hao2025urban1960satseg} addresses the critical gap in historical aerial imagery analysis by providing the first professionally annotated semantic segmentation dataset using mid-20th century declassified satellite imagery. Covering 1,240 km² of Xi'an, China, this dataset enables quantitative analysis of urban development patterns from the 1960s through novel unsupervised segmentation frameworks designed for grayscale, distorted historical imagery.
+Analysing historical aerial photographs introduces practical complications—reduced contrast, grayscale capture, film artifacts, and geometric distortions—yet these datasets are vital for studying long-term urban change. Urban1960SatSeg~\cite{hao2025urban1960satseg} addresses this gap with professionally annotated semantic segmentation over 1,240 km² of declassified mid-20th-century imagery from Xi'an, China. By focusing on degraded visual conditions, it provides a reference point for methods that must remain robust when applied to archival aerial data.
 
 \subsection{Architectures for RRSIS}
 
-Specialized architectures for referring remote sensing image segmentation have evolved to address the unique complexities of aerial imagery. The foundational RefSegRS work established basic approaches for combining language understanding with aerial image segmentation, while subsequent developments introduced more sophisticated solutions for overhead imagery challenges.
+Architectures for referring segmentation in aerial imagery follow two broad paths. One family builds specialized networks tailored to overhead scenes, emphasizing multi-scale fusion and rotation handling without relying on large vision–language backbones. A second family leverages foundation models—vision encoders (e.g., CLIP or SigLIP) and segmentation decoders (e.g., SAM)—and focuses on bridging text–vision semantics for mask prediction. We outline representative approaches from both lines of work.
 
-The Rotated Multi-Scale Interaction Network (RMSIN)~\cite{liu2024rotated} represents a significant architectural advancement specifically designed for remote sensing image complexities. RMSIN addresses the unique challenges in aerial imagery through three key technical modules: the Intra-scale Interaction Module (IIM) for fine-grained detail extraction, the Cross-scale Interaction Module (CIM) for comprehensive feature fusion across different scales, and Adaptive Rotated Convolution (ARC) for handling rotational variations common in aerial scenes. RMSIN achieved state-of-the-art performance with 3.64\% and 3.16\% mIoU improvements over the closest competitor LAVT, demonstrating the effectiveness of specialized architectural design for aerial imagery.
+The Rotated Multi-Scale Interaction Network (RMSIN)~\cite{liu2024rotated} exemplifies the specialized-network path. It introduces three modules—Intra-scale Interaction (IIM) for fine-grained detail, Cross-scale Interaction (CIM) for multi-resolution fusion, and Adaptive Rotated Convolution (ARC) for orientation variation—achieving improvements over strong baselines and showing the value of remote-sensing-specific inductive biases.
 
-The RSRefSeg architecture~\cite{chen2025rsrefseg} pioneered the integration of foundation models for remote sensing by effectively combining CLIP and SAM. This 1.2 billion parameter model introduced the AttnPrompter bridge mechanism to convert textual semantic features into SAM-compatible prompts, achieving strong performance (cIoU: 77.04, gIoU: 64.65) through parameter-efficient LoRA fine-tuning.
+RSRefSeg~\cite{chen2025rsrefseg} represents the foundation-model path: it couples a vision–language encoder (CLIP) with a segmentation decoder (SAM) and learns a bridge mechanism (AttnPrompter) that converts text semantics into decoder-friendly prompts. With parameter-efficient fine-tuning (e.g., LoRA), this design achieves strong performance while reusing powerful pretraining. Figure~\ref{fig:rsrefseg_arch} illustrates the overall architecture we follow; in our implementation, CLIP can be replaced by SigLIP2 to strengthen the vision–language backbone while maintaining the same high-level design.
 
-The MRSNet framework~\cite{yang2024large} further advances multi-scale processing through specialized Intra-scale Feature Interaction Modules (IFIM) and Hierarchical Feature Interaction Modules (HFIM), contributing to the continued evolution of architectures tailored for aerial imagery understanding.
+MRSNet~\cite{yang2024large} advances the specialized-network line with intra-scale and hierarchical feature interaction modules designed to better capture multi-scale context in overhead scenes. In contrast, foundation-model approaches emphasize powerful pretrained backbones and light semantic bridging, trading bespoke inductive biases for transfer from large-scale pretraining.
 
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{./images/RSRefSeg.png}
+\caption{Overview of the RSRefSeg architecture~\cite{chen2025rsrefseg}, which couples a vision–language encoder with a segmentation decoder via a learned prompting bridge. Our implementation follows this design while employing SigLIP2 and SAM backbones with parameter-efficient fine-tuning.}
+\label{fig:rsrefseg_arch}
+\end{figure}

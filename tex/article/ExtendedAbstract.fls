@@ -144,13 +144,13 @@ INPUT ./ExtendedAbstract_backg.tex
 INPUT ./ExtendedAbstract_backg.tex
 INPUT ExtendedAbstract_backg.tex
 INPUT /usr/share/texmf/fonts/tfm/public/cm/cmbx10.tfm
+INPUT /usr/share/texmf/fonts/tfm/jknappen/ec/tcrm1000.tfm
+INPUT /usr/share/texmf/fonts/enc/dvips/cm-super/cm-super-ts1.enc
 INPUT ./ExtendedAbstract_imple.tex
 INPUT ./ExtendedAbstract_imple.tex
 INPUT ./ExtendedAbstract_imple.tex
 INPUT ./ExtendedAbstract_imple.tex
 INPUT ExtendedAbstract_imple.tex
-INPUT /usr/share/texmf/fonts/tfm/jknappen/ec/tcrm1000.tfm
-INPUT /usr/share/texmf/fonts/enc/dvips/cm-super/cm-super-ts1.enc
 INPUT ./images/rule_based_generation.png
 INPUT ./images/rule_based_generation.png
 INPUT ./images/rule_based_generation.png
