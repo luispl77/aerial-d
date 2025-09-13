@@ -41,12 +41,11 @@ Sequential pipeline for creating the AerialD dataset:
 
 1. **1_isaid_patches.py** - Extract 480x480 patches from iSAID dataset
 2. **2_loveda_patches.py** - Extract patches from LoveDA dataset
-3. **3_deepglobe_patches.py** - Extract patches from DeepGlobe dataset
-4. **4_add_rules.py** - Add spatial/relational rules (3x3 grid, size, color)
-5. **5_generate_all_expressions.py** - Generate referring expressions
-6. **6_filter_unique.py** - Remove ambiguous/duplicate expressions
-7. **7_historic_filter.py** - Apply historic imagery simulation
-8. **8_vllm_enhance.py** - Optional VLLM enhancement
+3. **4_add_rules.py** - Add spatial/relational rules (3x3 grid, size, color)
+4. **5_generate_all_expressions.py** - Generate referring expressions
+5. **6_filter_unique.py** - Remove ambiguous/duplicate expressions
+6. **7_historic_filter.py** - Apply historic imagery simulation
+7. **8_vllm_enhance.py** - Optional VLLM enhancement
 
 **Entry Point**: `./datagen/pipeline/run_pipeline.sh`
 
@@ -237,7 +236,7 @@ python o3_enhance.py --dataset_dir ../datagen/dataset
 ### 3. **Dataset Locations**
 
 - Generated datasets are in `/cfs/home/u035679/aerialseg/datagen/dataset/`
-- Raw datasets (iSAID, LoveDA, DeepGlobe) should be downloaded using provided scripts
+- Raw datasets (iSAID, LoveDA) should be downloaded using provided scripts
 
 ### 4. **GPU Usage**
 

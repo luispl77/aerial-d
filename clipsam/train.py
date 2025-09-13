@@ -23,6 +23,98 @@ import html
 import sys
 
 
+# Historic effect functions copied from test.py
+def add_film_grain(image: np.ndarray, intensity: float = 0.3) -> np.ndarray:
+    """Add film grain noise to simulate old photography."""
+    noise = np.random.normal(0, intensity * 255, image.shape).astype(np.float32)
+    noisy_image = image.astype(np.float32) + noise
+    return np.clip(noisy_image, 0, 255).astype(np.uint8)
+
+def adjust_contrast_gamma(image: np.ndarray, contrast: float = 0.8, gamma: float = 1.2) -> np.ndarray:
+    """Adjust contrast and gamma to simulate old film characteristics."""
+    # Apply gamma correction
+    gamma_corrected = np.power(image / 255.0, gamma) * 255.0
+    
+    # Apply contrast adjustment
+    mean_val = np.mean(gamma_corrected)
+    contrasted = (gamma_corrected - mean_val) * contrast + mean_val
+    
+    return np.clip(contrasted, 0, 255).astype(np.uint8)
+
+def apply_sepia(image: np.ndarray) -> np.ndarray:
+    """Apply sepia filter using transformation matrix."""
+    # Ensure image is 3-channel color
+    if len(image.shape) == 2:
+        # Convert grayscale to color first
+        image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+    elif len(image.shape) == 3 and image.shape[2] == 4:
+        # Convert BGRA to BGR
+        image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
+    
+    # Create sepia filter
+    sepia_filter = np.array([[0.272, 0.534, 0.131], 
+                            [0.349, 0.686, 0.168], 
+                            [0.393, 0.769, 0.189]])
+    sepia_image = cv2.transform(image, sepia_filter)
+    sepia_image = np.clip(sepia_image, 0, 255)  # Ensure valid range
+    
+    return sepia_image.astype(np.uint8)
+
+def add_noise(image: np.ndarray) -> np.ndarray:
+    """Add random noise to simulate old photography grain."""
+    noise = np.random.randint(0, 50, image.shape, dtype='uint8')
+    noisy_image = cv2.add(image, noise)
+    return noisy_image
+
+def apply_basic_bw_effect(image: np.ndarray) -> tuple:
+    """Basic black and white conversion."""
+    # Convert to grayscale
+    if len(image.shape) == 3:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = image.copy()
+    
+    return gray, "Basic_BW"
+
+def apply_bw_grain_effect(image: np.ndarray) -> tuple:
+    """B&W with grain and contrast adjustment."""
+    # Convert to grayscale
+    if len(image.shape) == 3:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = image.copy()
+    
+    # Mild contrast adjustment
+    adjusted = adjust_contrast_gamma(gray, contrast=0.85, gamma=1.1)
+    
+    # Light grain
+    grainy = add_film_grain(adjusted, intensity=0.1)
+    
+    return grainy, "BW_Grain"
+
+def apply_sepia_with_noise_effect(image: np.ndarray) -> tuple:
+    """Apply sepia tone effect with noise for vintage look."""
+    # Apply sepia effect - this should work on the original color image
+    sepia_image = apply_sepia(image)
+    
+    # Add noise
+    noisy_sepia = add_noise(sepia_image)
+    
+    return noisy_sepia, "Sepia_Noise"
+
+def apply_random_historic_effect(image: np.ndarray) -> tuple:
+    """Apply one of the three historic effects randomly with equal probability."""
+    effects = [
+        apply_basic_bw_effect,
+        apply_bw_grain_effect,
+        apply_sepia_with_noise_effect
+    ]
+    
+    # Choose random effect
+    chosen_effect = random.choice(effects)
+    return chosen_effect(image)
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Train aerial segmentation model with SigLIP+SAM')
     parser.add_argument('--batch_size', type=int, default=4, help='Batch size for training')
@@ -46,8 +138,8 @@ def parse_args():
     parser.add_argument('--lora_dropout', type=float, default=0.05, help='LoRA dropout rate')
     parser.add_argument('--siglip_model', type=str, default='google/siglip2-so400m-patch14-384', help='SigLIP model name')
     parser.add_argument('--sam_model', type=str, default='facebook/sam-vit-base', help='SAM model name')
-    parser.add_argument('--use_historic', action='store_true', default=True, help='Use historic (BW) images instead of normal color images')
-    parser.add_argument('--use_transformed', action='store_true', help='Use transformed images (_5, _toD, _toP, _toL) when available')
+    parser.add_argument('--use_historic', action='store_true', default=False, help='Use historic (BW) images instead of normal color images')
+    parser.add_argument('--historic_percentage', type=float, default=20.0, help='Percentage of samples (0-100) to apply historic filters to during training (only for non-AerialD datasets)')
     
     
     # Mid-epoch checkpointing
@@ -62,7 +154,7 @@ def parse_args():
     
     
     # Dataset filtering
-    parser.add_argument('--dataset_filter', type=str, choices=['isaid', 'loveda', 'deepglobe'], help='Train only on samples from a specific dataset (isaid, loveda, or deepglobe)')
+    parser.add_argument('--dataset_filter', type=str, choices=['isaid', 'loveda'], help='Train only on samples from a specific dataset (isaid or loveda)')
     
     # Custom folder naming
     parser.add_argument('--custom_name', type=str, help='Override the default auto-generated folder name for models and visualizations with a custom name')
@@ -451,9 +543,7 @@ def train(
 def get_domain_from_filename(filename):
     """Determine domain based on annotation filename prefix for dataset filtering"""
     filename = filename.upper()
-    if filename.startswith('D'):
-        return 1  # DeepGlobe
-    elif filename.startswith('P'):
+    if filename.startswith('P'):
         return 0  # iSAID (P for patches)
     elif filename.startswith('L'):
         return 2  # LoveDA
@@ -462,40 +552,9 @@ def get_domain_from_filename(filename):
         print(f"Warning: Could not determine domain from filename {filename}, defaulting to iSAID (0)")
         return 0
 
-def find_transformed_image(image_dir, base_filename):
-    """
-    Find a transformed version of the image if it exists.
-    Checks for various transformation suffixes in priority order.
-    
-    Args:
-        image_dir: Directory containing images
-        base_filename: Original filename (e.g., 'L1840_patch_0.png')
-    
-    Returns:
-        tuple: (found_path, used_filename) or (None, None) if no transformed version exists
-    """
-    if not base_filename:
-        return None, None
-    
-    # Get base name and extension
-    base_path, ext = os.path.splitext(base_filename)
-    
-    # Define transformation suffixes in priority order
-    # Historic effects (_5) and domain transfers (_toD, _toP, _toL)
-    transform_suffixes = ['_5', '_toD', '_toP', '_toL']
-    
-    for suffix in transform_suffixes:
-        transformed_filename = f"{base_path}{suffix}{ext}"
-        transformed_path = os.path.join(image_dir, transformed_filename)
-        
-        if os.path.exists(transformed_path):
-            return transformed_path, transformed_filename
-    
-    # No transformed version found
-    return None, None
 
 class SimpleDataset:
-    def __init__(self, dataset_root, split='train', input_size=512, use_historic=False, unique_only=False, original_only=False, enhanced_only=False, one_unique_per_obj=False, use_transformed=False, dataset_filter=None):
+    def __init__(self, dataset_root, split='train', input_size=512, use_historic=False, unique_only=False, original_only=False, enhanced_only=False, one_unique_per_obj=False, dataset_filter=None, historic_percentage=20.0):
         self.dataset_root = dataset_root
         self.split = split
         self.input_size = input_size
@@ -504,8 +563,8 @@ class SimpleDataset:
         self.original_only = original_only
         self.enhanced_only = enhanced_only
         self.one_unique_per_obj = one_unique_per_obj
-        self.use_transformed = use_transformed
         self.dataset_filter = dataset_filter
+        self.historic_percentage = historic_percentage
         
         # Set paths based on split
         self.ann_dir = os.path.join(dataset_root, split, 'annotations')
@@ -528,7 +587,6 @@ class SimpleDataset:
             for xml_file in all_xml_files:
                 domain_id = get_domain_from_filename(xml_file)
                 if ((self.dataset_filter == 'isaid' and domain_id == 0) or
-                    (self.dataset_filter == 'deepglobe' and domain_id == 1) or
                     (self.dataset_filter == 'loveda' and domain_id == 2)):
                     filtered_xml_files.append(xml_file)
             self.xml_files = filtered_xml_files
@@ -557,38 +615,9 @@ class SimpleDataset:
             # Get image filename
             filename = root.find('filename').text
             
-            # Determine which image to use based on flags
-            if self.use_transformed:
-                # Try to find any transformed version first
-                transformed_path, transformed_filename = find_transformed_image(self.image_dir, filename)
-                if transformed_path:
-                    image_path = transformed_path
-                    display_filename = transformed_filename
-                else:
-                    # Fall back to original
-                    image_path = os.path.join(self.image_dir, filename)
-                    display_filename = filename
-            elif self.use_historic:
-                # Convert normal filename to historic filename (replace _0.png with _5.png)
-                if filename.endswith('_0.png'):
-                    historic_filename = filename.replace('_0.png', '_5.png')
-                    historic_path = os.path.join(self.image_dir, historic_filename)
-                    
-                    # Use historic image if it exists, otherwise fall back to normal image
-                    if os.path.exists(historic_path):
-                        image_path = historic_path
-                        display_filename = historic_filename
-                    else:
-                        # Fall back to normal image
-                        image_path = os.path.join(self.image_dir, filename)
-                        display_filename = filename
-                else:
-                    # For non-standard filenames, just use the original
-                    image_path = os.path.join(self.image_dir, filename)
-                    display_filename = filename
-            else:
-                image_path = os.path.join(self.image_dir, filename)
-                display_filename = filename
+            # Always use original image - historic effects will be applied on-the-fly
+            image_path = os.path.join(self.image_dir, filename)
+            display_filename = filename
             
             # Store image path only once
             if display_filename not in self.images:
@@ -787,6 +816,26 @@ class SimpleDataset:
         if image.mode != 'RGB':
             image = image.convert('RGB')
         
+        # Apply historic effects on-the-fly with specified percentage
+        if random.random() < (self.historic_percentage / 100.0):
+            # Convert PIL to numpy array for historic effects (OpenCV format - BGR)
+            image_array = np.array(image)
+            image_bgr = cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)
+            
+            # Apply random historic effect
+            transformed_image_bgr, effect_name = apply_random_historic_effect(image_bgr)
+            
+            # Handle different output formats from historic effects
+            if len(transformed_image_bgr.shape) == 2:
+                # Grayscale - convert back to RGB
+                transformed_image_rgb = cv2.cvtColor(transformed_image_bgr, cv2.COLOR_GRAY2RGB)
+            else:
+                # Color - convert BGR back to RGB
+                transformed_image_rgb = cv2.cvtColor(transformed_image_bgr, cv2.COLOR_BGR2RGB)
+            
+            # Convert back to PIL
+            image = Image.fromarray(transformed_image_rgb)
+        
         image = self.transform(image)
         
         # Handle mask creation based on type
@@ -805,10 +854,11 @@ class SimpleDataset:
 
 # Additional dataset classes for multi-dataset training
 class RRSISDDataset:
-    def __init__(self, dataset_root, split='train', input_size=512):
+    def __init__(self, dataset_root, split='train', input_size=512, historic_percentage=20.0):
         self.dataset_root = dataset_root
         self.split = split
         self.input_size = input_size
+        self.historic_percentage = historic_percentage
         
         # Set paths for RRSISD structure
         self.ann_dir = os.path.join(dataset_root, 'images', 'rrsisd', 'ann_split')
@@ -923,6 +973,27 @@ class RRSISDDataset:
         
         # Load image
         image = Image.open(sample['image_path']).convert('RGB')
+        
+        # Apply historic effects on-the-fly with specified percentage
+        if random.random() < (self.historic_percentage / 100.0):
+            # Convert PIL to numpy array for historic effects (OpenCV format - BGR)
+            image_array = np.array(image)
+            image_bgr = cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)
+            
+            # Apply random historic effect
+            transformed_image_bgr, effect_name = apply_random_historic_effect(image_bgr)
+            
+            # Handle different output formats from historic effects
+            if len(transformed_image_bgr.shape) == 2:
+                # Grayscale - convert back to RGB
+                transformed_image_rgb = cv2.cvtColor(transformed_image_bgr, cv2.COLOR_GRAY2RGB)
+            else:
+                # Color - convert BGR back to RGB
+                transformed_image_rgb = cv2.cvtColor(transformed_image_bgr, cv2.COLOR_BGR2RGB)
+            
+            # Convert back to PIL
+            image = Image.fromarray(transformed_image_rgb)
+        
         image = self.transform(image)
         
         # Decode mask from RLE
@@ -934,10 +1005,11 @@ class RRSISDDataset:
 
 
 class RefSegRSDataset:
-    def __init__(self, dataset_root, split='train', input_size=512):
+    def __init__(self, dataset_root, split='train', input_size=512, historic_percentage=20.0):
         self.dataset_root = dataset_root
         self.split = split
         self.input_size = input_size
+        self.historic_percentage = historic_percentage
         
         # Set paths for RefSegRS structure
         self.images_dir = os.path.join(dataset_root, 'images')
@@ -1012,6 +1084,27 @@ class RefSegRSDataset:
         
         # Load image with PIL to handle .tif format
         image = Image.open(sample['image_path']).convert('RGB')
+        
+        # Apply historic effects on-the-fly with specified percentage
+        if random.random() < (self.historic_percentage / 100.0):
+            # Convert PIL to numpy array for historic effects (OpenCV format - BGR)
+            image_array = np.array(image)
+            image_bgr = cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)
+            
+            # Apply random historic effect
+            transformed_image_bgr, effect_name = apply_random_historic_effect(image_bgr)
+            
+            # Handle different output formats from historic effects
+            if len(transformed_image_bgr.shape) == 2:
+                # Grayscale - convert back to RGB
+                transformed_image_rgb = cv2.cvtColor(transformed_image_bgr, cv2.COLOR_GRAY2RGB)
+            else:
+                # Color - convert BGR back to RGB
+                transformed_image_rgb = cv2.cvtColor(transformed_image_bgr, cv2.COLOR_BGR2RGB)
+            
+            # Convert back to PIL
+            image = Image.fromarray(transformed_image_rgb)
+        
         image = self.transform(image)
         
         # Load mask with PIL to handle .tif format
@@ -1033,10 +1126,11 @@ class RefSegRSDataset:
 
 
 class NWPUDataset:
-    def __init__(self, dataset_root, split='train', input_size=512):
+    def __init__(self, dataset_root, split='train', input_size=512, historic_percentage=20.0):
         self.dataset_root = dataset_root
         self.split = split
         self.input_size = input_size
+        self.historic_percentage = historic_percentage
         
         # Import the NWPUReferProcessor from our processing script
         sys.path.append('../datagen/utils')
@@ -1095,8 +1189,30 @@ class NWPUDataset:
             dummy_mask = torch.zeros(self.input_size, self.input_size)
             return dummy_image, "error loading sample", dummy_mask, 'individual'
         
-        # Convert image to PIL and apply transform
+        # Convert image to PIL
         image_pil = Image.fromarray(sample['image']).convert('RGB')
+        
+        # Apply historic effects on-the-fly with specified percentage
+        if random.random() < (self.historic_percentage / 100.0):
+            # Convert PIL to numpy array for historic effects (OpenCV format - BGR)
+            image_array = np.array(image_pil)
+            image_bgr = cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)
+            
+            # Apply random historic effect
+            transformed_image_bgr, effect_name = apply_random_historic_effect(image_bgr)
+            
+            # Handle different output formats from historic effects
+            if len(transformed_image_bgr.shape) == 2:
+                # Grayscale - convert back to RGB
+                transformed_image_rgb = cv2.cvtColor(transformed_image_bgr, cv2.COLOR_GRAY2RGB)
+            else:
+                # Color - convert BGR back to RGB
+                transformed_image_rgb = cv2.cvtColor(transformed_image_bgr, cv2.COLOR_BGR2RGB)
+            
+            # Convert back to PIL
+            image_pil = Image.fromarray(transformed_image_rgb)
+        
+        # Apply transform
         image = self.transform(image_pil)
         
         # Convert mask to tensor and resize
@@ -1115,10 +1231,11 @@ class NWPUDataset:
 
 
 class Urban1960Dataset:
-    def __init__(self, dataset_root, split='train', input_size=512):
+    def __init__(self, dataset_root, split='train', input_size=512, historic_percentage=20.0):
         self.dataset_root = dataset_root
         self.split = split
         self.input_size = input_size
+        self.historic_percentage = 0.0  # Always 0 - Urban1960 already contains historic imagery
         
         # Add transform to match model configuration
         self.transform = T.Compose([
@@ -1255,6 +1372,27 @@ class Urban1960Dataset:
         
         # Load image
         image = Image.open(sample['image_path']).convert('RGB')
+        
+        # Apply historic effects on-the-fly with specified percentage
+        if random.random() < (self.historic_percentage / 100.0):
+            # Convert PIL to numpy array for historic effects (OpenCV format - BGR)
+            image_array = np.array(image)
+            image_bgr = cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)
+            
+            # Apply random historic effect
+            transformed_image_bgr, effect_name = apply_random_historic_effect(image_bgr)
+            
+            # Handle different output formats from historic effects
+            if len(transformed_image_bgr.shape) == 2:
+                # Grayscale - convert back to RGB
+                transformed_image_rgb = cv2.cvtColor(transformed_image_bgr, cv2.COLOR_GRAY2RGB)
+            else:
+                # Color - convert BGR back to RGB
+                transformed_image_rgb = cv2.cvtColor(transformed_image_bgr, cv2.COLOR_BGR2RGB)
+            
+            # Convert back to PIL
+            image = Image.fromarray(transformed_image_rgb)
+        
         image = self.transform(image)
         
         # Load mask and create binary mask for this specific class
@@ -1276,8 +1414,8 @@ class CombinedDataset:
     """Combined dataset that merges AerialD with additional datasets."""
     def __init__(self, dataset_root, split='train', input_size=512, use_historic=False, 
                  unique_only=False, original_only=False, enhanced_only=False, 
-                 one_unique_per_obj=False, use_transformed=False, dataset_filter=None, 
-                 additional_datasets=None):
+                 one_unique_per_obj=False, dataset_filter=None, 
+                 additional_datasets=None, historic_percentage=20.0):
         
         self.datasets = []
         self.dataset_names = []
@@ -1297,8 +1435,8 @@ class CombinedDataset:
             original_only=original_only,
             enhanced_only=enhanced_only,
             one_unique_per_obj=one_unique_per_obj,
-            use_transformed=use_transformed,
-            dataset_filter=dataset_filter
+            dataset_filter=dataset_filter,
+            historic_percentage=historic_percentage
         )
         
         self.datasets.append(aeriald_dataset)
@@ -1321,25 +1459,29 @@ class CombinedDataset:
                         dataset = RRSISDDataset(
                             dataset_root=dataset_root,
                             split=split,
-                            input_size=input_size
+                            input_size=input_size,
+                            historic_percentage=historic_percentage
                         )
                     elif dataset_type == 'refsegrs':
                         dataset = RefSegRSDataset(
                             dataset_root=dataset_root,
                             split=split,
-                            input_size=input_size
+                            input_size=input_size,
+                            historic_percentage=historic_percentage
                         )
                     elif dataset_type == 'nwpu':
                         dataset = NWPUDataset(
                             dataset_root=dataset_root,
                             split=split,
-                            input_size=input_size
+                            input_size=input_size,
+                            historic_percentage=historic_percentage
                         )
                     elif dataset_type == 'urban1960':
                         dataset = Urban1960Dataset(
                             dataset_root=dataset_root,
                             split=split,
-                            input_size=input_size
+                            input_size=input_size,
+                            historic_percentage=historic_percentage
                         )
                     else:
                         print(f"Warning: Unknown dataset type {dataset_type}, skipping...")
@@ -1428,7 +1570,6 @@ def save_run_details(args, run_id, model_name, effective_batch_size, train_datas
         f.write(f"Training Samples: {len(train_dataset)}\n")
         f.write(f"Validation Samples: {len(val_dataset)}\n")
         f.write(f"Using Historic Images: {args.use_historic}\n")
-        f.write(f"Using Transformed Images: {args.use_transformed}\n")
         f.write(f"Train on Unique Expressions Only: {args.unique_only}\n")
         f.write(f"Train on Original Expressions Only: {args.original_only}\n")
         f.write(f"Train on Enhanced Expressions Only: {args.enhanced_only}\n")
@@ -1448,8 +1589,10 @@ def save_run_details(args, run_id, model_name, effective_batch_size, train_datas
             f.write(f"  - NWPU: {args.nwpu_root}\n")
             f.write(f"  - Urban1960: {args.urban1960_root}\n")
             f.write(f"Expression Filtering: Applied to AerialD only\n")
+            f.write(f"Historic Effects: {args.historic_percentage}% of AerialD, RRSISD, RefSegRS, and NWPU samples (Urban1960 excluded - already historic)\n")
         else:
             f.write(f"Single Dataset Mode - AerialD Only\n")
+            f.write(f"Historic Effects: {args.historic_percentage}% of AerialD samples\n")
         f.write(f"Dataset Path: ./aeriald\n")
         f.write(f"Images Path: ./aeriald/patches\n")
         f.write(f"Annotations Path: ./aeriald/patches\n")
@@ -1558,9 +1701,9 @@ def main():
             original_only=args.original_only,
             enhanced_only=args.enhanced_only,
             one_unique_per_obj=args.one_unique_per_obj,
-            use_transformed=args.use_transformed,
             dataset_filter=args.dataset_filter,
-            additional_datasets=additional_datasets
+            additional_datasets=additional_datasets,
+            historic_percentage=args.historic_percentage
         )
         
         val_dataset = CombinedDataset(
@@ -1570,9 +1713,9 @@ def main():
             use_historic=args.use_historic,
             unique_only=False,  # Always use all expressions for validation
             one_unique_per_obj=False,
-            use_transformed=args.use_transformed,
             dataset_filter=args.dataset_filter,
-            additional_datasets=additional_datasets
+            additional_datasets=additional_datasets,
+            historic_percentage=0.0  # No historic effects for validation
         )
     else:
         print("\nSingle dataset mode - using AerialD only")
@@ -1586,8 +1729,8 @@ def main():
             original_only=args.original_only,
             enhanced_only=args.enhanced_only,
             one_unique_per_obj=args.one_unique_per_obj,
-            use_transformed=args.use_transformed,
-            dataset_filter=args.dataset_filter
+            dataset_filter=args.dataset_filter,
+            historic_percentage=args.historic_percentage
         )
         
         val_dataset = SimpleDataset(
@@ -1597,8 +1740,8 @@ def main():
             use_historic=args.use_historic,
             unique_only=False,  # Always use all expressions for validation
             one_unique_per_obj=False,
-            use_transformed=args.use_transformed,
-            dataset_filter=args.dataset_filter
+            dataset_filter=args.dataset_filter,
+            historic_percentage=0.0  # No historic effects for validation
         )
     
     # Initialize train_loader with default settings first
