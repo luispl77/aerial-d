@@ -108,9 +108,15 @@ Two additional observations follow from Table~\ref{tab:ablation_expression_types
 \subsection{Distillation Ablation: Gemma3 vs. o3 Model Comparison}
 \label{subsec:distillation_ablation}
 
-In order to obtain high-quality language supervision without incurring prohibitive annotation costs, we distill from o3 into a local Gemma3 model and evaluate the impact of removing that distillation. The challenge is that proprietary models like o3 yield strong expressions but are expensive at scale, while an unadapted Gemma3 base model can hallucinate or miss domain-specific cues in aerial imagery. We therefore compare three sources of expressions: direct o3 outputs, the vanilla Gemma3 base, and our Gemma3-Aerial model distilled from o3 using 500 samples.
+Generating high‑quality referring expressions at dataset scale demands a balance between quality and cost. Proprietary models such as o3 produce strong descriptions out of the box, but applying them to hundreds of thousands of targets is prohibitively expensive. Local open‑weights models like Gemma3 are affordable to run, yet the unadapted base model often hallucinates or misses aerial‑specific cues.
 
-This ablation shows that removing distillation degrades the accuracy and grounding of generated expressions: the vanilla Gemma3 model frequently references objects not present in the scene, whereas the distilled Gemma3-Aerial model consistently produces grounded descriptions that align with visible structures and simple spatial relations. At the same time, distillation dramatically reduces cost while preserving the qualitative benefits of stronger supervision.
+To resolve this, we first ask o3 to produce a small set of teaching examples: 500 targets, each with multiple expressions. We then train a local Gemma3‑12B to imitate these examples with supervised fine‑tuning. Once trained, this student model enhances the remainder of the dataset (\(\sim\)300K targets) efficiently on a single GPU.
+
+This teacher–student training is knowledge distillation with o3 as the teacher and Gemma3‑12B as the student (Figure~\ref{fig:llm_distillation}). We implement fine‑tuning with QLoRA\cite{qlora}, and run large‑scale inference using vLLM\cite{vllm} on one NVIDIA RTX 6000; the full enhancement pass took approximately four days.
+
+For evaluation, we compare three sources of expressions under an identical prompt and decoding setup: (i) o3 directly; (ii) the Gemma3 base model; and (iii) our distilled Gemma3‑Aerial model. Removing the distillation step (i.e., using the base model) leads to frequent hallucinations—references to objects not present—whereas the distilled student yields grounded descriptions aligned with visible structures and simple spatial relations.
+
+The practical benefit appears in the cost analysis (Table~\ref{tab:cost_comparison}): replacing o3 with the distilled student reduces cost by roughly 238× for \(\sim\)300K requests, saving thousands of dollars while preserving the qualitative advantages of stronger supervision.
 
 Figure \ref{fig:distillation_comparison} presents representative examples of this comparison across various aerial scenes and object categories. The results clearly illustrate how the fine-tuned model learned to avoid common hallucination patterns while maintaining the linguistic diversity and natural language quality that make the expressions useful for training robust segmentation models.
 
@@ -162,7 +168,7 @@ Gemma3-Aerial-12B & the orange baseball field with a chainlink fence surrounded 
 \end{tabular}%
 }
 \end{minipage}
-\caption{Qualitative comparison between o3, vanilla Gemma3 base model, and our fine-tuned Gemma3-Aerial-12B model on aerial imagery. The table shows how each model enhances the original rule-based expression, demonstrating the progression from basic rule-based descriptions through various levels of language model enhancement.}
+\caption{Qualitative comparison between o3, vanilla Gemma3 base model, and our fine-tuned Gemma3-Aerial-12B model on aerial imagery. The table shows how each model enhances the original rule-based expression using an identical prompt and decoding setup, demonstrating the progression from basic rule-based descriptions through increasingly capable LLM enhancements.}
 \label{fig:distillation_comparison}
 \end{figure*}
 
@@ -170,12 +176,16 @@ Gemma3-Aerial-12B & the orange baseball field with a chainlink fence surrounded 
 \subsection{Historic Filter Ablation Study}
 \label{subsec:historic_ablation}
 
-To better handle degraded conditions typical of historical aerial imagery, we ablate the use of historic filters during training. Models trained exclusively on modern imagery often fail under reduced contrast, film grain, or monochrome tones; therefore, we compare training with and without on-the-fly filter augmentation while holding other factors constant. We train on Aerial-D, RRSIS-D, NWPU-Refer, RefSegRS, and Urban1960SatSeg, but suppress filters on the first four datasets (only Urban1960SatSeg inherently contains historic imagery). The results in Table \ref{tab:historic_ablation_results} show that historic-filter augmentation improves robustness on degraded test conditions without compromising performance on original imagery.
+In order to verify that the model can handle degraded conditions typical of historical aerial imagery, we examine the contribution of training-time historic filters. Many archival scenes appear in grayscale, exhibit film grain, or suffer contrast roll-off; models trained only on modern imagery often lose accuracy under these conditions. We therefore design a controlled ablation to measure how much robustness these filters provide.
+
+Table~\ref{tab:historic_ablation_results} reports this ablation. We replicate the main combined-training setup—same architecture, hyperparameters, and five-dataset mix (Aerial-D, RefSegRS, RRSIS-D, NWPU-Refer, Urban1960SatSeg)—but train a second combined model with historic filters disabled. The only difference from the main model is that we do not include the dataset-level historic-filter augmentation (applied prior to training to 20\% of images, selecting one of three filters with equal probability).
+
+We evaluate this no-filter model on each dataset’s original validation split and on historic-filtered variants for the three non-historic external datasets. Relative to the main model (which includes pre-generated historic-filtered samples for 20\% of images—grayscale, grain/contrast roll-off, or sepia/noise chosen uniformly), the no-filter model shows a consistent, slight drop in the historical evaluation columns. This indicates a loss of robustness to degraded imagery and confirms that including these pre-generated historic-filtered samples helps preserve performance under historical conditions while maintaining accuracy on original imagery.
 
 % Historic filter ablation table
 \begin{table*}[t]
 \centering
-\caption{Historic Filter Ablation Study - Model Trained on All Datasets Without Historic Filters (except UrbanSatSeg1960)}
+\caption{Historic Filter Ablation Study — Combined model trained on all datasets without historic-filter augmentation}
 \label{tab:historic_ablation_results}
 \begin{tabular}{@{}lcccccccc@{}}
 \toprule

@@ -9,6 +9,12 @@ K.~Chen, J.~Zhang, C.~Liu, Z.~Zou, and Z.~Shi.
 T.~Dettmers, A.~Pagnoni, A.~Holtzman, and L.~Zettlemoyer.
 \newblock Qlora: Efficient finetuning of quantized llms, 2023.
 
+\bibitem{gemini25}
+{Google DeepMind}.
+\newblock Gemini 2.5: Multimodal models with pixel-level understanding.
+\newblock Product and research overview, 2025.
+\newblock Accessed 2025-09-13.
+
 \bibitem{gemma3}
 {Google DeepMind}.
 \newblock Gemma models overview.
