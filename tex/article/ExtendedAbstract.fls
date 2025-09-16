@@ -200,8 +200,8 @@ INPUT ./ExtendedAbstract_backg.tex
 INPUT ./ExtendedAbstract_backg.tex
 INPUT ./ExtendedAbstract_backg.tex
 INPUT ExtendedAbstract_backg.tex
-INPUT /usr/share/texmf/fonts/tfm/public/cm/cmbx10.tfm
 INPUT /var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map
+INPUT /usr/share/texmf/fonts/tfm/public/cm/cmbx10.tfm
 INPUT /usr/share/texmf/fonts/tfm/jknappen/ec/tcrm0900.tfm
 INPUT ./images/rsrefseg.png
 INPUT ./images/rsrefseg.png
