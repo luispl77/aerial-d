@@ -67,6 +67,7 @@ Directional Relations & "to the bottom right of a plane" \\
 
 
 \subsection{LLM Expression Generation}
+\label{subsec:llm_expression_generation}
 While rule-based expression generation provides a solid foundation for referring expression data, these expressions suffer from significant limitations in language variation and visual detail coverage. The rule-based approach produces linguistically constrained expressions with limited wording variations and lacks the ability to reference contextual elements beyond predefined source dataset categories.
 
 To address these limitations, we employ a multimodal Large Language Model (LLM) to enhance our dataset by providing both images and expressions as input, enabling the model to rewrite and improve the original referring expressions. We target enhancement from two approaches, as shown in Figure \ref{fig:llm_enhancement_example}. The first approach focuses on linguistic variation, creating natural language alternatives for each rule-based expression without heavy reliance on visual information. The second approach uses visual information, where the model examines surrounding features in the image around the target object. We provide bounding box annotations to help the model focus on the correct target region, as demonstrated in Figure \ref{fig:llm_enhancement_example} with the group of large vehicles.

@@ -107,17 +107,11 @@ Combined All & 1,118K & 2 & % \textbf{39.54\%} &
 \subsection{Distillation Ablation: Gemma3 vs. o3 Model Comparison}
 \label{subsec:distillation_ablation}
 
-Generating high‑quality referring expressions at dataset scale demands a balance between quality and cost. Proprietary models such as o3 produce strong descriptions out of the box, but applying them to hundreds of thousands of targets is prohibitively expensive. Local open‑weights models like Gemma3 are affordable to run, yet the unadapted base model often hallucinates or misses aerial‑specific cues.
+This ablation measures how the generator choice inside the LLM enhancement stage affects expression quality and overall cost. We evaluate three options for producing the enhanced expressions: OpenAI’s o3, the off‑the‑shelf Gemma3‑12B, and the distilled Gemma3-Aerial model described in Section~\ref{subsec:llm_expression_generation} (see Figure~\ref{fig:llm_distillation}).
 
-To resolve this, we first ask o3 to produce a small set of teaching examples: 500 targets, each with multiple expressions. We then train a local Gemma3‑12B to imitate these examples with supervised fine‑tuning. Once trained, this student model enhances the remainder of the dataset (\(\sim\)300K targets) efficiently on a single GPU.
+All three models are prompted and decoded in the same way so that differences stem from the generator rather than the interface. The base Gemma3 baseline frequently hallucinates objects that are not present, which undermines segmentation training. Distillation sharply reduces those errors, producing grounded descriptions that resemble the o3 outputs while remaining accessible on local hardware.
 
-This teacher–student training is knowledge distillation with o3 as the teacher and Gemma3‑12B as the student (Figure~\ref{fig:llm_distillation}). We implement fine‑tuning with QLoRA\cite{qlora}, and run large‑scale inference using vLLM\cite{vllm} on one NVIDIA RTX 6000; the full enhancement pass took approximately four days.
-
-For evaluation, we compare three sources of expressions under an identical prompt and decoding setup: (i) o3 directly; (ii) the Gemma3 base model; and (iii) our distilled Gemma3‑Aerial model. Removing the distillation step (i.e., using the base model) leads to frequent hallucinations—references to objects not present—whereas the distilled student yields grounded descriptions aligned with visible structures and simple spatial relations.
-
-The practical benefit appears in the cost analysis (Table~\ref{tab:cost_comparison}): replacing o3 with the distilled student reduces cost by roughly 238× for \(\sim\)300K requests, saving thousands of dollars while preserving the qualitative advantages of stronger supervision.
-
-Figure \ref{fig:distillation_comparison} presents representative examples of this comparison across various aerial scenes and object categories. The results clearly illustrate how the fine-tuned model learned to avoid common hallucination patterns while maintaining the linguistic diversity and natural language quality that make the expressions useful for training robust segmentation models.
+Table~\ref{tab:cost_comparison} quantifies the practical impact. Running o3 across \(\sim\)300{,}000 targets would cost roughly \$6.2K, whereas the distilled Gemma3 produces comparable guidance for about \$26—roughly 238× cheaper because inference runs locally instead of via a commercial API. Figure~\ref{fig:distillation_comparison} illustrates why the student is worth training: the base Gemma3 hallucinatees a second baseball diamond that does not exist, while the distilled variant stays aligned with the image and mirrors the grounded detail that o3 provides.
 
 % Cost comparison table
 \begin{table}[t]
@@ -138,8 +132,6 @@ Distilled Gemma3 & \$0.000087 & \$26.01 \\
 }
 \end{table}
 \footnotetext{Cost calculations based on API pricing — o3: \$2.00 per million input tokens, \$8.00 per million output tokens (OpenAI API platform); Gemma3-12B: \$0.035 per million input tokens, \$0.141 per million output tokens (OpenRouter inference provider). Average tokens per request: o3 (1,670.8 input, 2,173.3 output), Gemma3 (1,330.0 input, 284.7 output). Calculations based on 15 sample requests.}
-
-The cost analysis demonstrates that using the distilled Gemma3 model provides substantial economic advantages for large-scale dataset generation. The upfront investment in distillation training pays off significantly when generating millions of annotations, making the approach both technically sound and economically viable for scaling to larger datasets.
 
 \begin{figure*}[t]
 \centering
