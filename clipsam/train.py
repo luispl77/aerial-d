@@ -4,7 +4,6 @@ import torch.optim as optim
 from model import SigLipSamSegmentator
 import os
 import json
-import shutil
 import argparse
 from pycocotools import mask as mask_utils
 from PIL import Image
@@ -124,7 +123,7 @@ def parse_args():
     parser.add_argument('--gpu_id', type=int, default=0, help='GPU ID to use')
     parser.add_argument('--input_size', type=int, default=384, help='Input size for images')
     parser.add_argument('--resume', action='store_true', help='Resume from latest checkpoint')
-    parser.add_argument('--model_name', type=str, help='Model name for resuming training (required when using --resume)')
+    parser.add_argument('--model_name', type=str, help='Optional legacy flag for resume compatibility; prefer --custom_name to point at run folder')
     parser.add_argument('--tmp_dir', type=str, default='/tmp/u035679', help='Temporary directory for dataset')
     parser.add_argument('--poly_power', type=float, default=0.9, help='Power factor for polynomial decay')
     parser.add_argument('--grad_accum_steps', type=int, default=2, help='Number of steps to accumulate gradients')
@@ -157,7 +156,7 @@ def parse_args():
     parser.add_argument('--dataset_filter', type=str, choices=['isaid', 'loveda'], help='Train only on samples from a specific dataset (isaid or loveda)')
     
     # Custom folder naming
-    parser.add_argument('--custom_name', type=str, help='Override the default auto-generated folder name for models and visualizations with a custom name')
+    parser.add_argument('--custom_name', type=str, help='Override the default auto-generated folder name for new runs or specify the existing folder when using --resume')
     
     # Multi-dataset training
     parser.add_argument('--use_all_datasets', action='store_true', help='Train on AerialD + 4 additional datasets (RRSISD, RefSegRS, NWPU, Urban1960). Expression filtering flags still apply to AerialD only.')
@@ -359,24 +358,42 @@ def train(
     start_epoch = 0
     best_loss = float('inf')
     best_iou = 0.0
-    
+
     # Initialize loss history
     train_losses = []
     val_losses = []
-    
-    # Calculate total iterations for the polynomial decay
-    total_iters = len(train_loader) * num_epochs // grad_accum_steps  # Adjust for gradient accumulation
+
+    # Determine training bounds and scheduler state
+    end_epoch = num_epochs
+    total_epochs_planned = max(num_epochs, 1)
     current_iter = 0
-    
+
     if resume:
         checkpoint_path = os.path.join(checkpoint_dir, 'latest.pt')
-        if os.path.exists(checkpoint_path):
-            start_epoch, best_loss = load_checkpoint(model, optimizer, checkpoint_path)
-            print(f"Resumed from epoch {start_epoch}")
-            # Adjust current_iter if resuming
-            current_iter = start_epoch * len(train_loader) // grad_accum_steps
-    
-    for epoch in range(start_epoch, num_epochs):
+        if not os.path.exists(checkpoint_path):
+            raise FileNotFoundError(f"Checkpoint not found at {checkpoint_path}")
+
+        last_epoch, best_loss = load_checkpoint(model, optimizer, checkpoint_path)
+        start_epoch = last_epoch + 1
+        end_epoch = start_epoch + num_epochs
+        total_epochs_planned = max(end_epoch, 1)
+        current_iter = start_epoch * len(train_loader) // grad_accum_steps
+        print(f"Resumed from epoch {last_epoch}. Continuing at epoch {start_epoch} for {num_epochs} additional epochs (target epoch {end_epoch - 1}).")
+    else:
+        end_epoch = num_epochs
+        total_epochs_planned = max(end_epoch, 1)
+
+    # Calculate total iterations for the polynomial decay relative to the overall plan
+    total_iters = max(len(train_loader), 1) * total_epochs_planned // max(grad_accum_steps, 1)
+    total_iters = max(total_iters, 1)
+
+    if start_epoch >= end_epoch:
+        print(f"Nothing to train: start_epoch ({start_epoch}) >= target end epoch ({end_epoch}).")
+        return
+
+    poly_lr = initial_lr
+
+    for epoch in range(start_epoch, end_epoch):
         # Training
         model.train()
         epoch_loss = 0
@@ -403,7 +420,8 @@ def train(
             
             # Update learning rate using polynomial decay
             if batch_idx % grad_accum_steps == 0:
-                poly_lr = initial_lr * (1 - current_iter / total_iters) ** power
+                progress = min(max(current_iter / total_iters, 0.0), 1.0)
+                poly_lr = initial_lr * (1 - progress) ** power
                 for param_group in optimizer.param_groups:
                     param_group['lr'] = poly_lr
             
@@ -1609,9 +1627,9 @@ def main():
         return
     
     # Validate arguments for resume functionality
-    if args.resume and not args.model_name:
-        print("Error: --model_name is required when using --resume")
-        print("Please specify the model name to resume from (e.g., clip_sam_20241215_143022_epochs5_bs4x2_lr0.0001)")
+    if args.resume and not (args.custom_name or args.model_name):
+        print("Error: --custom_name (preferred) or --model_name must be provided when using --resume")
+        print("Please point to the existing run folder that owns latest.pt")
         return
     
     print("Start")
@@ -1635,6 +1653,11 @@ def main():
     
     # Generate unique run ID with timestamp
     run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    # Resolve base directories once so both training and resume share them
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    models_root = os.path.join(base_dir, 'models')
+    vis_root = os.path.join(base_dir, 'visualizations')
     
     # Configure LoRA if enabled
     lora_cfg = None
@@ -1770,59 +1793,40 @@ def main():
     
     # Handle model naming and directory creation based on resume flag
     if args.resume:
-        # Use existing model directory for resume
-        original_model_name = args.model_name
-        original_checkpoint_dir = os.path.join('./models', original_model_name)
-        original_vis_dir = os.path.join('./visualizations', original_model_name)
-        
+        # Determine which folder to resume from (prefer custom_name for clarity)
+        resume_folder = args.custom_name or args.model_name
+        model_name = resume_folder
+        checkpoint_dir = os.path.join(models_root, resume_folder)
+        vis_dir = os.path.join(vis_root, resume_folder)
+
         # Check if the original model directory exists
-        if not os.path.exists(original_checkpoint_dir):
-            print(f"Error: Model directory '{original_checkpoint_dir}' not found!")
-            print(f"Available models in ./models/:")
-            if os.path.exists('./models'):
-                for item in os.listdir('./models'):
-                    if os.path.isdir(os.path.join('./models', item)):
+        if not os.path.isdir(checkpoint_dir):
+            print(f"Error: Model directory '{checkpoint_dir}' not found!")
+            if os.path.isdir(models_root):
+                print("Available models:")
+                for item in sorted(os.listdir(models_root)):
+                    if os.path.isdir(os.path.join(models_root, item)):
                         print(f"  - {item}")
             return
-        
+
         # Check if checkpoint exists
-        checkpoint_path = os.path.join(original_checkpoint_dir, 'latest.pt')
+        checkpoint_path = os.path.join(checkpoint_dir, 'latest.pt')
         if not os.path.exists(checkpoint_path):
-            print(f"Error: Checkpoint 'latest.pt' not found in {original_checkpoint_dir}")
+            print(f"Error: Checkpoint 'latest.pt' not found in {checkpoint_dir}")
             return
-        
-        # Create restart directory with custom name if provided
-        if args.custom_name:
-            restart_model_name = args.custom_name
-            print(f"Using custom restart directory name: {restart_model_name}")
-        else:
-            restart_model_name = f"{original_model_name}_restart_{run_id}_epochs{args.epochs}"
-            print(f"Creating restart directory: {restart_model_name}")
-            
-        model_name = restart_model_name
-        checkpoint_dir = os.path.join('./models', restart_model_name)
-        vis_dir = os.path.join('./visualizations', restart_model_name)
-        
-        print(f"Resuming from: {original_model_name}")
-        
-        # Create new directories for restart
-        os.makedirs(checkpoint_dir, exist_ok=True)
+
+        print(f"Resuming from existing run folder: {model_name}")
+
+        # Append resume information to run details so history stays in one file
+        details_path = os.path.join(vis_dir, 'run_details.txt')
         os.makedirs(vis_dir, exist_ok=True)
-        
-        # Copy the checkpoint to the new directory as starting point
-        shutil.copy2(checkpoint_path, os.path.join(checkpoint_dir, 'latest.pt'))
-        
-        # Copy run details from original directory to preserve history
-        original_details_path = os.path.join(original_vis_dir, 'run_details.txt')
-        if os.path.exists(original_details_path):
-            shutil.copy2(original_details_path, os.path.join(vis_dir, 'run_details.txt'))
-            # Add restart information
-            with open(os.path.join(vis_dir, 'run_details.txt'), 'a') as f:
-                f.write(f"\n\n===== RESTART INFORMATION =====\n")
-                f.write(f"Restart Date and Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-                f.write(f"Original Model: {original_model_name}\n")
-                f.write(f"Restart Model: {restart_model_name}\n")
-                f.write(f"Additional Epochs: {args.epochs}\n")
+        details_exists = os.path.exists(details_path)
+        with open(details_path, 'a') as f:
+            if not details_exists:
+                f.write("===== TRAINING RUN DETAILS =====\n")
+            f.write(f"\n\n===== RESUME INFORMATION =====\n")
+            f.write(f"Resume Date and Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"Requested Additional Epochs: {args.epochs}\n")
     else:
         # Create new model for fresh training
         if args.custom_name:
@@ -1833,9 +1837,8 @@ def main():
             print(f"Using auto-generated folder name: {model_name}")
             
         # Use absolute paths to avoid any path resolution issues
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        checkpoint_dir = os.path.join(base_dir, 'models', model_name)
-        vis_dir = os.path.join(base_dir, 'visualizations', model_name)
+        checkpoint_dir = os.path.join(models_root, model_name)
+        vis_dir = os.path.join(vis_root, model_name)
         
         # Create directories if they don't exist
         os.makedirs(checkpoint_dir, exist_ok=True)
