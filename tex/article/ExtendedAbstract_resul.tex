@@ -29,7 +29,7 @@ Table~\ref{tab:combined_training_results} reports validation results for a singl
 
 The "Hist." columns simply reference the historic-filter validation splits introduced earlier, allowing us to read performance on both versions of each dataset without rehashing the setup.
 
-Quantitatively, the combined model attains strong results across benchmarks. On RRSIS-D, it reaches Pass@0.5/0.7/0.9 of 68.51\%/53.16\%/18.74\% with mIoU 60.01\% and oIoU 71.48\%. On NWPU-Refer, it achieves 38.64\%/25.68\%/6.64\% with mIoU 35.81\% and oIoU 51.77\%. On RefSegRS, it reports 36.43\%/9.74\%/1.39\% with mIoU 36.75\% and oIoU 44.41\%. On Urban1960SatSeg, it reaches 74.80\%/58.74\%/28.46\% with mIoU 67.72\% and oIoU 86.43\%. Despite the diversity of expression styles and object categories across datasets, these scores match or surpass the author‑reported baselines for the four public benchmarks. For Aerial‑D, we further establish baseline performance in terms of mIoU and oIoU, providing a reference point for future work on this dataset.
+Quantitatively, the combined model attains strong results across benchmarks. On RRSIS-D, it delivers Pass@0.5/0.7/0.9 of 69.48\%/53.62\%/21.78\% together with 61.70\% mIoU and 73.44\% oIoU; the historic split for the same dataset stays close at 58.35\% mIoU and 71.73\% oIoU. On NWPU-Refer, the model records 40.53\%/27.65\%/8.45\% alongside 37.89\% mIoU and 51.34\% oIoU, while the filtered imagery yields 31.52\% mIoU and 46.17\% oIoU. On RefSegRS, the evaluation reports 41.30\%/9.05\%/2.09\%, 40.10\% mIoU, and 45.05\% oIoU, with the historic variant tapering to 32.79\% mIoU and 36.74\% oIoU. On Urban1960SatSeg, which already comprises historic photography, the model reaches 78.05\%/59.96\%/28.25\% together with 69.35\% mIoU and 87.27\% oIoU. Despite the diversity of expression styles and object categories across datasets, these scores match or surpass the author‑reported baselines for the four public benchmarks. For Aerial‑D, we further establish baseline performance in terms of mIoU and oIoU, providing a reference point for future work on this dataset.
 
 % Combined training performance table
 \begin{table*}[t]
@@ -43,10 +43,10 @@ Quantitatively, the combined model attains strong results across benchmarks. On 
  & & & & \textbf{Orig.} & \textbf{Hist.} & \textbf{Orig.} & \textbf{Hist.} \\
 \midrule
 Aerial-D & 60.10\% & 43.95\% & 13.05\% & 49.78\% & \textcolor{blue}{46.82\%} & 63.44\% & \textcolor{blue}{61.12\%} \\
-RRSIS-D & 68.51\% & 53.16\% & 18.74\% & 60.01\% & \textcolor{blue}{55.20\%} & 71.48\% & \textcolor{blue}{68.26\%} \\
-NWPU-Refer & 38.64\% & 25.68\% & 6.64\% & 35.81\% & \textcolor{blue}{30.17\%} & 51.77\% & \textcolor{blue}{48.31\%} \\
-RefSegRS & 36.43\% & 9.74\% & 1.39\% & 36.75\% & \textcolor{blue}{24.53\%} & 44.41\% & \textcolor{blue}{30.21\%} \\
-Urban1960SatSeg & 74.80\% & 58.74\% & 28.46\% & 67.72\% & N/A & 86.43\% & N/A \\
+RRSIS-D & 69.48\% & 53.62\% & 21.78\% & 61.70\% & \textcolor{blue}{58.35\%} & 73.44\% & \textcolor{blue}{71.73\%} \\
+NWPU-Refer & 40.53\% & 27.65\% & 8.45\% & 37.89\% & \textcolor{blue}{31.52\%} & 51.34\% & \textcolor{blue}{46.17\%} \\
+RefSegRS & 41.30\% & 9.05\% & 2.09\% & 40.10\% & \textcolor{blue}{32.79\%} & 45.05\% & \textcolor{blue}{36.74\%} \\
+Urban1960SatSeg & 78.05\% & 59.96\% & 28.25\% & 69.35\% & N/A & 87.27\% & N/A \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -170,7 +170,7 @@ In order to understand how much the historic-image filters described in Section~
 
 Table~\ref{tab:historic_ablation_results} summarizes this experiment. We keep the same architecture, optimization settings, and five-dataset mixture used for the main combined model (Aerial-D unique-only, RRSIS-D, NWPU-Refer, RefSegRS, and Urban1960SatSeg), but we stop replacing 20\% of the training images in Aerial-D, RRSIS-D, NWPU-Refer, and RefSegRS with filtered counterparts. In other words, every sample those datasets contribute during this ablation arrives exactly as stored, whereas the main model receives a uniformly sampled black-and-white, film-grain, or sepia transformation for one fifth of their images.
 
-We use the same format as in Table~\ref{tab:combined_training_results}: each dataset is scored on its original validation split, and the "Hist." columns again transform 100\% of the Aerial-D, RRSIS-D, NWPU-Refer, and RefSegRS validation images using the three filters from Section~\ref{subsec:historic_filters} uniformly. Because the ablated model encounters these degradations for the first time at validation, the historic columns drop slightly compared with Table~\ref{tab:combined_training_results} while the original imagery remains effectively unchanged. This gap shows that the filter injections improve the model’s ability to handle noisy, black-and-white, and sepia aerial scenes without sacrificing performance on cleaner inputs.
+We use the same format as in Table~\ref{tab:combined_training_results}: each dataset is scored on its original validation split, and the "Hist." columns again transform 100\% of the Aerial-D, RRSIS-D, NWPU-Refer, and RefSegRS validation images using the three filters from Section~\ref{subsec:historic_filters} uniformly. Because the ablated model encounters these degradations for the first time at validation, the clean columns climb a few points while the historic columns respond unevenly: RRSIS-D and NWPU-Refer remain resilient, whereas RefSegRS still sheds about five points of mIoU. This behavior indicates that the filter injections mainly protect datasets whose semantics become ambiguous once contrast and color cues are suppressed.
 
 % Historic filter ablation table
 \begin{table*}[t]
@@ -185,10 +185,10 @@ We use the same format as in Table~\ref{tab:combined_training_results}: each dat
  & & & & \textbf{Orig.} & \textbf{Hist.} & \textbf{Orig.} & \textbf{Hist.} \\
 \midrule
 Aerial-D & 59.48\% (\textcolor{red}{-0.62}) & 43.37\% (\textcolor{red}{-0.58}) & 12.60\% (\textcolor{red}{-0.45}) & 49.21\% (\textcolor{red}{-0.57}) & \textcolor{blue}{43.57\%} (\textcolor{red}{-3.25}) & 62.88\% (\textcolor{red}{-0.56}) & \textcolor{blue}{58.14\%} (\textcolor{red}{-2.98}) \\
-RRSIS-D & 68.68\% (\textcolor{darkgreen}{+0.17}) & 53.32\% (\textcolor{darkgreen}{+0.16}) & 18.86\% (\textcolor{darkgreen}{+0.12}) & 60.18\% (\textcolor{darkgreen}{+0.17}) & \textcolor{blue}{52.08\%} (\textcolor{red}{-3.12}) & 71.70\% (\textcolor{darkgreen}{+0.22}) & \textcolor{blue}{65.91\%} (\textcolor{red}{-2.35}) \\
-NWPU-Refer & 38.88\% (\textcolor{darkgreen}{+0.24}) & 25.92\% (\textcolor{darkgreen}{+0.24}) & 6.78\% (\textcolor{darkgreen}{+0.14}) & 36.05\% (\textcolor{darkgreen}{+0.24}) & \textcolor{blue}{28.22\%} (\textcolor{red}{-1.95}) & 51.95\% (\textcolor{darkgreen}{+0.18}) & \textcolor{blue}{46.02\%} (\textcolor{red}{-2.29}) \\
-RefSegRS & 36.11\% (\textcolor{red}{-0.32}) & 9.30\% (\textcolor{red}{-0.44}) & 1.12\% (\textcolor{red}{-0.27}) & 36.38\% (\textcolor{red}{-0.37}) & \textcolor{blue}{21.15\%} (\textcolor{red}{-3.38}) & 43.95\% (\textcolor{red}{-0.46}) & \textcolor{blue}{26.84\%} (\textcolor{red}{-3.37}) \\
-Urban1960SatSeg & 74.92\% (\textcolor{darkgreen}{+0.12}) & 58.20\% (\textcolor{red}{-0.54}) & 28.00\% (\textcolor{red}{-0.46}) & 67.80\% (\textcolor{darkgreen}{+0.08}) & N/A & 86.55\% (\textcolor{darkgreen}{+0.12}) & N/A \\
+RRSIS-D & 74.60\% (\textcolor{darkgreen}{+5.12}) & 58.39\% (\textcolor{darkgreen}{+4.77}) & 20.75\% (\textcolor{red}{-1.03}) & 64.36\% (\textcolor{darkgreen}{+2.66}) & \textcolor{blue}{59.02\%} (\textcolor{darkgreen}{+0.67}) & 75.59\% (\textcolor{darkgreen}{+2.15}) & \textcolor{blue}{72.50\%} (\textcolor{darkgreen}{+0.77}) \\
+NWPU-Refer & 46.02\% (\textcolor{darkgreen}{+5.49}) & 32.32\% (\textcolor{darkgreen}{+4.67}) & 10.66\% (\textcolor{darkgreen}{+2.21}) & 41.06\% (\textcolor{darkgreen}{+3.17}) & \textcolor{blue}{33.42\%} (\textcolor{darkgreen}{+1.90}) & 58.35\% (\textcolor{darkgreen}{+7.01}) & \textcolor{blue}{53.04\%} (\textcolor{darkgreen}{+6.87}) \\
+RefSegRS & 47.33\% (\textcolor{darkgreen}{+6.03}) & 13.23\% (\textcolor{darkgreen}{+4.18}) & 1.16\% (\textcolor{red}{-0.93}) & 41.31\% (\textcolor{darkgreen}{+1.21}) & \textcolor{blue}{27.73\%} (\textcolor{red}{-5.06}) & 50.30\% (\textcolor{darkgreen}{+5.25}) & \textcolor{blue}{32.21\%} (\textcolor{red}{-4.53}) \\
+Urban1960SatSeg & 78.46\% (\textcolor{darkgreen}{+0.41}) & 60.98\% (\textcolor{darkgreen}{+1.02}) & 28.66\% (\textcolor{darkgreen}{+0.41}) & 69.81\% (\textcolor{darkgreen}{+0.46}) & N/A & 87.80\% (\textcolor{darkgreen}{+0.53}) & N/A \\
 \bottomrule
 \end{tabular}%
 }
