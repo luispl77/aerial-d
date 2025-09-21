@@ -8,18 +8,26 @@
 % The following line allows to ref this chapter
 \label{chap:conclusion}
 
-[Conclusion chapter introduction to be written - summarize key findings and contributions of the AerialSeg project]
+This thesis presents a comprehensive approach to open-vocabulary aerial image segmentation through the development of AerialSeg, which encompasses both a novel dataset generation methodology and an effective model architecture. The work addresses the fundamental challenge of creating large-scale referring expression datasets for aerial imagery, where traditional manual annotation approaches prove prohibitively expensive and time-consuming.
 
 % #############################################################################
 \section{Conclusions}
-[Conclusions section content to be written - discuss the effectiveness of the RSRefSeg approach, dataset contributions, and model performance insights]
 
-[Main contributions summary to be written - highlight the key contributions: AERIAL-D dataset, RSRefSeg architecture, LLM enhancement pipeline, evaluation results]
+This work introduces Aerial-D together with an end-to-end methodology that transforms existing aerial segmentation datasets into a comprehensive repository of referring expressions. The approach begins with a rule-driven generator that systematically converts instance masks into natural language descriptions by analyzing spatial location, visual appearance, and relational characteristics between objects. This foundation is then enhanced through a sophisticated pipeline that combines large language model rewriting with a distilled Gemma3 annotator, ensuring that the methodology remains both effective and computationally affordable.
+
+The resulting dataset enables comprehensive training of the RSRefSeg architecture across five distinct benchmarks, demonstrating the robustness and generalizability of the approach. The experimental evaluation establishes new performance baselines on Aerial-D while achieving results that match or surpass previously published outcomes on established benchmarks including RRSIS-D, NWPU-Refer, RefSegRS, and Urban1960SatSeg. These results validate both the quality of the generated dataset and the effectiveness of the proposed model architecture.
+
+The systematic ablation studies conducted throughout this work provide valuable insights into the contributions of different components. The analysis of expression sources demonstrates how enhanced language descriptions translate into measurable improvements in model performance. Similarly, the evaluation of historic-image filters reveals how domain-specific augmentations contribute to increased robustness across different visual conditions and image characteristics.
+
+The key contributions of this thesis can be summarized as follows: the development of the Aerial-D dataset through an innovative rule-based generation pipeline, the design of the RSRefSeg architecture that effectively combines SigLIP and SAM components for aerial image segmentation, the implementation of an LLM enhancement pipeline that scales high-quality expression generation, and the establishment of comprehensive evaluation protocols that demonstrate the effectiveness of the approach across multiple benchmarks.
 
 % #############################################################################
 \section{Future Work}
-[Future work content to be written - discuss potential improvements to the model architecture, dataset expansion possibilities, and applications to other domains]
 
-[Immediate extensions to be written - discuss short-term improvements like additional evaluation metrics, model optimization, or extended baseline comparisons]
+The foundation established in this work opens several promising avenues for future research and development. These directions can be organized into three primary categories that address different aspects of scalability, applicability, and technological advancement.
 
-[Long-term research directions to be written - discuss broader research directions like multi-modal understanding, real-time applications, or integration with other computer vision tasks]
+The first direction involves extending the expression-enhancement pipeline to existing public benchmarks. The methodology developed for Aerial-D can be directly applied to the native captions provided with established datasets such as RRSIS-D and NWPU-Refer. By enriching their existing language descriptions with the same visual grounding cues that proved effective for Aerial-D, it becomes possible to create a unified training pool with significantly higher linguistic variety. This approach would not only improve the quality of existing datasets but also enable more comprehensive cross-dataset training scenarios that could lead to improved generalization capabilities.
+
+The second research direction focuses on multilingual expansion of the generated expressions. This can be achieved by integrating advanced language models such as GPT-5 with the established distillation pipeline. In this approach, the large language model would be responsible for drafting high-quality translations of the English expressions into multiple target languages, while the distilled Gemma3 student model would learn to reproduce these translations at scale. This methodology would preserve the domain-specific phrasing and technical accuracy that characterizes aerial imagery descriptions while producing a comprehensive multilingual corpus that could enable referring segmentation in diverse linguistic contexts.
+
+The third and most ambitious direction involves leveraging emerging multimodal systems for synthetic data generation. Recent developments in multimodal artificial intelligence, such as Gemini 2.5, demonstrate the capability to generate pixel-level segmentation masks directly from text prompts. Integrating such systems into the established pipeline would enable the synthesis of entirely new object classes and their corresponding segmentation masks alongside the accompanying natural language expressions. These machine-generated masks could then be processed through the same rule-based expression generation stages developed in this work, potentially creating a pathway toward fully synthetic, open-vocabulary aerial datasets that could supplement or extend real-world data collection efforts.
