@@ -196,7 +196,8 @@ The collected high-quality outputs then serve as training data for fine-tuning G
 \end{figure}
 
 % #############################################################################
-\subsection{Historic Image Filters}
+\section{Historic Image Filters}
+\label{subsec:historic_filters}
 
 In order to keep the dataset useful for models that must operate on archival imagery, we simulate the visual signatures that appear in mid-century aerial collections. Historic film stocks and scanning workflows frequently desaturate colours, compress tonal range, and inject grain, which diminishes the sharp visual cues that modern networks rely upon. To counter this gap between training data and deployment conditions, we apply three parametric transformations that recreate monochrome capture, film fading with grain, and sepia scanning artifacts for every patch.
 
