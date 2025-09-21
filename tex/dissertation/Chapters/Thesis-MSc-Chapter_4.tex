@@ -198,7 +198,57 @@ The collected high-quality outputs then serve as training data for fine-tuning G
 % #############################################################################
 \subsection{Historic Image Filters}
 
-To evaluate and improve robustness under archival imaging conditions, we apply simple historic image transformations that emulate common degradations found in mid‑century aerial photographs. These include grayscale conversion, sepia toning, and additive noise that reduces contrast and introduces grain while preserving spatial structure relevant for segmentation.
+In order to keep the dataset useful for models that must operate on archival imagery, we simulate the visual signatures that appear in mid-century aerial collections. Historic film stocks and scanning workflows frequently desaturate colours, compress tonal range, and inject grain, which diminishes the sharp visual cues that modern networks rely upon. To counter this gap between training data and deployment conditions, we apply three parametric transformations that recreate monochrome capture, film fading with grain, and sepia scanning artifacts for every patch.
+
+Let $I_{\text{orig}}(x) \in [0,255]^3$ denote the RGB vector at pixel $x$, and let $\operatorname{clip}(\cdot)$ clamp intensities to the $[0,255]$ range. We first approximate the luminance response of black-and-white film, producing the grayscale target in Equation~\ref{eq:historic_gray}:
+\begin{equation}
+I_{\text{gray}}(x) = 0.299\,R(x) + 0.587\,G(x) + 0.114\,B(x).
+\label{eq:historic_gray}
+\end{equation}
+
+Film reproduction is then mimicked by a sequence of tone adjustments. We apply a mild gamma curve in Equation~\ref{eq:historic_gamma}, recenter contrast around the patch mean $\mu$ in Equation~\ref{eq:historic_contrast}, and finally add zero-mean Gaussian noise in Equation~\ref{eq:historic_grain} to replicate silver-halide grain:
+\begin{equation}
+I_{\gamma}(x) = 255\left( \frac{I_{\text{gray}}(x)}{255} \right)^{\gamma},
+\label{eq:historic_gamma}
+\end{equation}
+\begin{equation}
+I_{c}(x) = \big(I_{\gamma}(x) - \mu\big)\,c + \mu,
+\label{eq:historic_contrast}
+\end{equation}
+\begin{equation}
+I_{\text{grain}}(x) = \operatorname{clip}\big(I_{c}(x) + \eta(x)\big), \quad \eta(x) \sim \mathcal{N}(0, \sigma^2).
+\label{eq:historic_grain}
+\end{equation}
+The augmentation uses $\gamma = 1.1$, $c = 0.85$, and $\sigma = 0.1\times 255$ so that contrast is gently reduced while a perceptible grain pattern emerges without obscuring object boundaries.
+
+Sepia scanning artifacts are reproduced by applying the linear colour transform in Equation~\ref{eq:historic_sepia}, followed by uniform sensor noise in Equation~\ref{eq:historic_sepia_noise} to emulate digitisation errors:
+\begin{equation}
+\begin{bmatrix}
+S_R(x) \\
+S_G(x) \\
+S_B(x)
+\end{bmatrix}
+= \operatorname{clip}\left(
+\begin{bmatrix}
+0.272 & 0.534 & 0.131 \\
+0.349 & 0.686 & 0.168 \\
+0.393 & 0.769 & 0.189
+\end{bmatrix}
+\begin{bmatrix}
+R(x) \\
+G(x) \\
+B(x)
+\end{bmatrix}
+\right),
+\label{eq:historic_sepia}
+\end{equation}
+where $\mathbf{S}(x) = [S_R(x), S_G(x), S_B(x)]^\top$.
+\begin{equation}
+I_{\text{sepia}}(x) = \operatorname{clip}\big(\mathbf{S}(x) + \xi(x)\big), \quad \xi(x) \sim \mathcal{U}(0, 50).
+\label{eq:historic_sepia_noise}
+\end{equation}
+
+Together these transformations compress colour information, soften tonal contrast, and inject characteristic noise while preserving the spatial layout that segmentation relies upon. Figure~\ref{fig:historic_filters} illustrates the qualitative impact on representative patches.
 
 \begin{figure}[H]
 \centering
@@ -219,22 +269,6 @@ The completed AerialD dataset represents a comprehensive resource for aerial ref
 \includegraphics[width=\textwidth]{Images/dataset.png}
 \caption{Representative examples from AerialD dataset showing diverse referring expressions with corresponding aerial images and ground truth masks.}
 \label{fig:dataset_examples}
-\end{figure}
-
-% Additional representative examples
-\begin{figure}[H]
-\centering
-\includegraphics[width=\textwidth]{Images/6samples.png}
-\caption{Additional representative examples from the AerialD dataset showing diverse referring expressions with corresponding aerial images and ground truth masks.}
-\label{fig:dataset_examples_more}
-\end{figure}
-
-% Expression word cloud
-\begin{figure}[H]
-\centering
-\includegraphics[width=\textwidth]{Images/expression_wordcloud.png}
-\caption{Word cloud visualization of the most frequent terms in AerialD referring expressions, highlighting domain‑specific vocabulary and spatial descriptors.}
-\label{fig:expression_wordcloud}
 \end{figure}
 
 Table \ref{tab:dataset_stats} presents the overall dataset composition, revealing 37,288 total patches containing 259,709 annotated samples with expressions. The dataset maintains a balanced distribution between individual objects (128,715 instances with 889,354 expressions) and groups (130,994 groups with 633,169 expressions), with an average of approximately 7 expressions per individual object and 5 expressions per group. The substantial scale demonstrates the comprehensive coverage achieved through our systematic generation pipeline.
@@ -335,21 +369,6 @@ Table \ref{tab:expression_types} provides a detailed taxonomy of the 17 distinct
 \end{tabular}%
 }
 \end{table}
-
-% Category distribution figures
-\begin{figure}[H]
-\centering
-\begin{minipage}{0.48\textwidth}
-\centering
-\includegraphics[width=\textwidth]{Images/group_category_distribution.png}
-\end{minipage}\hfill
-\begin{minipage}{0.48\textwidth}
-\centering
-\includegraphics[width=\textwidth]{Images/instance_category_distribution.png}
-\end{minipage}
-\caption{Category distribution analysis of AerialD. Left: distribution of group annotations showing the prevalence of different object categories in group‑level referring expressions. Right: distribution of individual instance annotations across semantic categories.}
-\label{fig:category_distributions}
-\end{figure}
 
 Finally, Table \ref{tab:llm_enhancement_stats} quantifies the impact of LLM enhancement, showing that the distillation pipeline successfully tripled the dataset size from the original 506,194 rule-based expressions to 1,522,523 total expressions. The LLM enhancement process contributed nearly equal numbers of language variations (496,895) and unique visual detail expressions (519,434), demonstrating the effectiveness of the two-pronged enhancement strategy in achieving both linguistic diversity and contextual richness.
 
