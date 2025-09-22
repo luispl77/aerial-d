@@ -8,7 +8,7 @@
 % The following line allows to ref this chapter
 \label{chap:back}
 
-This chapter introduces the fundamental technical concepts and architectures underlying open-vocabulary referring segmentation systems.
+This chapter introduces the fundamental technical concepts and architectures underlying open-vocabulary referring segmentation systems. We begin with neural networks and deep learning fundamentals (Section~2.1), then review attention and the transformer architecture (Section~2.2). We next summarize how transformers have been adapted for computer vision (Section~2.3), followed by image segmentation variants (Section~2.4) and vision-language foundations relevant to referring segmentation (Section~2.5).
 
 % #############################################################################
 \section{Neural Networks and Deep Learning}
@@ -52,14 +52,14 @@ where $\eta$ is the learning rate and $\nabla_\theta \mathcal{L}(\theta_t)$ repr
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.6\textwidth]{Images/perceptron.png}
-\caption{Perceptron architecture and basic neural network building block.}
+\caption{Perceptron architecture and basic neural network building block with inputs $x_1, x_2, \ldots, x_N$ and weights $w_1, \ldots, w_N$.}
 \label{fig:perceptron}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.6\textwidth]{Images/mlp.png}
-\caption{Multi-layer perceptron architecture showing feedforward neural network structure.}
+\caption{Multi-layer perceptron architecture showing feedforward neural network structure operating on feature inputs $x_1, x_2, \ldots, x_N$.}
 \label{fig:mlp}
 \end{figure}
 
