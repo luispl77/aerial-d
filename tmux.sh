@@ -40,10 +40,18 @@ tmux split-window -v -t aerial:gpu.2
 
 # Setup gpu window panes
 # Top left: cd to tex/dissertation and latex compilation ready
+tmux send-keys -t aerial:gpu.0 'conda activate aerial' Enter
 tmux send-keys -t aerial:gpu.0 'cd tex/dissertation' Enter
 tmux send-keys -t aerial:gpu.0 'latexmk -pdf -synctex=1 -interaction=nonstopmode main.tex'
 
-# Other panes remain in aerialseg directory (default)
+# Top right: conda activate aerial
+tmux send-keys -t aerial:gpu.1 'conda activate aerial' Enter
+
+# Bottom left: conda activate aerial
+tmux send-keys -t aerial:gpu.2 'conda activate aerial' Enter
+
+# Bottom right: conda activate aerial
+tmux send-keys -t aerial:gpu.3 'conda activate aerial' Enter
 
 # Select the cli window and top-left pane as default
 tmux select-window -t aerial:cli
