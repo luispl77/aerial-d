@@ -23,14 +23,14 @@ Dissertation writing:
 - [FIXED] 4.3 - citations need to appear after the keyword is mentioned at all times, for instance QLoRA 
 - [FIXED] 4.4 - equation 4.6 is hanging alone
 - [FIXED] 4.5 - Aerial-D not AerialD, also on figure 4.6 caption
-- 5 - do not say AerialSeg
-- 5 - root is poorly written, we should start with a carry over of the dataset we have just built in the previous chapter and how we will now use it to experiment, in addition to other datasets, to train and evaluate models. Remove the strange prompt to every figure table etc, clearly an error
-- 5.1 - missing citations to PyTorch and even LoRA and others. It is not fine tuned for aerial imagery out of the box, the LoRA matrices are what we train as per the RSRefSeg paper, plus the attention prompter. Consider revisiting the description of RSRefSeg in related work to better explain the role of attnprompter
-- 5.2 - we now use SAM-ViT-Base, not Large. "The model" , not "The checkpoint"
-- 5.2 - poor explanation of choice for Unique Only set. It is because we are trying to not overwhelm the other datasets. Mention to ablation studies showing that the Unique Expressions contain a lot of signal as shown in the generalization capability of a model trained on Unique Only. 
-- 5.3 -  poorly written introduction to section. "Our main experiment" or "We first begin our experimentations with training a single model on all 5 datasets, while testing it also on all of them". 
-- 5.3 percentages overflowing the paper
-- 5.3 -  the model does not match or exceed, it has comparable results to the results reported in those papers
+- [FIXED] 5 - do not say AerialSeg
+- [FIXED] 5 - root is poorly written, we should start with a carry over of the dataset we have just built in the previous chapter and how we will now use it to experiment, in addition to other datasets, to train and evaluate models. Remove the strange prompt to every figure table etc, clearly an error
+- [FIXED] 5.1 - missing citations to PyTorch and even LoRA and others. It is not fine tuned for aerial imagery out of the box, the LoRA matrices are what we train as per the RSRefSeg paper, plus the attention prompter. Consider revisiting the description of RSRefSeg in related work to better explain the role of attnprompter
+- [FIXED] 5.2 - we now use SAM-ViT-Base, not Large. "The model" , not "The checkpoint"
+- [FIXED] 5.2 - poor explanation of choice for Unique Only set. It is because we are trying to not overwhelm the other datasets. Mention to ablation studies showing that the Unique Expressions contain a lot of signal as shown in the generalization capability of a model trained on Unique Only. 
+- [FIXED] 5.3 -  poorly written introduction to section. "Our main experiment" or "We first begin our experimentations with training a single model on all 5 datasets, while testing it also on all of them". 
+- [FIXED] 5.3 percentages overflowing the paper
+- [FIXED] 5.3 -  the model does not match or exceed, it has comparable results to the results reported in those papers
 - 5.4 - missing root of the section
 - 5.4.1 - do not mention the change in SAM model since we are now only using Base and rank 16. 
 - 5.4.1 - inconsistency with percentages being bold in this section but not on the others
