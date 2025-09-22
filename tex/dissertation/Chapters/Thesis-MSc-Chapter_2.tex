@@ -168,7 +168,7 @@ Vision-language models represent a significant advancement in multimodal artific
 
 \subsection{CLIP and Visual-Language Learning}
 
-Contrastive Language-Image Pre-training (CLIP) introduces a powerful framework for learning visual-textual representations through contrastive learning. The architecture consists of two separate transformer encoders: an image encoder that processes visual input and a text encoder that handles natural language descriptions, as illustrated in Figure~\ref{fig:clip_architecture}.
+Contrastive Language-Image Pre-training (CLIP) introduces a powerful framework for learning visual-textual representations through contrastive learning~\cite{clip}. The architecture consists of two separate transformer encoders: an image encoder that processes visual input and a text encoder that handles natural language descriptions, as illustrated in Figure~\ref{fig:clip_architecture}.
 
 The core innovation of CLIP lies in its contrastive pre-training methodology, which learns to align image and text embeddings in a shared representation space. During training, the model processes batches of image-text pairs and computes similarity scores between all possible combinations. For a batch of $N$ image-text pairs, CLIP maximizes the cosine similarity between correct pairs while minimizing similarity between incorrect pairs:
 
@@ -211,17 +211,17 @@ where $T$ is the sequence length. This next-token prediction objective, demonstr
 
 The versatility of the transformer architecture allows LLMs to process heterogeneous token sequences that extend beyond natural language. In multimodal contexts, the input sequence can include tokens from vision encoders, such as those produced by CLIP's image encoder. Since CLIP's visual representations are aligned with language through contrastive training, LLMs can be trained to understand these visual tokens alongside textual tokens, creating truly multimodal language models. This integration enables the model to process mixed sequences containing both visual and textual information, allowing for sophisticated capabilities such as visual question answering, image captioning with rich contextual descriptions, and instruction-following for complex visual tasks. The extensive world knowledge captured by LLMs during pre-training, combined with their ability to process visual tokens, allows them to provide contextual understanding that goes beyond simple pattern recognition, enabling more nuanced and informative multimodal interactions.
 
-Modern implementations of large multimodal language models demonstrate remarkable capabilities in vision-language understanding and generation. [Reference to GPT architecture and autoregressive generation] % \cite{placeholder_gpt}
+Modern implementations of large multimodal language models demonstrate remarkable capabilities in vision-language understanding and generation~\cite{gemma3,o3,gemini25}.
 
-[Reference to multimodal capabilities in vision-language models] % \cite{placeholder_multimodal}
+These systems integrate vision and language to enable multimodal capabilities~\cite{clip,siglip}.
 
-Open-source models integrate vision encoders with transformer decoder architectures, enabling sophisticated multimodal reasoning while maintaining accessibility for research and development. [Reference to Gemma 3 open source models with SigLIP vision encoder] % \cite{placeholder_gemma3}
+Open-source models integrate vision encoders with transformer decoder architectures, enabling sophisticated multimodal reasoning while maintaining accessibility for research and development~\cite{gemma3,siglip,siglip2}.
 
-Proprietary large-scale models represent the current state-of-the-art in multimodal language modeling, demonstrating advanced capabilities in complex visual reasoning, detailed image analysis, and sophisticated instruction following across multiple domains. [Reference to proprietary API models: O3] % \cite{placeholder_o3}
+Proprietary large-scale models represent the current state-of-the-art in multimodal language modeling, demonstrating advanced capabilities in complex visual reasoning, detailed image analysis, and sophisticated instruction following across multiple domains~\cite{o3}.
 
-[Reference to proprietary API models: GPT-5] % \cite{placeholder_gpt5}
+For example, OpenAI's o3 family~\cite{o3}.
 
-[Reference to proprietary API models: Gemini 2.5] % \cite{placeholder_gemini25}
+Similarly, Google's Gemini 2.5~\cite{gemini25}.
 
 These models leverage massive computational resources and extensive multimodal training datasets to achieve performance levels that approach human-level understanding in many vision-language tasks, setting new benchmarks for what is possible in artificial multimodal intelligence.
 
