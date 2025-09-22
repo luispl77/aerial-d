@@ -100,69 +100,45 @@ Attributes & - & Domain labels \\
 \end{tabular}
 \end{table}
 
-\begin{table}[htbp]
-\centering
-\caption{RRSIS Dataset Split Statistics}
-\label{tab:rrsis_splits}
-\begin{tabular}{@{}llllll@{}}
-\toprule
-\textbf{Dataset} & \textbf{Total} & \textbf{Training} & \textbf{Validation} & \textbf{Test} & \textbf{Unit} \\
-\midrule
-RefSegRS & 4,420 & 2,172 (49.1\%) & 431 (9.8\%) & 1,817 (41.1\%) & expressions \\
-RRSIS-D & 17,402 & 8,701 (50.0\%) & 3,480 (20.0\%) & 5,221 (30.0\%) & triplets \\
-NWPU-Refer & 49,745 & 34,821 (70.0\%) & 4,974 (10.0\%) & 9,950 (20.0\%) & triplets \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[htbp]
-\centering
-\caption{Source Dataset Split Statistics}
-\label{tab:source_splits}
-\begin{tabular}{@{}llllll@{}}
-\toprule
-\textbf{Dataset} & \textbf{Total} & \textbf{Training} & \textbf{Validation} & \textbf{Test} & \textbf{Unit} \\
-\midrule
-iSAID & 2,806 & 1,403 (50.0\%) & 468 (16.7\%) & 935 (33.3\%) & images \\
-LoveDA & 5,987 & 2,522 (42.1\%) & 1,669 (27.9\%) & 1,796 (30.0\%) & images \\
-\bottomrule
-\end{tabular}
-\end{table}
 
 % #############################################################################
-\section{Segmentation Models for Aerial Images}
+\section{Architectures for RRSIS}
 
-This section examines the landscape of segmentation models specifically designed for or applicable to aerial imagery analysis, encompassing both semantic segmentation approaches and referring segmentation techniques.
+Architectures for referring segmentation in aerial imagery follow two broad paths. One family builds specialized networks tailored to overhead scenes, emphasizing multi-scale fusion and rotation handling without relying on large vision-language backbones. A second family leverages foundation models—vision encoders (e.g., CLIP or SigLIP) and segmentation decoders (e.g., SAM)—and focuses on bridging text-vision semantics for mask prediction. This section outlines representative approaches from both lines of work.
 
-\subsection{Semantic Segmentation Models}
+By the same authors who introduced the RRSIS-D dataset, the Rotated Multi-Scale Interaction Network (RMSIN) exemplifies the specialized-network path. It introduces three modules—Intra-scale Interaction (IIM) for fine-grained detail, Cross-scale Interaction (CIM) for multi-resolution fusion, and Adaptive Rotated Convolution (ARC) for orientation variation—achieving improvements over strong baselines and showing the value of remote-sensing-specific inductive biases. This reflects a cohesive benchmark-method pairing within that line of work.
 
-Foundational vision models provide the backbone architectures for aerial image segmentation tasks through powerful feature extraction and mask generation capabilities.
+From the same authors who released the NWPU-Refer dataset, MRSNet advances the specialized-network line with intra-scale and hierarchical feature interaction modules designed to better capture multi-scale context in overhead scenes, mirroring the benchmark-method linkage seen with RMSIN and RRSIS-D. These specialized approaches emphasize bespoke inductive biases tailored specifically for the unique challenges of aerial imagery analysis.
 
-Vision-language models such as CLIP establish crucial connections between visual and textual modalities through contrastive learning, enabling zero-shot classification capabilities that transfer effectively to aerial imagery domains. The learned joint embedding spaces capture semantic relationships that prove valuable for understanding aerial scene content and object categories.
+In contrast, foundation-model approaches emphasize powerful pretrained backbones and light semantic bridging, trading bespoke inductive biases for transfer from large-scale pretraining. These approaches leverage the substantial progress in vision-language models and segmentation foundations to achieve strong performance through parameter-efficient adaptation.
 
-SigLIP represents an advancement in vision-language training methodologies, improving upon CLIP's contrastive approach through more efficient training objectives and enhanced representation learning. These improvements translate to better performance on downstream aerial image understanding tasks where precise visual-textual alignment is critical.
+Vision-language models such as CLIP establish crucial connections between visual and textual modalities through contrastive learning, enabling zero-shot classification capabilities that transfer effectively to aerial imagery domains. The learned joint embedding spaces capture semantic relationships that prove valuable for understanding aerial scene content and object categories. SigLIP represents an advancement in vision-language training methodologies, improving upon CLIP's contrastive approach through more efficient training objectives and enhanced representation learning. These improvements translate to better performance on downstream aerial image understanding tasks where precise visual-textual alignment is critical.
 
-The Segment Anything Model (SAM) provides a foundational approach to semantic segmentation through its prompt-based architecture, as illustrated in Figure~\ref{fig:sam_architecture}. SAM's design incorporates an image encoder that processes input imagery into rich feature representations, a prompt encoder that handles various input modalities including points, boxes, and text, and a mask decoder that generates precise segmentation boundaries. This architecture demonstrates remarkable generalization capabilities across diverse image domains, including aerial imagery, where its ability to process multiple prompt types enables flexible segmentation workflows that can adapt to different user requirements and annotation strategies.
+The Segment Anything Model (SAM) provides a foundational approach to semantic segmentation through its prompt-based architecture, as illustrated in Figure~\ref{fig:sam_architecture}. SAM's design incorporates three key components that work in concert to achieve exceptional segmentation performance across diverse domains. The image encoder processes input imagery into rich hierarchical feature representations using a Vision Transformer (ViT) backbone, capturing both fine-grained details and global context essential for understanding complex aerial scenes. The prompt encoder handles various input modalities including points, boxes, and masks, transforming these diverse prompt types into unified embedding representations that guide the segmentation process. The mask decoder utilizes these image and prompt embeddings through a sophisticated attention mechanism to generate precise segmentation boundaries, producing multiple candidate masks with confidence scores that enable robust target selection.
+
+This architecture demonstrates remarkable generalization capabilities across diverse image domains, including aerial imagery, where its ability to process multiple prompt types enables flexible segmentation workflows that can adapt to different user requirements and annotation strategies. The model's foundation training on massive datasets provides strong zero-shot capabilities for aerial imagery, while its prompt-based design allows for interactive refinement of segmentation results through iterative point or box inputs.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=1.0\textwidth]{Images/sam.png}
-\caption{Segment Anything Model (SAM) architecture showing the image encoder, prompt encoder, and mask decoder components. The model processes various prompt types including points, boxes, and text to generate precise segmentation masks.}
+\caption{Segment Anything Model (SAM) architecture showing the image encoder, prompt encoder, and mask decoder components. The model processes various prompt types including points, boxes, and text to generate precise segmentation masks with hierarchical feature processing and attention-based mask generation.}
 \label{fig:sam_architecture}
 \end{figure}
 
-\subsection{Referring Segmentation Models}
+RSRefSeg represents the foundation-model path by coupling a vision-language encoder with a segmentation decoder via a learned prompting bridge mechanism. As shown in Figure~\ref{fig:rsrefseg_architecture}, the architecture integrates SigLIP vision-language encoders with SAM mask decoders through custom prompter networks that convert text semantics into decoder-friendly prompts.
 
-Advanced referring segmentation approaches combine semantic understanding with natural language comprehension to enable text-guided segmentation in aerial imagery contexts.
+The architecture addresses the fundamental challenge of bridging text-vision semantics for precise mask prediction in aerial imagery. The SigLIP encoder processes both the input aerial image and the referring expression, creating aligned representations in a joint embedding space. This vision-language understanding provides the semantic foundation necessary for distinguishing between visually similar objects based on their textual descriptions.
 
-Previous approaches to language-guided segmentation have established important foundations for referring segmentation in natural images. LAVT introduces attention-based fusion mechanisms that align textual and visual features for precise object localization and segmentation. RMSIN advances multi-scale integration strategies that capture objects at different scales and resolutions. FIANet demonstrates the effectiveness of feature interaction architectures that enable sophisticated text-visual reasoning for segmentation tasks.
+The critical innovation lies in the AttnPrompter mechanism, which serves as the bridge between the vision-language understanding and the segmentation generation. This component transforms the text-aligned visual features into the specific prompt formats required by SAM's architecture. The dual-pathway design processes both local token-level and global sentence-level text-visual interactions, generating both sparse prompts (such as point and box coordinates) and dense prompts (such as mask embeddings) that guide SAM's mask decoder toward the target object described in the referring expression.
 
-RSRefSeg represents a specialized approach designed specifically for aerial referring segmentation, as shown in Figure~\ref{fig:rsrefseg_architecture}. The architecture integrates SigLIP2 vision-language encoders with SAM mask decoders through custom prompter networks that process text-guided segmentation requests. The dual-pathway design processes both local token-level and global sentence-level text-visual interactions, generating sparse and dense prompts that enable precise aerial image segmentation guided by natural language descriptions. This architecture addresses the unique challenges of aerial imagery analysis, including varied object scales, complex spatial relationships, and domain-specific terminology requirements.
+SAM's mask decoder receives these carefully constructed prompts and leverages its pretrained segmentation capabilities to generate precise object boundaries. The decoder's attention mechanisms utilize the semantic guidance provided by the prompter to focus on the relevant regions within the aerial image, producing high-quality segmentation masks that accurately capture the boundaries of the referred object even in complex aerial scenes with high object density and varying scales.
+
+This foundation-model approach achieves strong performance through parameter-efficient fine-tuning strategies such as LoRA (Low-Rank Adaptation), which enables effective task-specific adaptation while preserving the powerful pretrained representations learned during foundation model training. The architecture addresses the unique challenges of aerial imagery analysis, including varied object scales, complex spatial relationships, and domain-specific terminology requirements, while benefiting from the robust generalization capabilities inherited from its foundation model components.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{Images/clipsam.png}
-\caption{RSRefSeg architecture overview showing the integration of SigLIP2 vision-language encoder with SAM mask decoder through custom prompter networks for text-guided segmentation. The dual-pathway design processes both local (token-level) and global (sentence-level) text-visual interactions to generate sparse and dense prompts for precise aerial image segmentation.}
+\caption{RSRefSeg architecture overview showing the integration of SigLIP vision-language encoder with SAM mask decoder through the AttnPrompter bridging mechanism. The dual-pathway design processes both local (token-level) and global (sentence-level) text-visual interactions to generate sparse and dense prompts for precise aerial image segmentation guided by natural language descriptions.}
 \label{fig:rsrefseg_architecture}
 \end{figure}
 
