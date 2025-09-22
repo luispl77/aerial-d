@@ -57,11 +57,13 @@ Urban1960SatSeg & 78.05\% & 59.96\% & 28.25\% & 69.35\% & N/A & 87.27\% & N/A \\
 % #############################################################################
 \section{Ablation Studies}
 
+To better understand the contribution of each component in our approach, we conduct a series of targeted ablation studies. These experiments systematically isolate the effects of different expression types, language model choices, and training augmentations. The first ablation examines how rule-based versus LLM-enhanced expressions affect performance across datasets. The second study compares different language models in the enhancement pipeline, evaluating both quality and computational cost. Finally, we assess the impact of historic filter augmentations on model robustness when dealing with archival imagery.
+
 \subsection{Expression Enhancement Ablation}
 
-In order to isolate how each expression type contributes to performance we rerun training on controlled subsets of Aerial-D. The combined model mixes rule-based sentences with two LLM-enhanced variants, which makes it difficult to attribute gains to any single source. We therefore train four lighter RSRefSeg models—rule-based only, enhanced only, unique expressions only, and a combined run—while switching to \texttt{SAM-ViT-Base} and a LoRA rank of $r=16$ so that the ablation can be executed quickly.
+In order to isolate how each expression type contributes to performance we rerun training on controlled subsets of Aerial-D. The combined model mixes rule-based sentences with two LLM-enhanced variants, which makes it difficult to attribute gains to any single source. We therefore train four RSRefSeg models using the same architecture—rule-based only, enhanced only, unique expressions only, and a combined run—to understand how much signal each subset contributes to model performance.
 
-Each checkpoint is evaluated on the Aerial-D validation split and on three external datasets without additional fine-tuning. Table~\ref{tab:ablation_expression_types} lists the number of samples processed, the number of epochs completed, and the resulting mIoU/oIoU scores. The combined configuration unsurprisingly wins on Aerial-D with \textbf{49.33\%} mIoU and \textbf{64.30\%} oIoU, mirroring the validation distribution. However, the specialized subsets generalize best elsewhere: the language-focused Enhanced Only model reaches \textbf{41.63\%} mIoU and \textbf{42.48\%} oIoU on RRSIS-D, while the visually grounded Unique Expressions Only split delivers \textbf{24.68\%} mIoU and \textbf{29.22\%} oIoU on NWPU-Refer. RefSegRS benefits from combining language and visual cues, with the combined run nudging ahead of the others.
+Each checkpoint is evaluated on the Aerial-D validation split and on three external datasets without additional fine-tuning. Table~\ref{tab:ablation_expression_types} lists the number of samples processed, the number of epochs completed, and the resulting mIoU/oIoU scores. The combined configuration unsurprisingly wins on Aerial-D with 49.33\% mIoU and 64.30\% oIoU, mirroring the validation distribution. However, the specialized subsets generalize best elsewhere: the language-focused Enhanced Only model reaches 41.63\% mIoU and 42.48\% oIoU on RRSIS-D, while the visually grounded Unique Expressions Only split delivers 24.68\% mIoU and 29.22\% oIoU on NWPU-Refer. RefSegRS benefits from combining language and visual cues, with the combined run nudging ahead of the others.
 
 We monitor validation loss for each run and stop as soon as it rebounds, leading to two epochs for the much larger combined subset and four epochs for the smaller splits. Although the specialized models see fewer total samples, they often outperform the full mixture on external benchmarks, confirming that targeted expression diversity is more valuable than sheer volume. This result directly motivates using the unique-only slice when mixing Aerial-D with other datasets in the combined training experiments.
 
@@ -87,9 +89,11 @@ Combined All & 1{,}118K & 2 & \textbf{49.33\%} & \textbf{64.30\%} & \textbf{18.8
 
 \subsection{Distillation Ablation: Gemma3 vs. o3 Model Comparison}
 
+Recall from Chapter~\ref{chap:implement} that the LLM enhancement phase allows us to transform rule-based expressions into more natural, diverse referring expressions using large language models. This component of the pipeline gives us the flexibility to choose different LLM architectures depending on quality requirements and computational constraints. To understand how this choice affects both annotation quality and practical deployment considerations, we conduct an ablation study comparing different language models within the enhancement pipeline.
+
 We also need to understand how the choice of language model inside the enhancement pipeline affects annotation quality and operating cost. Using o3 for every expression yields high-quality rewrites but is prohibitively expensive, while the off-the-shelf Gemma3-12B often hallucinates objects and locations that are absent from the imagery. To reconcile quality and cost, we distill o3 outputs~\cite{o3} into the Gemma3-Aerial model introduced in Chapter~\ref{chap:implement}~\cite{gemma3}, keeping the same prompting and decoding strategy across all generators. Fine-tuning uses QLoRA~\cite{qlora}, and large-scale inference runs efficiently with vLLM~\cite{vllm}.
 
-Figure~\ref{fig:distillation_comparison} shows the qualitative effect: the base Gemma3 description invents a second baseball diamond, whereas the distilled model matches the grounded detail of the o3 response. Table~\ref{tab:cost_comparison} quantifies the economics. Processing roughly 300{,}000 targets with o3 would cost \$6{,}218.32, while the distilled Gemma3 executes locally for \$26.01—about 238× cheaper—because inference no longer depends on a commercial API. The saving is large enough to make multi-pass enhancements feasible even on academic budgets.
+Figure~\ref{fig:distillation_comparison} shows the qualitative effect: the base Gemma3 description invents a second baseball diamond, whereas the distilled model matches the grounded detail of the o3 response. Table~\ref{tab:cost_comparison} quantifies the economics. Processing roughly 300{,}000 targets with o3 would cost \$6{,}218.32, while the distilled Gemma3 executes locally for \$26.01—about 238× cheaper—because the o3 model is much larger and requires significantly more computational resources to run compared to Gemma3. The saving is large enough to make multi-pass enhancements feasible even on academic budgets.
 
 These findings confirm that distillation transfers both linguistic fidelity and grounding accuracy while drastically lowering the marginal cost of annotation. The distilled model therefore underpins all large-scale expression generation throughout the project.
 
@@ -125,9 +129,8 @@ Gemma3-Aerial-12B & the orange baseball field with a chainlink fence surrounded 
 
 \begin{table}[t]
 \centering
-\caption{Cost analysis: Gemma3 vs. o3 model for large-scale annotation\protect\footnotemark}
+\caption{Cost analysis: Gemma3 vs. o3 model for large-scale annotation}
 \label{tab:cost_comparison}
-\resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}lcc@{}}
 \toprule
 \textbf{Model} & \textbf{Cost per request} & \textbf{Cost for 300K requests} \\
@@ -137,16 +140,16 @@ Distilled Gemma3 & \$0.000087 & \$26.01 \\
 \midrule
 \textbf{Savings} & \textbf{238× cheaper} & \textbf{\$6{,}192.31 (99.6\%)} \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
 \end{table}
-\footnotetext{Cost calculations based on API pricing—o3: \$2.00 per million input tokens, \$8.00 per million output tokens (OpenAI API platform); Gemma3-12B: \$0.035 per million input tokens, \$0.141 per million output tokens (OpenRouter inference provider). Average tokens per request: o3 (1,670.8 input, 2,173.3 output), Gemma3 (1,330.0 input, 284.7 output). Calculations based on 15 sample requests.}
+
+The cost calculations are based on current API pricing: o3 costs \$2.00 per million input tokens and \$8.00 per million output tokens on the OpenAI API platform, while Gemma3-12B costs \$0.035 per million input tokens and \$0.141 per million output tokens through the OpenRouter inference provider. The average tokens per request are 1,670.8 input and 2,173.3 output for o3, compared to 1,330.0 input and 284.7 output for Gemma3, calculated based on 15 sample requests.
 
 \subsection{Historic Filter Ablation Study}
 
 Finally, we evaluate how much the historic-filter augmentation contributes to robustness by retraining the combined model without injecting filtered images. Models trained solely on clean, contemporary imagery often falter when archival photographs introduce monochrome toning, contrast loss, or sepia casts. Removing the filters exposes whether robustness stems from the augmentation or from dataset diversity alone.
 
-Table~\ref{tab:historic_ablation_results} reports the outcome using the same metric format as the combined evaluation. Without filter injections the model gains a few points on the clean validation splits—for instance RRSIS-D climbs to \textbf{64.36\%} mIoU—but it loses resilience on the historic versions. RefSegRS suffers the most, dropping from \textcolor{blue}{32.79\%} to \textcolor{blue}{27.73\%} mIoU and from \textcolor{blue}{36.74\%} to \textcolor{blue}{32.21\%} oIoU when confronted with filtered validation imagery. The Aerial-D and NWPU-Refer historic splits also shed several points, illustrating that the augmentation specifically protects datasets whose semantics depend on subtle colour and contrast cues.
+Table~\ref{tab:historic_ablation_results} reports the outcome using the same metric format as the combined evaluation. Without filter injections the model gains a few points on the clean validation splits—for instance RRSIS-D climbs to 64.36\% mIoU—but it loses resilience on the historic versions. RefSegRS suffers the most, dropping from \textcolor{blue}{32.79\%} to \textcolor{blue}{27.73\%} mIoU and from \textcolor{blue}{36.74\%} to \textcolor{blue}{32.21\%} oIoU when confronted with filtered validation imagery. The Aerial-D and NWPU-Refer historic splits also shed several points, illustrating that the augmentation specifically protects datasets whose semantics depend on subtle colour and contrast cues.
 
 These results confirm that modest exposure to historic degradations during training is enough to stabilise performance when evaluation imagery undergoes the same transformations. We therefore keep the filter injections in the final combined recipe despite the small trade-off in clean-split accuracy.
 
