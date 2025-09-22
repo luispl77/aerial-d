@@ -223,6 +223,24 @@ python o3_enhance.py --dataset_dir ../datagen/dataset
 - Do NOT execute scripts with Bash tool - only create/modify them
 - Always inform user when scripts are ready to be run
 
+### 0.2. **TODO.md Development Strategy**
+
+- **Task Management**: All development tasks are tracked in the root-level `TODO.md` file
+- **Workflow Process**:
+  1. User writes tasks/issues in `TODO.md`
+  2. Claude and user collaboratively solve the tasks
+  3. After implementing changes and preparing them for user inspection, mark the completed task lines with `[FIXED]` prefix in `TODO.md`
+  4. Keep `TODO.md` as the single source of truth for both pending and completed work
+- **Task Format**: Tasks in `TODO.md` should be clear, actionable items that can be tracked and completed
+- **Completion Criteria**: A task is marked with `[FIXED]` when:
+  - The implementation is complete
+  - Changes are ready for user review/inspection
+  - The specific issue or requirement has been fully addressed
+- **Status Tracking**:
+  - Active tasks: No prefix
+  - Completed tasks: `[FIXED]` prefix
+  - This provides a complete history of work while clearly showing current status
+
 ### 1. **File Paths**
 
 - Always use absolute paths starting with `/cfs/home/u035679/aerialseg/`
