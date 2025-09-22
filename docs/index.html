@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aerial-D: Open-Vocabulary Aerial Image Segmentation Dataset</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 10px;
+            line-height: 1.6;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logos {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 30px;
+        }
+        .logo {
+            height: 80px;
+            object-fit: contain;
+        }
+        .title {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin: 20px 0;
+            color: #2c3e50;
+        }
+        .author {
+            font-size: 1.3em;
+            margin: 15px 0;
+            color: #555;
+        }
+        .links {
+            margin: 25px 0;
+        }
+        .links a {
+            display: inline-block;
+            margin: 5px 10px;
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        .links a:hover {
+            background-color: #2980b9;
+        }
+        .dataset-section {
+            margin: 40px 0;
+            text-align: center;
+        }
+        .dataset-image {
+            max-width: 95%;
+            width: 1100px;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            margin: 20px auto;
+            display: block;
+        }
+        .overview {
+            font-size: 1.1em;
+            text-align: left;
+            line-height: 1.7;
+            margin: 10px 0;
+            color: #444;
+            padding: 0 10px;
+        }
+        .download-links {
+            margin: 30px 0;
+        }
+        .download-links a {
+            display: inline-block;
+            margin: 10px 15px;
+            padding: 12px 25px;
+            background-color: #e74c3c;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .download-links a:hover {
+            background-color: #c0392b;
+        }
+        .github-link {
+            background-color: #333 !important;
+        }
+        .github-link:hover {
+            background-color: #555 !important;
+        }
+        .huggingface-link {
+            background-color: #ff6b35 !important;
+        }
+        .huggingface-link:hover {
+            background-color: #e55a2b !important;
+        }
+        .paper-coming-soon {
+            background-color: #95a5a6 !important;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .contact {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px 0;
+            border-top: 1px solid #ddd;
+            color: #666;
+        }
+        .contact a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        .contact a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logos">
+            <img src="inesc_logo.png" alt="INESC-ID Logo" class="logo">
+            <img src="ist_logo.png" alt="IST Logo" class="logo">
+        </div>
+
+        <h1 class="title">Aerial-D: Open-Vocabulary Semantic Segmentation of Aerial Photos</h1>
+
+        <div class="author">Luís Marnoto</div>
+
+        <div class="links">
+            <a href="#" class="paper-coming-soon">📄 Paper (Coming Soon)</a>
+            <a href="https://huggingface.co/datasets/luisml77/aerial-d" target="_blank" class="huggingface-link">🤗 Download from Hugging Face</a>
+            <a href="https://github.com/luispl77/aerialseg" target="_blank" class="github-link"><img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 5px;">GitHub</a>
+        </div>
+    </div>
+
+    <div class="dataset-section">
+        <p class="overview">Referring expression segmentation is a fundamental task in computer vision that integrates natural language understanding with precise visual localization. Applying this to aerial imagery presents unique challenges due to high object densities and geographic complexities. We introduce <strong>Aerial-D</strong>, the largest referring expression segmentation dataset for aerial imagery to date, comprising <strong>37,288 image patches</strong> with <strong>1,522,523 referring expressions</strong> covering <strong>259,709 annotated targets</strong> across individual objects, groups, and semantic categories spanning <strong>21 distinct classes</strong> from vehicles and infrastructure to land cover types. The dataset represents the <strong>first fully automatic construction pipeline</strong> in this field, using systematic rule-based expression generation followed by <strong>Large Language Model enhancement</strong> that significantly enriched both the linguistic variety and visual detail richness of the referring expressions.</p>
+
+        <img src="dataset.png" alt="Aerial-D Dataset Examples" class="dataset-image">
+    </div>
+
+    <div class="contact">
+        <p>Contact: <a href="mailto:maarnotto@gmail.com">maarnotto@gmail.com</a></p>
+    </div>
+</body>
+</html>
