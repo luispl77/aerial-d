@@ -1,36 +1,31 @@
-# Gemma 3 with Hugging Face Transformers
+## LLM Enhancement and Fine‑Tuning (Gemma 3)
 
-This repository shows how to run and fine‑tune Google’s Gemma 3 models using the [transformers](https://github.com/huggingface/transformers) library.
+Enhance Aerial‑D expressions and fine‑tune a Gemma 3 model via LoRA for aerial domain language understanding.
 
-## Setup
+### Setup
+- Install dependencies from repo root: `pip install -r ../requirements.txt`
+- Optional: `huggingface-cli login` for model access/push
 
-Create a Python environment and install dependencies:
-
+### Enhance expressions
+Generate enhanced/unique expressions from Aerial‑D annotations.
 ```bash
-python -m venv gemma-env
-source gemma-env/bin/activate
-pip install -r requirements.txt
+python gemma3_enhance.py --input_dir ../datagen/dataset --output_dir enhanced_output
+python o3_enhance.py --dataset_dir ../datagen/dataset
 ```
 
-Log in to the Hugging Face Hub if required:
+Outputs are written under `./enhanced_*` directories with per‑object/group folders and JSON files.
 
+### Fine‑tune Gemma 3 with LoRA
 ```bash
-huggingface-cli login
+python gemma3_lora_finetune.py \
+  --enhanced_data_dir enhanced_annotations_o3_dual \
+  --model_name gemma-aerial-12b \
+  --output_dir ./gemma-aerial-12b \
+  --lora_r 64 --lora_alpha 16
 ```
 
-## Documentation
+Result: a domain‑adapted Gemma 3 checkpoint usable to diversify expressions or generate natural language prompts for training/evaluation.
 
-* **Running models:** see [docs/gemma3_transformers.md](docs/gemma3_transformers.md) for examples covering text and multimodal checkpoints with chat templates.
-* **Enforcing JSON output:** see [docs/enforcing_json_output.md](docs/enforcing_json_output.md).
-* **Fine-tuning (SFT / LoRA):** see [docs/fine_tuning_sft_lora.md](docs/fine_tuning_sft_lora.md).
-
-
-## Setup
-
-Create a Python environment and install dependencies:
-
-```bash
-python -m venv gemma-env
-source gemma-env/bin/activate
-pip install -r requirements.txt
-
+### Notes
+- CUDA not required for enhancement, recommended for fine‑tuning
+- Keep outputs versioned to trace which expressions/models were used

@@ -1,0 +1,70 @@
+# AerialSeg Combined Requirements
+# Consolidated from datagen/, clipsam/, and llm/ requirements
+
+# Core ML/DL packages
+torch==2.7.1
+torchvision==0.22.1
+transformers==4.52.4
+accelerate==1.7.0
+peft==0.15.2
+torchmetrics
+trl==0.18.1
+bitsandbytes==0.46.0
+
+# Data processing and image handling
+numpy==2.2.4
+pillow==11.2.1
+opencv-python==4.11.0.86
+einops
+pandas
+scikit-learn==1.6.1
+scikit-image
+scipy
+
+# Computer Vision and COCO utilities
+pycocotools==2.0.8
+
+# Plotting and visualization
+matplotlib==3.10.3
+seaborn>=0.12.2
+
+# Progress bars and utilities
+tqdm==4.67.1
+setproctitle
+
+# Web framework for inference apps
+flask
+werkzeug
+
+# Hugging Face integration
+huggingface_hub
+hf_transfer
+datasets==3.6.0
+
+# Cloud and API services
+google-cloud-storage
+vertexai
+google-genai
+openai==1.85.0
+
+# Data download and management
+kagglehub
+kaggle
+
+# Evaluation and monitoring
+evaluate==0.4.3
+tensorboard==2.19.0
+
+# Text processing
+sentencepiece==0.2.0
+tiktoken
+wordcloud
+
+# Utilities
+absl-py
+dotenv==0.9.9
+pydantic==2.11.5
+protobuf==6.31.1
+
+# Note: flash-attn is commented out due to compatibility issues with fine-tuning
+# flash-attn
