@@ -59,4 +59,4 @@ If you use this repository, please cite the dataset and (when available) the the
 Issues and pull requests are welcome. Please open an issue to discuss substantial changes.
 
 ## Contact
-For questions, please open an issue on the repository.
+For questions, please contact: [maarnotto@gmail.com](mailto:maarnotto@gmail.com) or open an issue on the repository.
