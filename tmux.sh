@@ -16,6 +16,7 @@ tmux select-layout -t aerial:cli tiled
 
 # Setup cli window panes
 # Top left: vim netrw
+tmux send-keys -t aerial:cli.0 'cd aerialseg' Enter
 tmux send-keys -t aerial:cli.0 'vim ./' Enter
 
 # Top right: git diff ready (pane index 1 after tiling)
