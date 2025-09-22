@@ -6,136 +6,27 @@
 
 ![AerialSeg dataset example](docs/dataset.png)
 
-AerialSeg is an open‑source framework for segmenting aerial images from natural‑language prompts. It includes an automatic dataset pipeline (Aerial‑D), a SigLIP+SAM model (ClipSAM), and LLM tooling (Gemma3/O3) for expression enhancement and evaluation in remote sensing.
+AerialSeg is an open‑source framework for segmenting aerial images from natural‑language prompts. It includes:
+- Aerial‑D: an automatic dataset pipeline for building referring expressions over aerial imagery
+- ClipSAM: a SigLIP+SAM model for referring segmentation
+- LLM tooling: Gemma3/OpenAI utilities for enhancing expressions and fine‑tuning
 
-### Highlights
-- **Dataset generation (Aerial‑D)**: iSAID + LoveDA → rule‑based expressions → uniqueness filtering → optional LLM enhancement
-- **ClipSAM model**: SigLIP text/image encoders + SAM decoder, optional domain adaptation and LoRA fine‑tuning
-- **LLM enhancement**: Gemma3/OpenAI pipelines for diverse, natural expressions used in training/evaluation
-- **Viewers**: Flask tools to browse rule‑based and LLM‑enhanced annotations
+Use the root `requirements.txt` for dependencies.
 
 ---
 
 ## Aerial‑D Generation Pipeline
-
-- Folder: `datagen/`
-- Environment:
-```bash
-conda activate aerial-seg-datagen
-# if you don't have it yet:
-# conda create -n aerial-seg-datagen python=3.10 -y
-pip install -r datagen/requirements.txt
-```
-- Data prerequisites:
-  - Place iSAID under `datagen/isaid/`
-  - Place LoveDA under `datagen/LoveDA/`
-  - (Optional) DeepGlobe roads under `datagen/`
-
-Generate the dataset:
-```bash
-cd datagen
-./pipeline/run_pipeline.sh                      # full pipeline
-./pipeline/run_pipeline.sh --num_images 100     # small sample
-./pipeline/run_pipeline.sh --clean --zip        # optional cleanup + zip
-```
-
-Outputs:
-- Written to `datagen/dataset/` (images, XML annotations with RLE masks, debug)
-- Train/val splits as produced by the pipeline
-
-View the results:
-```bash
-python utils/app.py --split train --port 5001       # LLM‑enhanced viewer
-python utils/rule_viewer.py --split val --port 5002 # rule‑based viewer
-```
-
-Replicate the Aerial‑D release:
-- Run the full pipeline including uniqueness filtering and historic processing (steps included in `run_pipeline.sh`)
-- Optionally run LLM enhancement (see LLM section below) to add enhanced/unique expressions
+First, we build the dataset. We take aerial images and automatically write short descriptions for each object, then keep only the ones that clearly point to a single target. When needed, we also produce a "historic" version to stress‑test robustness. To reproduce the fully automatic pipeline from the paper, see `datagen/README.md` and [Section 4](https://luispl77.github.io/aerialseg#section-4).
 
 ---
 
-## Model Training and Testing
-
-- Folder: `clipsam/`
-- Environment:
-```bash
-conda activate aerial-seg
-# if you don't have it yet:
-# conda create -n aerial-seg python=3.10 -y
-pip install -r clipsam/requirements.txt
-```
-- Data: Use Aerial‑D outputs under `datagen/dataset/`
-
-Train on Aerial‑D:
-```bash
-cd clipsam
-python train.py --epochs 5 --batch_size 4 --lr 1e-4
-
-# Optional: domain adaptation
-python train.py --enable_grl --grl_lambda_schedule exponential
-
-# Resume training (point to existing run folder)
-python train.py --resume --custom_name <run_folder>
-```
-
-Expression selection (choose at most one):
-```bash
-python train.py --unique_only
-python train.py --original_only
-python train.py --enhanced_only
-```
-
-Train on Aerial‑D + four additional datasets (RRSISD, RefSegRS, NWPU‑Refer, Urban1960SatBench):
-```bash
-python train.py --use_all_datasets \
-  --rrsisd_root ../datagen/rrsisd \
-  --refsegrs_root ../datagen/refsegrs/RefSegRS \
-  --nwpu_root ../datagen/NWPU-Refer \
-  --urban1960_root ../datagen/Urban1960SatBench
-```
-
-Evaluate and visualize:
-```bash
-python test.py --model_name <checkpoint_dir_name>
-python test.py --vis_only --num_vis 50
-```
-
-Checkpoints:
-- Saved under `clipsam/models/clip_sam_YYYYMMDD_HHMMSS_epochs{N}_bs{B}_lr{LR}`
+## Model Training and Testing (RSRefSeg)
+Next, we teach the model to follow text and segment the right thing. The RSRefSeg architecture is trained on Aerial‑D and can also be trained jointly with RRSISD, RefSegRS, NWPU‑Refer, and Urban1960SatBench to test transfer. To reproduce the results reported in the paper, follow `clipsam/README.md` and see [Table 3](https://luispl77.github.io/aerialseg#table-3) and [Table 6](https://luispl77.github.io/aerialseg#table-6).
 
 ---
 
 ## LLM Fine‑Tuning Pipeline
-
-- Folder: `llm/`
-- Environment:
-```bash
-conda activate gemma3
-# if you don't have it yet:
-# conda create -n gemma3 python=3.10 -y
-pip install -r llm/requirements.txt
-```
-
-Enhance expressions (optional):
-```bash
-cd llm
-python gemma3_enhance.py --input_dir ../datagen/dataset --output_dir enhanced_output
-python o3_enhance.py --dataset_dir ../datagen/dataset
-```
-
-Fine‑tune Gemma 3 with LoRA:
-```bash
-python gemma3_lora_finetune.py \
-  --enhanced_data_dir enhanced_annotations_o3_dual \
-  --model_name gemma-aerial-12b \
-  --output_dir ./gemma-aerial-12b \
-  --lora_r 64 --lora_alpha 16
-```
-
-Outputs:
-- Fine‑tuned model directory under `llm/`
-- Usable for generating/refining expressions to feed into training and evaluation
+Finally, we polish the language. After the rule‑based pipeline, the descriptions are rewritten by language models, which makes them more natural and visually informative. The `llm/` folder has the code to train the Gemma 3 model (QLoRA) used for this large‑scale enhancement, plus O3‑based augmentation. To recreate these results, use `llm/README.md` and the paper’s LLM section ([link](https://luispl77.github.io/aerialseg#llm-finetuning)).
 
 ---
 
