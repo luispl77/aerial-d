@@ -31,14 +31,14 @@ Dissertation writing:
 - 5.3 -  poorly written introduction to section. "Our main experiment" or "We first begin our experimentations with training a single model on all 5 datasets, while testing it also on all of them". 
 - 5.3 percentages overflowing the paper
 - 5.3 -  the model does not match or exceed, it has comparable results to the results reported in those papers
-- 5.4 - missing root of the section
-- 5.4.1 - do not mention the change in SAM model since we are now only using Base and rank 16. 
-- 5.4.1 - inconsistency with percentages being bold in this section but not on the others
-- 5.4.2 -  no reminder of the LLM enhancement phase and how we can choose a different LLM etc, therefore we do ablation to see the impact of switching LLMs etc
-- 5.4.2 -  table 5.3 is huge
-- 5.4.2 - because infrence no longer depends on a comercial api is wrong, its because the o3 model is much larger and requires a lot more compute to run compared to gemma3
-- 5.4.2 - footnote might not be allowed in dissertation
-- 5.4.3 -  table needs update to the results
+- [FIXED] 5.4 - missing root of the section
+- [FIXED] 5.4.1 - do not mention the change in SAM model since we are now only using Base and rank 16. 
+- [FIXED] 5.4.1 - inconsistency with percentages being bold in this section but not on the others
+- [FIXED] 5.4.2 -  no reminder of the LLM enhancement phase and how we can choose a different LLM etc, therefore we do ablation to see the impact of switching LLMs etc
+- [FIXED] 5.4.2 -  table 5.3 is huge
+- [FIXED] 5.4.2 - because infrence no longer depends on a comercial api is wrong, its because the o3 model is much larger and requires a lot more compute to run compared to gemma3
+- [FIXED] 5.4.2 - footnote might not be allowed in dissertation
+- [FIXED] 5.4.3 -  table needs update to the results
 - 6 - do not say AerialSeg
 - 6 - root should preface the next two sections, "we finalize the work by concluding over the accomplishements, and also looking ahead into the future to extensions of this work and directions" something on those lines
 - 6.2 - such as GPT-5 eg o3 is strange, which is it
