@@ -1,5 +1,7 @@
 ## AerialSeg: Open‑Vocabulary Aerial Image Segmentation with Referring Expressions
 
+> 📝 **Documentation under construction** - The codebase is complete, but README files and documentation are being finalized.
+
 [![Project Page](https://img.shields.io/badge/Project%20Page-visit-blue)](https://luispl77.github.io/aerialseg)
 [![Dataset](https://img.shields.io/badge/Dataset-HuggingFace-orange)](https://huggingface.co/datasets/luisml77/aerial-d)
 [![Paper](https://img.shields.io/badge/Paper-Coming%20Soon-lightgrey)](#)
