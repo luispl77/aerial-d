@@ -39,13 +39,13 @@ Dissertation writing:
 - 5.4.2 - because infrence no longer depends on a comercial api is wrong, its because the o3 model is much larger and requires a lot more compute to run compared to gemma3
 - 5.4.2 - footnote might not be allowed in dissertation
 - 5.4.3 -  table needs update to the results
-- 6 - do not say AerialSeg
-- 6 - root should preface the next two sections, "we finalize the work by concluding over the accomplishements, and also looking ahead into the future to extensions of this work and directions" something on those lines
-- 6.2 - such as GPT-5 eg o3 is strange, which is it
-- 6.2 - gemini 2.5 citation is wrong, pixel level understanding is not advartised like that or in those words
+- [FIXED] 6 - do not say AerialSeg
+- [FIXED] 6 - root should preface the next two sections, "we finalize the work by concluding over the accomplishements, and also looking ahead into the future to extensions of this work and directions" something on those lines
+- [FIXED] 6.2 - such as GPT-5 eg o3 is strange, which is it
+- [FIXED] 6.2 - gemini 2.5 citation is wrong, pixel level understanding is not advartised like that or in those words
 - Appendix A - missing reference to it on LLM enhancement section. Missing also description of complex dual image prompting tactic on LLM enhancement section
 - missing list of acronyms
-
+- We need to stick all figures to the top of the page
 Code: 
 
 root README.md: 
