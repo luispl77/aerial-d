@@ -10,22 +10,19 @@ Dissertation writing:
 - 3.1.2 - missing citations after RefSegRS, RRSIS-D, and many others. Citations should not be at the end of paragraphs like that [FIXED]
 - 3.1.2 - no mention of figure 3.3 in the text [FIXED]
 - 3.1.3 - citations missing for UrbanSatSeg1960 [FIXED]
-- 3.1.3 - missing mention to figure 3.4 and to all tables in text [FIXED]
- 
-- 3.2 - missing citations for CLIP and SigLIP, and others. [FIXED]
-- 3.2 - missing citation to RSRefSeg , citations go directly after the first mentions of those resources [FIXED]
-- 3.1.3 - missing statistics for UrbanSatSeg1960 in tables
- 
-- 4 - Aerial-D, not AerialD
-- 4.1 - Aerial-D not AerialD
-- 4.2 - Repeated explanation of LoveDA conversion to instance segmenation due to poor transition between those paragraphs
-- 4.2 - missing citation to DBSCAN
-- 4.3 - Large Language Models not in upper case and missing acronym after.
-- 4.3 - missing citation to GPT-5 and o3
-- 4.3 - could cost thousands of dollars, not hundreds, mention to the ablation study section which shows those costs
-- 4.3 - citations need to appear after the keyword is mentioned at all times, for instance QLoRA 
-- 4.4 - equation 4.6 is hanging alone
-- 4.5 - Aerial-D not AerialD, also on figure 4.6 caption
+- 3.1.3 - missing mention to figure 3.4 and to all tables in text
+- 3.2 - missing citations for CLIP and SigLIP, and others. 
+- 3.2 - missing citation to RSRefSeg , citations go directly after the first mentions of those resources
+- [FIXED] 4 - Aerial-D, not AerialD
+- [FIXED] 4.1 - Aerial-D not AerialD
+- [FIXED] 4.2 - Repeated explanation of LoveDA conversion to instance segmenation due to poor transition between those paragraphs
+- [FIXED] 4.2 - missing citation to DBSCAN
+- [FIXED] 4.3 - Large Language Models not in upper case and missing acronym after.
+- [FIXED] 4.3 - missing citation to GPT-5 and o3
+- [FIXED] 4.3 - could cost thousands of dollars, not hundreds, mention to the ablation study section which shows those costs
+- [FIXED] 4.3 - citations need to appear after the keyword is mentioned at all times, for instance QLoRA 
+- [FIXED] 4.4 - equation 4.6 is hanging alone
+- [FIXED] 4.5 - Aerial-D not AerialD, also on figure 4.6 caption
 - 5 - do not say AerialSeg
 - 5 - root is poorly written, we should start with a carry over of the dataset we have just built in the previous chapter and how we will now use it to experiment, in addition to other datasets, to train and evaluate models. Remove the strange prompt to every figure table etc, clearly an error
 - 5.1 - missing citations to PyTorch and even LoRA and others. It is not fine tuned for aerial imagery out of the box, the LoRA matrices are what we train as per the RSRefSeg paper, plus the attention prompter. Consider revisiting the description of RSRefSeg in related work to better explain the role of attnprompter
