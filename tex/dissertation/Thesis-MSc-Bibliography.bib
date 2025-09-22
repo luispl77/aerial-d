@@ -830,17 +830,189 @@ This thesis presents an analysis of the various techniques, architectures and co
 	Bdsk-File-1 = {YnBsaXN0MDDUAQIDBAUGJCVYJHZlcnNpb25YJG9iamVjdHNZJGFyY2hpdmVyVCR0b3ASAAGGoKgHCBMUFRYaIVUkbnVsbNMJCgsMDxJXTlMua2V5c1pOUy5vYmplY3RzViRjbGFzc6INDoACgAOiEBGABIAFgAdccmVsYXRpdmVQYXRoWWFsaWFzRGF0YV8QRS4uLy4uL1RoZXNpcy9wYXBlcnMvTmd1eWVuLzIwMDlBIFAyUCBWaWRlbyBEZWxpdmVyeSBOZXR3b3JrIChQMlAtVkROKdIXCxgZV05TLmRhdGFPEQH4AAAAAAH4AAIAAApNYWNCb29rSEREAAAAAAAAAAAAAAAAAAAAAADMSGtGSCsAAAABr5gfMjAwOUEgUDJQIFZpZGVvIERlbGl2ZXJ5ICMxQUY3RAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGvfc1JdkIAAAAAAAAAAAACAAQAAAkAAAAAAAAAAAAAAAAAAAAABk5ndXllbgAQAAgAAMxIXTYAAAARAAgAAM1JdkIAAAABABAAAa+YAAGvbgABr2cAAFclAAIAS01hY0Jvb2tIREQ6RHJvcGJveDoAVGhlc2lzOgBwYXBlcnM6AE5ndXllbjoAMjAwOUEgUDJQIFZpZGVvIERlbGl2ZXJ5ICMxQUY3RAAADgBWACoAMgAwADAAOQBBACAAUAAyAFAAIABWAGkAZABlAG8AIABEAGUAbABpAHYAZQByAHkAIABOAGUAdAB3AG8AcgBrACAAKABQADIAUAAtAFYARABOACkADwAWAAoATQBhAGMAQgBvAG8AawBIAEQARAASAEgvRHJvcGJveC9UaGVzaXMvcGFwZXJzL05ndXllbi8yMDA5QSBQMlAgVmlkZW8gRGVsaXZlcnkgTmV0d29yayAoUDJQLVZETikAEwATL1ZvbHVtZXMvTWFjQm9va0hERAD//wAAgAbSGxwdHlokY2xhc3NuYW1lWCRjbGFzc2VzXU5TTXV0YWJsZURhdGGjHR8gVk5TRGF0YVhOU09iamVjdNIbHCIjXE5TRGljdGlvbmFyeaIiIF8QD05TS2V5ZWRBcmNoaXZlctEmJ1Ryb290gAEACAARABoAIwAtADIANwBAAEYATQBVAGAAZwBqAGwAbgBxAHMAdQB3AIQAjgDWANsA4wLfAuEC5gLxAvoDCAMMAxMDHAMhAy4DMQNDA0YDSwAAAAAAAAIBAAAAAAAAACgAAAAAAAAAAAAAAAAAAANN},
 	Bdsk-Url-1 = {http://dx.doi.org/10.1109/ICCCN.2009.5235364}}
 
-@inproceedings{Seyyedi:2011qy,
-	Abstract = {There are two main scalable methods for streaming live video over the Internet: Content Delivery Networks (CDNs) and Peer-to-Peer (P2P) networks. Though both have their own problems, P2P streaming systems challenge delivering video with constant quality and CDNs approaches require deployment of large number of servers throughout the Internet that is costly. Recently, using hybrid architectures based on both CDN and P2P networks has shown to be an efficient approach for large-scale video distribution over the Internet. This paper is compared the performance of two main hybrid CDN-P2P architectures includes: (i) CDN-P2P unconnected mesh in which independent P2P mesh networks are constructed under each CDN node, and (ii) CDN-P2P connected mesh in which CDN nodes and peers participate in construction of a single P2P mesh network. The comparison is preformed in addition, to the pure mesh-based P2P video streaming, using extensive simulation and based on different QoS metrics.},
-	Author = {Seyyedi, S.M.Y. and Akbari, B.},
-	Booktitle = {Computer Networks and Distributed Systems (CNDS), 2011 International Symposium on},
-	Date-Added = {2013-02-19 18:26:53 +0000},
-	Date-Modified = {2013-05-03 15:55:33 +0000},
-	Doi = {10.1109/CNDS.2011.5764567},
-	Keywords = {Bit rate;Computer architecture;Delay;Internet;Peer to peer computing;Servers;Streaming media;Internet;peer-to-peer computing;quality of service;video streaming;Internet;QoS;content delivery networks;large-scale video distribution;mesh-based P2P video streaming;peer-to-peer networks;quality of service;Hybrid CDN-P2P;Peer-to-Peer systems;Video streaming;},
-	Month = {feb.},
-	Pages = {175 -180},
-	Title = {{Hybrid CDN-P2P architectures for live video streaming: Comparative study of connected and unconnected meshes}},
-	Year = {2011},
-	Bdsk-File-1 = {YnBsaXN0MDDUAQIDBAUGJCVYJHZlcnNpb25YJG9iamVjdHNZJGFyY2hpdmVyVCR0b3ASAAGGoKgHCBMUFRYaIVUkbnVsbNMJCgsMDxJXTlMua2V5c1pOUy5vYmplY3RzViRjbGFzc6INDoACgAOiEBGABIAFgAdccmVsYXRpdmVQYXRoWWFsaWFzRGF0YV8QSy4uLy4uL1RoZXNpcy9wYXBlcnMvU2V5eWVkaS8yMDExSHlicmlkIENETi1QMlAgYXJjaGl0ZWN0dXJlcyBmb3IgbGl2ZSB2aWRlb9IXCxgZV05TLmRhdGFPEQIKAAAAAAIKAAIAAApNYWNCb29rSEREAAAAAAAAAAAAAAAAAAAAAADMSGtGSCsAAAABr5kfMjAxMUh5YnJpZCBDRE4tUDJQIGFyY2hpdCMxQUY3RgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGvf81JdIkAAAAAAAAAAAACAAQAAAkAAAAAAAAAAAAAAAAAAAAAB1NleXllZGkAABAACAAAzEhdNgAAABEACAAAzUl0iQAAAAEAEAABr5kAAa9uAAGvZwAAVyUAAgBMTWFjQm9va0hERDpEcm9wYm94OgBUaGVzaXM6AHBhcGVyczoAU2V5eWVkaToAMjAxMUh5YnJpZCBDRE4tUDJQIGFyY2hpdCMxQUY3RgAOAGAALwAyADAAMQAxAEgAeQBiAHIAaQBkACAAQwBEAE4ALQBQADIAUAAgAGEAcgBjAGgAaQB0AGUAYwB0AHUAcgBlAHMAIABmAG8AcgAgAGwAaQB2AGUAIAB2AGkAZABlAG8ADwAWAAoATQBhAGMAQgBvAG8AawBIAEQARAASAE4vRHJvcGJveC9UaGVzaXMvcGFwZXJzL1NleXllZGkvMjAxMUh5YnJpZCBDRE4tUDJQIGFyY2hpdGVjdHVyZXMgZm9yIGxpdmUgdmlkZW8AEwATL1ZvbHVtZXMvTWFjQm9va0hERAD//wAAgAbSGxwdHlokY2xhc3NuYW1lWCRjbGFzc2VzXU5TTXV0YWJsZURhdGGjHR8gVk5TRGF0YVhOU09iamVjdNIbHCIjXE5TRGljdGlvbmFyeaIiIF8QD05TS2V5ZWRBcmNoaXZlctEmJ1Ryb290gAEACAARABoAIwAtADIANwBAAEYATQBVAGAAZwBqAGwAbgBxAHMAdQB3AIQAjgDcAOEA6QL3AvkC/gMJAxIDIAMkAysDNAM5A0YDSQNbA14DYwAAAAAAAAIBAAAAAAAAACgAAAAAAAAAAAAAAAAAAANl},
-	Bdsk-Url-1 = {http://dx.doi.org/10.1109/CNDS.2011.5764567}}
+@inproceedings{zamir2019isaid,
+  title        = {iSAID: A Large-scale Dataset for Instance Segmentation in Aerial Images},
+  author       = {Zamir, Syed Waqas and Arora, Aditya and Gupta, Akshita and Khan, Salman and Sun, Guolei and Khan, Fahad Shahbaz and Zhu, Fan and Shao, Ling and Xia, Gui-Song and Bai, Xiang},
+  booktitle    = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW)},
+  year         = {2019},
+  note         = {CVPR'19 Workshops; arXiv:1905.12886},
+  url          = {https://arxiv.org/abs/1905.12886},
+  doi          = {10.48550/arXiv.1905.12886}
+}
+
+@inproceedings{xia2018dota,
+  title        = {DOTA: A Large-Scale Dataset for Object Detection in Aerial Images},
+  author       = {Xia, Gui-Song and Bai, Xiang and Ding, Jian and Zhu, Zhen and Belongie, Serge and Luo, Jiebo and Datcu, Mihai and Pelillo, Marcello and Zhang, Liangpei},
+  booktitle    = {2018 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year         = {2018},
+  publisher    = {IEEE},
+  doi          = {10.1109/CVPR.2018.00418}
+}
+
+@inproceedings{wang2021loveda,
+  title        = {LoveDA: A Remote Sensing Land-Cover Dataset for Domain Adaptive Semantic Segmentation},
+  author       = {Wang, Junjue and Zheng, Zhuo and Ma, Ailong and Lu, Xiaoyan and Zhong, Yanfei},
+  booktitle    = {NeurIPS 2021 Datasets and Benchmarks Track},
+  year         = {2021},
+  note         = {arXiv:2110.08733},
+  url          = {https://arxiv.org/abs/2110.08733},
+  doi          = {10.48550/arXiv.2110.08733}
+}
+
+@article{yuan2023rrsis,
+  title        = {RRSIS: Referring Remote Sensing Image Segmentation},
+  author       = {Yuan, Zhenghang and Mou, Lichao and Hua, Yuansheng and Zhu, Xiao Xiang},
+  journal      = {IEEE Transactions on Geoscience and Remote Sensing},
+  volume       = {62},
+  pages        = {1--12},
+  year         = {2024},
+  publisher    = {IEEE},
+  doi          = {10.1109/TGRS.2024.3369720}
+}
+
+@inproceedings{liu2024rotated,
+  title        = {Rotated Multi-Scale Interaction Network for Referring Remote Sensing Image Segmentation},
+  author       = {Liu, Sihan and Ma, Yiwei and Zhang, Xiaoqing and Wang, Haowei and Ji, Jiayi and Sun, Xiaoshuai and Ji, Rongrong},
+  booktitle    = {2024 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages        = {26648--26658},
+  year         = {2024},
+  publisher    = {IEEE},
+  doi          = {10.1109/CVPR52733.2024.02517}
+}
+
+@misc{yang2024large,
+  title        = {A Large-Scale Referring Remote Sensing Image Segmentation Dataset and Benchmark},
+  author       = {Yang, Zhigang and Yao, Huiguang and Tian, Linmao and Zhao, Xuezhi and Li, Qiang and Wang, Qi},
+  year         = {2025},
+  eprint       = {2506.03583},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CV},
+  url          = {https://arxiv.org/abs/2506.03583}
+}
+
+@misc{hao2025urban1960satseg,
+  title        = {Urban1960SatSeg: Unsupervised Semantic Segmentation of Mid-20th century Urban Landscapes with Satellite Imageries},
+  author       = {Hao, Tianxiang and Zhang, Lixian and Zhang, Yingjia and Chen, Mengxuan and Zhang, Jinxiao and Fu, Haohuan},
+  year         = {2025},
+  eprint       = {2506.09476},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CV},
+  url          = {https://arxiv.org/abs/2506.09476}
+}
+
+@misc{chen2025rsrefseg,
+  title        = {RSRefSeg: Referring Remote Sensing Image Segmentation with Foundation Models},
+  author       = {Chen, Keyan and Zhang, Jiafan and Liu, Chenyang and Zou, Zhengxia and Shi, Zhenwei},
+  year         = {2025},
+  eprint       = {2501.06809},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CV},
+  url          = {https://arxiv.org/abs/2501.06809}
+}
+
+@misc{sam,
+  title        = {Segment Anything},
+  author       = {Kirillov, Alexander and Mintun, Eric and Ravi, Nikhila and Mao, Hanzi and Rolland, Chloe and Gustafson, Laura and Xiao, Tete and Whitehead, Spencer and Berg, Alexander C. and Lo, Wan-Yen and Doll{\'a}r, Piotr and Girshick, Ross},
+  year         = {2023},
+  eprint       = {2304.02643},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CV},
+  url          = {https://arxiv.org/abs/2304.02643}
+}
+
+@misc{clip,
+  title        = {Learning Transferable Visual Models From Natural Language Supervision},
+  author       = {Radford, Alec and Kim, Jong Wook and Hallacy, Chris and Ramesh, Aditya and Goh, Gabriel and Agarwal, Sandhini and Sastry, Girish and Askell, Amanda and Mishkin, Pamela and Clark, Jack and Krueger, Gretchen and Sutskever, Ilya},
+  year         = {2021},
+  eprint       = {2103.00020},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CV},
+  url          = {https://arxiv.org/abs/2103.00020}
+}
+
+@inproceedings{siglip,
+  title        = {Sigmoid Loss for Language Image Pre-Training},
+  author       = {Zhai, Xiaohua and Mustafa, Basil and Kolesnikov, Alexander and Beyer, Lucas},
+  booktitle    = {2023 IEEE/CVF International Conference on Computer Vision (ICCV)},
+  year         = {2023},
+  publisher    = {IEEE},
+  doi          = {10.1109/ICCV51070.2023.01100}
+}
+
+@misc{siglip2,
+  title        = {SigLIP 2: Multilingual Vision-Language Encoders with Improved Semantic Understanding, Localization, and Dense Features},
+  author       = {Tschannen, Michael and Gritsenko, Alexey and Wang, Xiao and Naeem, Muhammad Ferjad and Alabdulmohsin, Ibrahim and Parthasarathy, Nikhil and Evans, Talfan and Beyer, Lucas and Xia, Ye and Mustafa, Basil and H{\'e}naff, Olivier and Harmsen, Jeremiah and Steiner, Andreas and Zhai, Xiaohua},
+  year         = {2025},
+  eprint       = {2502.14786},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CV},
+  url          = {https://arxiv.org/abs/2502.14786}
+}
+
+@misc{lora,
+  title        = {LoRA: Low-Rank Adaptation of Large Language Models},
+  author       = {Hu, Edward J. and Shen, Yelong and Wallis, Phillip and Allen-Zhu, Zeyuan and Li, Yuanzhi and Wang, Lu and Chen, Weizhu},
+  year         = {2021},
+  eprint       = {2106.09685},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL},
+  url          = {https://arxiv.org/abs/2106.09685}
+}
+
+@misc{adamw,
+  title        = {Decoupled Weight Decay Regularization},
+  author       = {Loshchilov, Ilya and Hutter, Frank},
+  year         = {2019},
+  eprint       = {1711.05101},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.LG},
+  note         = {Published at ICLR 2019},
+  url          = {https://arxiv.org/abs/1711.05101}
+}
+
+@misc{qlora,
+  title        = {QLoRA: Efficient Finetuning of Quantized LLMs},
+  author       = {Dettmers, Tim and Pagnoni, Artidoro and Holtzman, Ari and Zettlemoyer, Luke},
+  year         = {2023},
+  eprint       = {2305.14314},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL},
+  url          = {https://arxiv.org/abs/2305.14314}
+}
+
+@inproceedings{vllm,
+  title        = {Efficient Memory Management for Large Language Model Serving with PagedAttention},
+  author       = {Kwon, Woosuk and Li, Zhuohan and Zhuang, Siyuan and Sheng, Ying and Zheng, Lianmin and Yu, Cody Hao and Gonzalez, Joseph E. and Zhang, Hao and Stoica, Ion},
+  booktitle    = {Proceedings of the 29th Symposium on Operating Systems Principles (SOSP)},
+  pages        = {611--626},
+  year         = {2023},
+  publisher    = {ACM},
+  doi          = {10.1145/3600006.3613165}
+}
+
+@misc{gemma3,
+  title        = {Gemma models overview},
+  author       = {{Google DeepMind}},
+  howpublished = {Google AI for Developers},
+  year         = {2025},
+  url          = {https://ai.google.dev/gemma/docs},
+  note         = {Accessed 2025-09-13}
+}
+
+@misc{o3,
+  title        = {Introducing OpenAI o3},
+  author       = {{OpenAI}},
+  year         = {2025},
+  howpublished = {OpenAI Blog},
+  url          = {https://openai.com/index/introducing-openai-o3/},
+  note         = {Accessed 2025-09-13}
+}
+
+@misc{gemini25,
+  title        = {Gemini 2.5: Multimodal Models with Pixel-Level Understanding},
+  author       = {{Google DeepMind}},
+  year         = {2025},
+  howpublished = {Product and research overview},
+  url          = {https://deepmind.google/technologies/gemini/},
+  note         = {Accessed 2025-09-13}
+}
