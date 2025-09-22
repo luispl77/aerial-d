@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(python:*)",
+      "Bash(conda activate:*)",
+      "Bash(timeout:*)",
+      "WebFetch(domain:huggingface.co)",
+      "Bash(tmux new-session:*)",
+      "Bash(tmux list-sessions:*)",
+      "Bash(tmux send-keys:*)",
+      "Bash(chmod:*)",
+      "Read(//cfs/home/u035679/datasets/aeriald/val/annotations/**)",
+      "Bash(pdflatex:*)",
+      "Bash(tlmgr:*)",
+      "Read(//usr/**)",
+      "Read(//cfs/home/u035679/datasets/aeriald/train/annotations/**)"
+    ],
+    "deny": []
+  }
+}
