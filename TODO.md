@@ -1,19 +1,21 @@
 Dissertation writing: 
 
 - Cover - add the Examination Committee and correct month and year
-- 1.2 Document Structure - do not say AerialSeg
-- 2 - Introduction - root text does not cover 2.1
-- 2.1 - x1, x2 and all other indices on the figure should be properly formated as indices, figure 2.1 and 2.2
-- 3 - root does not mention 3.2
-- 3.1.1 - citations missing after iSAID and LoveDA
-- 3.1.1 - no mention of figure 3.1 or 3.2
-- 3.1.2 - missing citations after RefSegRS, RRSIS-D, and many others. Citations should not be at the end of paragraphs like that
-- 3.1.2 - no mention of figure 3.3 in the text
-- 3.1.3 - citations missing for UrbanSatSeg1960
+- 1.2 Document Structure - do not say AerialSeg [FIXED]
+- 2 - Introduction - root text does not cover 2.1 [FIXED]
+- 2.1 - x1, x2 and all other indices on the figure should be properly formated as indices, figure 2.1 and 2.2 [FIXED]
+- 3 - root does not mention 3.2 [FIXED]
+- 3.1.1 - citations missing after iSAID and LoveDA [FIXED]
+- 3.1.1 - no mention of figure 3.1 or 3.2 [FIXED]
+- 3.1.2 - missing citations after RefSegRS, RRSIS-D, and many others. Citations should not be at the end of paragraphs like that [FIXED]
+- 3.1.2 - no mention of figure 3.3 in the text [FIXED]
+- 3.1.3 - citations missing for UrbanSatSeg1960 [FIXED]
+- 3.1.3 - missing mention to figure 3.4 and to all tables in text [FIXED]
+ 
+- 3.2 - missing citations for CLIP and SigLIP, and others. [FIXED]
+- 3.2 - missing citation to RSRefSeg , citations go directly after the first mentions of those resources [FIXED]
 - 3.1.3 - missing statistics for UrbanSatSeg1960 in tables
-- 3.1.3 - missing mention to figure 3.4 and to all tables in text
-- 3.2 - missing citations for CLIP and SigLIP, and others. 
-- 3.2 - missing citation to RSRefSeg , citations go directly after the first mentions of those resources
+ 
 - 4 - Aerial-D, not AerialD
 - 4.1 - Aerial-D not AerialD
 - 4.2 - Repeated explanation of LoveDA conversion to instance segmenation due to poor transition between those paragraphs
