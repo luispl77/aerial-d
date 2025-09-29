@@ -138,7 +138,7 @@ def parse_args():
     parser.add_argument('--siglip_model', type=str, default='google/siglip2-so400m-patch14-384', help='SigLIP model name')
     parser.add_argument('--sam_model', type=str, default='facebook/sam-vit-base', help='SAM model name')
     parser.add_argument('--use_historic', action='store_true', default=False, help='Use historic (BW) images instead of normal color images')
-    parser.add_argument('--historic_percentage', type=float, default=20.0, help='Percentage of samples (0-100) to apply historic filters to during training (only for non-AerialD datasets)')
+    parser.add_argument('--historic_percentage', type=float, default=20.0, help='Percentage of samples (0-100) to apply historic filters during training')
     
     
     # Mid-epoch checkpointing
@@ -160,6 +160,8 @@ def parse_args():
     
     # Multi-dataset training
     parser.add_argument('--use_all_datasets', action='store_true', help='Train on AerialD + 4 additional datasets (RRSISD, RefSegRS, NWPU, Urban1960). Expression filtering flags still apply to AerialD only.')
+    parser.add_argument('--exclude_datasets', nargs='*', choices=['rrsisd', 'refsegrs', 'nwpu', 'urban1960'], default=None,
+                        help='Datasets to exclude when --use_all_datasets is enabled')
     parser.add_argument('--rrsisd_root', type=str, default='../datagen/rrsisd', help='Root directory of the RRSISD dataset')
     parser.add_argument('--refsegrs_root', type=str, default='../datagen/refsegrs/RefSegRS', help='Root directory of the RefSegRS dataset')
     parser.add_argument('--nwpu_root', type=str, default='../datagen/NWPU-Refer', help='Root directory of the NWPU-Refer dataset')
@@ -1708,11 +1710,18 @@ def main():
         
         
         # Configure additional datasets
+        excluded = set(args.exclude_datasets or [])
+        if excluded:
+            print(f"Datasets excluded from multi-dataset training: {', '.join(sorted(excluded)).upper()}")
         additional_datasets = [
-            {'type': 'rrsisd', 'root': args.rrsisd_root},
-            {'type': 'refsegrs', 'root': args.refsegrs_root},
-            {'type': 'nwpu', 'root': args.nwpu_root},
-            {'type': 'urban1960', 'root': args.urban1960_root}
+            {'type': dataset_type, 'root': dataset_root}
+            for dataset_type, dataset_root in [
+                ('rrsisd', args.rrsisd_root),
+                ('refsegrs', args.refsegrs_root),
+                ('nwpu', args.nwpu_root),
+                ('urban1960', args.urban1960_root)
+            ]
+            if dataset_type not in excluded
         ]
         
         train_dataset = CombinedDataset(
