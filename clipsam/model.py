@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import torchvision.transforms as T
 from typing import Optional, List, Tuple, Dict, Any
 import einops
+import os
 from peft import LoraConfig, get_peft_model
 from transformers import SamProcessor, SamModel, SiglipModel, SiglipProcessor
 
@@ -50,12 +51,17 @@ class SigLipSamSegmentator(nn.Module):
                  down_spatial_times=2,
                  with_dense_feat=True,
                  lora_cfg=None,
-                 device=None):
+                 device=None,
+                 target_spatial_dim=7,
+                 siglip_checkpoint_path=None):
         super().__init__()
         if device is None:
             self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         else:
             self.device = device
+        
+        # Store target spatial dimension for prompter output
+        self.target_spatial_dim = target_spatial_dim
             
         # Add LoRA configuration with the exact params from the original implementation
         if lora_cfg is None:
@@ -87,11 +93,57 @@ class SigLipSamSegmentator(nn.Module):
         self.clip_vision_processor = SiglipProcessor.from_pretrained(siglip_model_name).image_processor
         self.clip_text_processor = SiglipProcessor.from_pretrained(siglip_model_name).tokenizer
         
+        # Load base SigLIP model
         siglip_model = SiglipModel.from_pretrained(siglip_model_name).to(self.device)
+        
+        # If a fine-tuned checkpoint is provided, load its weights
+        if siglip_checkpoint_path is not None and os.path.exists(siglip_checkpoint_path):
+            print(f"Loading fine-tuned SigLIP weights from: {siglip_checkpoint_path}")
+            checkpoint = torch.load(siglip_checkpoint_path, map_location=self.device)
+            
+            # Handle different checkpoint formats
+            if 'model' in checkpoint:
+                state_dict = checkpoint['model']
+            elif 'state_dict' in checkpoint:
+                state_dict = checkpoint['state_dict']
+            else:
+                state_dict = checkpoint
+            
+            # Load the state dict with flexibility for key mismatches
+            try:
+                siglip_model.load_state_dict(state_dict, strict=False)
+                print("✓ Successfully loaded fine-tuned SigLIP checkpoint")
+            except Exception as e:
+                print(f"Warning: Could not load checkpoint with strict=False. Error: {e}")
+                print("Attempting to load vision_model only...")
+                
+                # Try to load just the vision model if full model fails
+                vision_state_dict = {k.replace('vision_model.', ''): v 
+                                   for k, v in state_dict.items() 
+                                   if k.startswith('vision_model.')}
+                if vision_state_dict:
+                    siglip_model.vision_model.load_state_dict(vision_state_dict, strict=False)
+                    print("✓ Loaded vision_model weights from checkpoint")
+        
         self.clip_vision_encoder = siglip_model.vision_model
         self.clip_text_encoder = siglip_model.text_model
         self.logit_scale = siglip_model.logit_scale
         self.logit_bias = siglip_model.logit_bias
+        
+        # Extract SigLIP configuration for resolution handling
+        self.siglip_config = self.clip_vision_encoder.config
+        self.siglip_patch_size = self.siglip_config.patch_size
+        self.siglip_image_size = list(self.clip_vision_processor.size.values())[0]  # Get the actual size
+        
+        # Calculate SigLIP output spatial dimensions
+        # For patch-based models: spatial_dim = image_size / patch_size
+        self.siglip_spatial_dim = self.siglip_image_size // self.siglip_patch_size
+        
+        print(f"SigLIP Configuration:")
+        print(f"  - Input resolution: {self.siglip_image_size}x{self.siglip_image_size}")
+        print(f"  - Patch size: {self.siglip_patch_size}")
+        print(f"  - Output spatial dimension: {self.siglip_spatial_dim}x{self.siglip_spatial_dim}")
+        print(f"  - Target prompter output: {self.target_spatial_dim}x{self.target_spatial_dim}")
         
         # Load SAM model
         self.sam_processor = SamProcessor.from_pretrained(sam_model_name)
@@ -102,8 +154,25 @@ class SigLipSamSegmentator(nn.Module):
         self.shared_image_embedding = sam_model.shared_image_embedding
         
         # Config parameters
-        self.down_spatial_times = down_spatial_times
         self.with_dense_feat = with_dense_feat
+        
+        # Calculate appropriate target spatial dimension if needed
+        # For smaller input dimensions (like 16x16 from 256/16), automatically adjust target
+        if target_spatial_dim == 7 and self.siglip_spatial_dim <= 16:
+            # For 16x16: use 4x4 or 8x8 instead of 7x7
+            suggested_target = max(4, self.siglip_spatial_dim // 4)  # Aim for ~4x downsampling
+            print(f"  - Auto-adjusting target_spatial_dim: {target_spatial_dim} → {suggested_target} (input is {self.siglip_spatial_dim}x{self.siglip_spatial_dim})")
+            target_spatial_dim = suggested_target
+            self.target_spatial_dim = target_spatial_dim
+        
+        # Calculate required downsampling dynamically
+        # We need to downsample from siglip_spatial_dim to target_spatial_dim
+        self.down_spatial_times = self._calculate_downsampling_steps(
+            self.siglip_spatial_dim, 
+            self.target_spatial_dim
+        )
+        
+        print(f"  - Calculated downsampling steps: {self.down_spatial_times}")
         
         # Define norms and activations
         self.norm_cfg = dict(type='SyncBN', requires_grad=True)
@@ -120,7 +189,7 @@ class SigLipSamSegmentator(nn.Module):
         
         # Sequential downsampling blocks
         down_spatial_modules = []
-        for _ in range(down_spatial_times):
+        for _ in range(self.down_spatial_times):
             down_spatial_modules.append(ConvModule(
                 in_channels=self.sam_prompt_encoder.hidden_size,
                 out_channels=self.sam_prompt_encoder.hidden_size,
@@ -147,6 +216,51 @@ class SigLipSamSegmentator(nn.Module):
         # After all components are initialized, set up fine-tuning parameters
         self.set_finetune_parameters()
         self.print_trainable_parameters()
+    
+    def _calculate_downsampling_steps(self, input_spatial_dim, target_spatial_dim):
+        """
+        Calculate the number of stride-2 downsampling steps needed to go from 
+        input_spatial_dim to target_spatial_dim.
+        
+        Each stride-2 conv reduces spatial dimension by half.
+        
+        Args:
+            input_spatial_dim: Input spatial dimension (e.g., 27 for 384/14)
+            target_spatial_dim: Target spatial dimension (e.g., 7)
+            
+        Returns:
+            Number of downsampling steps
+        """
+        if input_spatial_dim == target_spatial_dim:
+            return 0
+        
+        if input_spatial_dim < target_spatial_dim:
+            raise ValueError(
+                f"Input spatial dimension ({input_spatial_dim}) is smaller than "
+                f"target spatial dimension ({target_spatial_dim}). Cannot upsample."
+            )
+        
+        # Calculate how many times we need to divide by 2
+        # Using floor to be conservative with downsampling
+        steps = 0
+        current_dim = input_spatial_dim
+        
+        while current_dim > target_spatial_dim:
+            current_dim = current_dim // 2
+            steps += 1
+        
+        # Verify we can reach the target (or get close enough)
+        final_dim = input_spatial_dim // (2 ** steps)
+        
+        # Be more lenient with tolerance - within 50% is acceptable
+        if final_dim < target_spatial_dim * 0.5:
+            raise ValueError(
+                f"Cannot downsample from {input_spatial_dim} to ~{target_spatial_dim} "
+                f"with stride-2 convolutions. Final dimension would be {final_dim}. "
+                f"Suggestion: Use target_spatial_dim={final_dim} or adjust SigLIP resolution."
+            )
+        
+        return steps
         
     def _freeze_models(self):
         """Freeze all pretrained models"""
@@ -224,14 +338,18 @@ class SigLipSamSegmentator(nn.Module):
         sam_visual_feat = sam_visual_feat['last_hidden_state']  # BX256X64X64
 
         # For SigLIP vision encoder - use the normalized image directly
-        siglip_image_size = list(self.clip_vision_processor.size.values())
-        x_clip = F.interpolate(image, size=siglip_image_size, mode='bilinear', align_corners=False)
+        # Resize to the configured SigLIP resolution
+        x_clip = F.interpolate(image, size=(self.siglip_image_size, self.siglip_image_size), 
+                              mode='bilinear', align_corners=False)
         
         clip_visual_feat = self.clip_vision_encoder(x_clip)
-        clip_visual_feat_pooler = clip_visual_feat['pooler_output']  # BX1152
-        clip_visual_feat = clip_visual_feat['last_hidden_state']  # BX729X1152
+        clip_visual_feat_pooler = clip_visual_feat['pooler_output']  # BX{hidden_size}
+        clip_visual_feat = clip_visual_feat['last_hidden_state']  # BX{num_patches}X{hidden_size}
+        
+        # Reshape to spatial dimensions - dynamically calculated
+        # num_patches = siglip_spatial_dim * siglip_spatial_dim
         clip_visual_feat = einops.rearrange(clip_visual_feat, 'b (h w) c -> b c h w', 
-                                          h=int(math.sqrt(clip_visual_feat.shape[1])))  # BX1152X27X27
+                                          h=self.siglip_spatial_dim, w=self.siglip_spatial_dim)
         
 
         # Process text with SigLIP
@@ -239,32 +357,32 @@ class SigLipSamSegmentator(nn.Module):
         text_dict = {k: v.to(image.device) for k, v in text_dict.items()}
         input_ids = text_dict['input_ids']
         clip_text_feat = self.clip_text_encoder(**text_dict)
-        clip_text_feat_pooler = clip_text_feat['pooler_output']  # BX1152
-        clip_text_feat = clip_text_feat['last_hidden_state']  # BX7X1152
+        clip_text_feat_pooler = clip_text_feat['pooler_output']  # BX{hidden_size}
+        clip_text_feat = clip_text_feat['last_hidden_state']  # BX{seq_len}X{hidden_size}
 
         # Normalize features for cosine similarity
-        normalized_clip_visual_feat = clip_visual_feat / clip_visual_feat.norm(p=2, dim=1, keepdim=True)  # BX1152X27X27
-        normalized_clip_text_feat = clip_text_feat / clip_text_feat.norm(p=2, dim=2, keepdim=True)  # BX7X1152
-        normalized_clip_text_feat_pooler = clip_text_feat_pooler / clip_text_feat_pooler.norm(p=2, dim=1, keepdim=True)  # BX1152
+        normalized_clip_visual_feat = clip_visual_feat / clip_visual_feat.norm(p=2, dim=1, keepdim=True)
+        normalized_clip_text_feat = clip_text_feat / clip_text_feat.norm(p=2, dim=2, keepdim=True)
+        normalized_clip_text_feat_pooler = clip_text_feat_pooler / clip_text_feat_pooler.norm(p=2, dim=1, keepdim=True)
 
         # Local activation - text token level
         local_activate = einops.einsum(normalized_clip_visual_feat, normalized_clip_text_feat, 'b c h w, b d c -> b d h w')
         local_activate = local_activate * self.logit_scale.exp() + self.logit_bias
-        local_activate = F.sigmoid(local_activate)  # BX7X27X27
-        local_activated_feat = einops.einsum(local_activate, clip_visual_feat, 'b d h w, b c h w -> b c h w') / local_activate.size(1)  # BX1152X27X27
+        local_activate = F.sigmoid(local_activate)
+        local_activated_feat = einops.einsum(local_activate, clip_visual_feat, 'b d h w, b c h w -> b c h w') / local_activate.size(1)
         local_clip_visual_feat = (clip_visual_feat + local_activated_feat) / 2
 
         # Global activation - text pooler level
         global_activate = einops.einsum(normalized_clip_visual_feat, normalized_clip_text_feat_pooler, 'b c h w, b c -> b h w')
         global_activate_logit = global_activate * self.logit_scale.exp() + self.logit_bias
-        global_activate = F.sigmoid(global_activate_logit)  # BX27X27
-        global_activated_feat = einops.einsum(global_activate, clip_visual_feat, 'b h w, b c h w -> b c h w')  # BX1152X27X27
+        global_activate = F.sigmoid(global_activate_logit)
+        global_activated_feat = einops.einsum(global_activate, clip_visual_feat, 'b h w, b c h w -> b c h w')
 
         # Combine features and process through prompter networks
         clip_activated_feat = torch.cat([local_clip_visual_feat, global_activated_feat, clip_visual_feat], dim=1)
         clip_activated_feat = self.prompter_down_channel(clip_activated_feat)
         clip_activated_feat = clip_activated_feat + self.get_image_positional_embeddings(clip_activated_feat.size(2))
-        clip_activated_feat = self.prompter_down_spatial(clip_activated_feat)  # BX768X7X7
+        clip_activated_feat = self.prompter_down_spatial(clip_activated_feat)  # BX768X{target_spatial_dim}X{target_spatial_dim}
 
         # Prepare SAM prompt encoder inputs
         batch_size = image.size(0)

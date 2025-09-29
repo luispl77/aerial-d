@@ -116,6 +116,7 @@ def parse_args():
     parser.add_argument('--model_name', type=str, required=True, help='Model name for checkpoint loading')
     parser.add_argument('--num_vis', type=int, default=20, help='Number of test images to visualize')
     parser.add_argument('--siglip_model', type=str, default='google/siglip2-so400m-patch14-384', help='SigLIP model name')
+    parser.add_argument('--siglip_checkpoint', type=str, default=None, help='Path to fine-tuned SigLIP checkpoint (.pth.tar file)')
     parser.add_argument('--sam_model', type=str, default='facebook/sam-vit-base', help='SAM model name')
     parser.add_argument('--down_spatial_times', type=int, default=2, help='Number of downsampling blocks')
     parser.add_argument('--with_dense_feat', type=bool, default=True, help='Use dense features')
@@ -142,7 +143,8 @@ def load_model(checkpoint_path, device, args):
         sam_model_name=args.sam_model,
         down_spatial_times=args.down_spatial_times,
         with_dense_feat=args.with_dense_feat,
-        device='cpu'  # First load to CPU
+        device='cpu',  # First load to CPU
+        siglip_checkpoint_path=args.siglip_checkpoint
     )
     
     # Load checkpoint to CPU first

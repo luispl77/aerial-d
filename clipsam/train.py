@@ -136,6 +136,7 @@ def parse_args():
     parser.add_argument('--lora_alpha', type=int, default=32, help='LoRA alpha scaling factor')
     parser.add_argument('--lora_dropout', type=float, default=0.05, help='LoRA dropout rate')
     parser.add_argument('--siglip_model', type=str, default='google/siglip2-so400m-patch14-384', help='SigLIP model name')
+    parser.add_argument('--siglip_checkpoint', type=str, default=None, help='Path to fine-tuned SigLIP checkpoint (.pth.tar file)')
     parser.add_argument('--sam_model', type=str, default='facebook/sam-vit-base', help='SAM model name')
     parser.add_argument('--use_historic', action='store_true', default=False, help='Use historic (BW) images instead of normal color images')
     parser.add_argument('--historic_percentage', type=float, default=20.0, help='Percentage of samples (0-100) to apply historic filters during training')
@@ -1558,8 +1559,11 @@ def save_run_details(args, run_id, model_name, effective_batch_size, train_datas
         
         f.write(f"===== MODEL CONFIGURATION =====\n")
         f.write(f"Model Name: {model_name}\n")
-        f.write(f"Input Size: {args.input_size}x{args.input_size}\n")
+        f.write(f"Dataset Input Size: {args.input_size}x{args.input_size}\n")
         f.write(f"SigLIP Model: {args.siglip_model}\n")
+        if args.siglip_checkpoint:
+            f.write(f"SigLIP Checkpoint: {args.siglip_checkpoint}\n")
+        f.write(f"SigLIP Resolution: {model.siglip_image_size}x{model.siglip_image_size} (detected)\n")
         f.write(f"SAM Model: {args.sam_model}\n")
         f.write(f"Down Spatial Times: {args.down_spatial_times}\n")
         f.write(f"With Dense Features: {args.with_dense_feat}\n")
@@ -1690,7 +1694,8 @@ def main():
         down_spatial_times=args.down_spatial_times,
         with_dense_feat=args.with_dense_feat,
         lora_cfg=lora_cfg,
-        device=device
+        device=device,
+        siglip_checkpoint_path=args.siglip_checkpoint
     ).to(device)
     
     # Get trainable parameters (those with requires_grad=True)
