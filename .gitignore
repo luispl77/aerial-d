@@ -1,0 +1,4 @@
+# LaTeX build artifacts (tex/article)
+tex/article/*.bbl
+tex/article/*.blg
+tex/article/*.fls

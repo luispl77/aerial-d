@@ -225,24 +225,17 @@ python o3_enhance.py --dataset_dir ../datagen/dataset
 
 ### 0.2. **TODO.md Development Strategy**
 
-- **Task Management**: All development tasks are tracked in the root-level `TODO.md` file
-- **File Structure**: The `TODO.md` file is organized into two distinct sections:
-  1. **"Tasks That Need To Be Completed"** - Top section containing all pending work
-  2. **"Completed Tasks"** - Bottom section containing finished work
+- **Task Management**: All active development tasks are tracked in the root-level `TODO.md` file within the "Tasks That Need To Be Completed" section.
+- **Archival Process**: When a task is fully addressed and ready for review, move its bullet entry to `archive TODO.md` under the appropriate heading. Do not keep a "Completed Tasks" section inside `TODO.md`.
 - **Workflow Process**:
-  1. User writes tasks/issues in the "Tasks That Need To Be Completed" section
-  2. Claude and user collaboratively solve the tasks
-  3. After implementing changes and preparing them for user inspection, **move the completed task** from the "Tasks That Need To Be Completed" section to the "Completed Tasks" section
-  4. Keep `TODO.md` as the single source of truth for both pending and completed work
-- **Task Format**: Tasks in `TODO.md` should be clear, actionable items that can be tracked and completed
-- **Completion Criteria**: A task is moved to "Completed Tasks" when:
-  - The implementation is complete
-  - Changes are ready for user review/inspection
-  - The specific issue or requirement has been fully addressed
-- **Status Tracking**:
-  - Pending tasks: Listed in "Tasks That Need To Be Completed" section
-  - Completed tasks: Moved to "Completed Tasks" section
-  - This provides a complete history of work while clearly separating current from finished tasks
+  1. User records new tasks in the "Tasks That Need To Be Completed" section.
+  2. Claude and the user collaborate to resolve the tasks.
+  3. After finishing a task, relocate the exact bullet (with any relevant notes) to `archive TODO.md` to preserve history.
+- **Task Format**: Tasks in `TODO.md` should remain clear, actionable items that can be checked off once moved to the archive.
+- **Completion Criteria**: A task is archived when:
+  - The implementation is complete.
+  - Changes are ready for user inspection.
+  - The requirement has been fully addressed.
 
 ### 1. **File Paths**
 

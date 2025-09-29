@@ -1,5 +1,16 @@
 # Completed Tasks Archive
 
+## Article writing
+
+* We are using different terms all the time, Reffering instance segmentation, reffering expression segmentation. we should stick with one term, probably reffering expression segmentation
+* missing explanation right at the start of introduction of what that term comprises of
+* remove term "geographi complexities" as its vague. We can substitute it for something else.
+* "the biggest dataset" "the first fully automatic pipeline" lets not use these terms that are risky since they require scrutiny to know if they are true
+* "dataset represents pipline" no, was constructed with pipeline
+* "bechmarks" no, datasets
+* missing a phrase on abstract and introduction highlighting the historical capabilities as a special feature of the work
+* "We introduce" no, lets not use "we" since the work was done by one person. "This work" or "This work introduces" 
+
 ## Dissertation writing:
 
 * 1.2 Document Structure - do not say AerialSeg

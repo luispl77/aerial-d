@@ -64,8 +64,6 @@ rsync -avzh \
     --exclude 'llm/debug*' \
     --exclude 'llm/temp*' \
     --exclude 'clipsam/utils/static' \
-    --exclude 'clipsam/results' \
-    --exclude 'clipsam/visualizations' \
     --exclude 'clipsam/models' \
     --exclude 'clipsam/aeriald.zip' \
     --exclude 'clipsam/aeriald' \
