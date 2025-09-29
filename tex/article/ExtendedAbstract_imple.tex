@@ -203,34 +203,35 @@ Table~\ref{tab:dataset_comparison} compares Aerial-D with prior RRSIS datasets a
 \caption{Comparison with Existing RRSIS Datasets}
 \label{tab:dataset_comparison}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{@{}lccccccr@{}}
+\begin{tabular}{@{}lcccccccc@{}}
 \toprule
-\textbf{Dataset} & \textbf{Image Resolution} & \textbf{Images} & \textbf{Annotations} & \textbf{Single-object} & \textbf{Multi-object} & \textbf{Resolution} & \textbf{Annotation Generation} \\
+\textbf{Dataset} & \textbf{Image Resolution} & \textbf{Images} & \textbf{Instance Expr.} & \textbf{Semantic Expr.} & \textbf{Single-object} & \textbf{Multi-object} & \textbf{Patch Size} & \textbf{Annotation Generation} \\
 \midrule
-RefSegRS & 0.13m & 4420 & 4420 & \checkmark & $\times$ & 512 & Manual \\
-RRSIS-D & 0.5m-30m & 17402 & 17402 & \checkmark & $\times$ & 800 & Semi-auto \\
-NWPU-Refer & 0.12m-0.5m & 15003 & 49745 & \checkmark & \checkmark & 1024-2048 & Manual \\
+RefSegRS & 0.13m & 4,420 & 4,420 & -- & \checkmark & $\times$ & 512 & Manual \\
+RRSIS-D & 0.5m-30m & 17,402 & 17,402 & -- & \checkmark & $\times$ & 800 & Semi-auto \\
+NWPU-Refer & 0.12m-0.5m & 15,003 & 49,745 & -- & \checkmark & \checkmark & 1,024-2,048 & Manual \\
 \midrule
-\textbf{AERIAL-D} & \textbf{0.3m-4.5m} & \textbf{37,288} & \textbf{1,522,523} & \textbf{\checkmark} & \textbf{\checkmark} & \textbf{480} & \textbf{Automated + LLM} \\
+\multirow{2}{*}{\textbf{AERIAL-D}} & \multirow{2}{*}{\textbf{0.3m-4.5m}} & \multirow{2}{*}{\textbf{37,288}} & \textbf{1,482,847} & -- & \textbf{\checkmark} & \textbf{\checkmark} & \multirow{2}{*}{\textbf{480}} & \multirow{2}{*}{\textbf{Automated + LLM}} \\
+ & & & -- & \textbf{39,676} & $\times$ & \textbf{\checkmark} & & \\
 \bottomrule
 \end{tabular}%
 }
 \end{table*}
 
-\begin{table}[H]
+\begin{table}[t]
 \centering
 \caption{Expression Distribution by Source}
 \label{tab:llm_enhancement_stats}
 \footnotesize
-\begin{tabular}{@{}lcc@{}}
+\begin{tabular}{@{}lccc@{}}
 \toprule
-\textbf{Source} & \textbf{Train} & \textbf{Total} \\
+\textbf{Source} & \textbf{Train} & \textbf{Validation} & \textbf{Total} \\
 \midrule
-Rule-Based & 371K & 506K \\
-LLM Language Variations & 364K & 497K \\
-LLM Visual Details & 382K & 519K \\
+Rule-Based & 371K & 135K & 506K \\
+LLM Language Variations & 364K & 133K & 497K \\
+LLM Visual Details & 382K & 137K & 519K \\
 \midrule
-\textbf{Total} & \textbf{1,118K} & \textbf{1,523K} \\
+\textbf{Total} & \textbf{1,118K} & \textbf{405K} & \textbf{1,523K} \\
 \bottomrule
 \end{tabular}
 \end{table}
