@@ -122,6 +122,7 @@ def parse_args():
     parser.add_argument('--vis_only', action='store_true', help='Only run visualization without computing metrics')
     parser.add_argument('--dataset_root', type=str, default='./aeriald', help='Root directory of the AERIAL-D dataset')
     parser.add_argument('--dataset_type', type=str, choices=['aeriald', 'rrsisd', 'refsegrs', 'nwpu', 'urban1960'], default='aeriald', help='Type of dataset to use for testing')
+    parser.add_argument('--aeriald_target_filter', type=str, choices=['all', 'instance', 'semantic'], default='all', help='Subset of AERIAL-D expressions to evaluate')
     parser.add_argument('--rrsisd_root', type=str, default='../datagen/rrsisd', help='Root directory of the RRSISD dataset')
     parser.add_argument('--refsegrs_root', type=str, default='../datagen/refsegrs/RefSegRS', help='Root directory of the RefSegRS dataset')
     parser.add_argument('--nwpu_root', type=str, default='../datagen/NWPU-Refer', help='Root directory of the NWPU-Refer dataset')
@@ -260,12 +261,13 @@ def visualize_predictions(image, mask, pred, text, save_path, transformed_image=
     plt.close()
 
 class SimpleDataset:
-    def __init__(self, dataset_root, split='val', input_size=480, max_samples=None, seed=42, historic=False):
+    def __init__(self, dataset_root, split='val', input_size=480, max_samples=None, seed=42, historic=False, target_filter='all'):
         self.dataset_root = dataset_root
         self.split = split
         self.input_size = input_size
         self.max_samples = max_samples
         self.historic = historic
+        self.target_filter = target_filter
         
         # Set random seed
         random.seed(seed)
@@ -352,7 +354,13 @@ class SimpleDataset:
                 total_expressions += len(expressions)
                 
                 # Get object ID for group processing later
-                obj_id = obj.find('id').text if obj.find('id') is not None else None
+                obj_id = None
+                obj_id_elem = obj.find('id')
+                if obj_id_elem is not None:
+                    try:
+                        obj_id = int(obj_id_elem.text)
+                    except (TypeError, ValueError):
+                        obj_id = None
                 
                 # Store object data by ID for group processing
                 if obj_id is not None:
@@ -370,7 +378,8 @@ class SimpleDataset:
                         'segmentation': rle,
                         'expression': expression,
                         'category': name,
-                        'type': 'individual'
+                        'type': 'individual',
+                        'object_id': obj_id
                     })
             
             # Process groups
@@ -381,7 +390,10 @@ class SimpleDataset:
                     group_id_elem = group.find('id')
                     if group_id_elem is None:
                         continue  # Skip groups without ID
-                    group_id = group_id_elem.text
+                    try:
+                        group_id = int(group_id_elem.text)
+                    except (TypeError, ValueError):
+                        continue  # Skip groups with invalid IDs
                     
                     category_elem = group.find('category')
                     if category_elem is None:
@@ -424,9 +436,26 @@ class SimpleDataset:
                             'segmentation': group_segmentation,  # Single segmentation for group
                             'expression': expression,
                             'category': category,
-                            'type': 'group'
+                            'type': 'group',
+                            'group_id': group_id
                         })
         
+        if self.target_filter != 'all':
+            before_filter = len(self.objects)
+            if self.target_filter == 'instance':
+                self.objects = [obj for obj in self.objects if obj['type'] == 'individual']
+            elif self.target_filter == 'semantic':
+                self.objects = [
+                    obj for obj in self.objects
+                    if obj['type'] == 'group'
+                    and obj.get('group_id') is not None
+                    and 1000000 <= obj['group_id'] < 2000000
+                ]
+            after_filter = len(self.objects)
+            print(f"\nApplied target filter '{self.target_filter}': {before_filter} -> {after_filter} samples")
+            if after_filter == 0:
+                raise ValueError(f"No samples found after applying target filter '{self.target_filter}'")
+
         # If in visualization mode, ensure we have unique images
         if self.max_samples is not None:
             # Group objects by image filename
@@ -456,6 +485,9 @@ class SimpleDataset:
         print(f"- Total groups with expressions: {total_groups}")
         print(f"- Total group expressions: {total_group_expressions}")
         print(f"- Total samples created: {len(self.objects)}")
+        samples_individual = sum(1 for obj in self.objects if obj['type'] == 'individual')
+        samples_group = len(self.objects) - samples_individual
+        print(f"- Samples by type (individual / group): {samples_individual} / {samples_group}")
         if self.max_samples is not None:
             groups_selected = sum(1 for obj in self.objects if obj['type'] == 'group')
             individuals_selected = sum(1 for obj in self.objects if obj['type'] == 'individual')
@@ -1307,7 +1339,8 @@ def main():
             input_size=args.input_size,
             max_samples=max_samples,
             seed=args.seed,
-            historic=args.historic
+            historic=args.historic,
+            target_filter=args.aeriald_target_filter
         )
     elif args.dataset_type == 'rrsisd':
         val_dataset = RRSISDDataset(
@@ -1386,7 +1419,8 @@ def main():
     elif args.dataset_type == 'urban1960':
         output_dir = os.path.join('./results', f'{args.model_name}_urban1960{historic_suffix}')
     else:  # aeriald dataset
-        output_dir = os.path.join('./results', f'{args.model_name}_aeriald{historic_suffix}')
+        filter_suffix = '' if args.aeriald_target_filter == 'all' else f"_{args.aeriald_target_filter}"
+        output_dir = os.path.join('./results', f'{args.model_name}_aeriald{filter_suffix}{historic_suffix}')
     os.makedirs(output_dir, exist_ok=True)
     
     # Run testing
