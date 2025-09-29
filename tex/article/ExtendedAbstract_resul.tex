@@ -29,7 +29,7 @@ Tables~\ref{tab:aeriald_variants} and \ref{tab:combined_training_results} report
 
 Table~\ref{tab:aeriald_variants} isolates Aerial-D and breaks the evaluation down by supervision type. The instance-only view concentrates on explicit object targets, the semantic configuration captures land-cover regions, and the combined variant merges both sources to reflect the full dataset mixture. Rows list the two checkpoints we trained—RSRefSeg-b and the larger RSRefSeg-l—with the latter awaiting full evaluation, hence the placeholder entries.
 
-Across the external benchmarks in Table~\ref{tab:combined_training_results}, the RSRefSeg-b checkpoint maintains strong performance. On RRSIS-D we measure 61.70\% mIoU and 73.44\% oIoU, with the historic split retaining \textcolor{blue}{58.35\%} and \textcolor{blue}{71.73\%}. NWPU-Refer records 37.89\% mIoU and 51.34\% oIoU, dropping to \textcolor{blue}{31.52\%} and \textcolor{blue}{46.17\%} under filters. RefSegRS lands at 40.10\% mIoU and 45.05\% oIoU, tapering to \textcolor{blue}{32.79\%} and \textcolor{blue}{36.74\%} on its historic counterpart. Urban1960SatSeg, already composed of archival imagery, posts 69.35\% mIoU and 87.27\% oIoU. These scores match or surpass previously reported baselines across the public datasets while defining reference values for Aerial-D. The RSRefSeg-l checkpoint is undergoing validation; its row is included for completeness with placeholders until evaluation concludes.
+Across the external benchmarks in Table~\ref{tab:combined_training_results}, the RSRefSeg-b checkpoint maintains strong performance. On RRSIS-D we measure 61.70\% mIoU and 73.44\% oIoU, with the historic split retaining \textcolor{blue}{58.35\%} and \textcolor{blue}{71.73\%}. NWPU-Refer records 37.89\% mIoU and 51.34\% oIoU, dropping to \textcolor{blue}{31.52\%} and \textcolor{blue}{46.17\%} under filters. RefSegRS lands at 40.10\% mIoU and 45.05\% oIoU, tapering to \textcolor{blue}{32.79\%} and \textcolor{blue}{36.74\%} on its historic counterpart. Urban1960SatSeg, already composed of archival imagery, posts 69.35\% mIoU and 87.27\% oIoU. These scores match or surpass previously reported baselines across the public datasets while defining reference values for Aerial-D. We therefore include both RSRefSeg-b and RSRefSeg-l in the comparison, reporting published numbers for the latter and leaving placeholders for our ongoing evaluation.
 
 The combined model therefore achieves comparable results to previously reported baselines on every public benchmark while simultaneously establishing reference numbers for Aerial-D. The narrow gap between original and historic evaluations shows that the augmentation strategy meaningfully improves robustness without sacrificing accuracy on contemporary imagery, and the pending RSRefSeg-l run will extend this comparison once metrics are available.
 
@@ -65,10 +65,10 @@ The combined model therefore achieves comparable results to previously reported 
 \textbf{RSRefSeg-b (ours)} & 40.10\% / \textcolor{blue}{32.79\%} & 45.05\% / \textcolor{blue}{36.74\%} & 61.70\% / \textcolor{blue}{58.35\%} & 73.44\% / \textcolor{blue}{71.73\%} & 37.89\% / \textcolor{blue}{31.52\%} & 51.34\% / \textcolor{blue}{46.17\%} & 69.35\% & 87.27\% \\
 \textbf{RSRefSeg-l (ours)} & -- & -- & -- & -- & -- & -- & -- & -- \\
 \midrule
-LAVT\cite{liu2024rotated} & -- & -- & 61.46\% & 77.59\% & -- & -- & -- & -- \\
 RMSIN\cite{liu2024rotated,yang2024large,chen2025rsrefseg} & 59.96\% & 76.81\% & 65.10\% & 78.27\% & 41.75\% & 62.66\% & -- & -- \\
 RSRefSeg-b\cite{chen2025rsrefseg} & -- & -- & 63.68\% & 76.05\% & -- & -- & -- & -- \\
-RSRefSeg-l\cite{chen2025rsrefseg} & -- & -- & -- & -- & -- & -- & -- & -- \\
+RSRefSeg-l\cite{chen2025rsrefseg} & -- & -- & 64.67\% & 77.24\% & -- & -- & -- & -- \\
+Urban1960SatUSM\cite{hao2025urban1960satseg} & -- & -- & -- & -- & -- & -- & 68.80\% & -- \\
 MRSNet\cite{yang2024large} & -- & -- & -- & -- & 44.86\% & 63.59\% & -- & -- \\
 \bottomrule
 \end{tabular}%
