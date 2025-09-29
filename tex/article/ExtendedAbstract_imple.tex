@@ -6,11 +6,11 @@
 \section{Aerial-D Dataset Construction}
 \label{sec:approach}
 
-This section details our comprehensive approach to constructing Aerial-D, the largest referring segmentation dataset for aerial imagery. Our methodology combines automated rule-based expression generation with large language model enhancement to achieve both scale and linguistic diversity. We begin by establishing our source datasets, then describe our rule-based pipeline for generating referring expressions from existing annotations, followed by our novel knowledge distillation approach for cost-effective LLM enhancement, and conclude with comprehensive dataset statistics demonstrating the scope and characteristics of the final resource.
+This section details our comprehensive approach to constructing Aerial-D, a large-scale referring expression segmentation dataset for aerial imagery. Our methodology combines automated rule-based expression generation with large language model enhancement to achieve both scale and linguistic diversity. We begin by establishing our source datasets, then describe our rule-based pipeline for generating referring expressions from existing annotations, followed by our novel knowledge distillation approach for cost-effective LLM enhancement, and conclude with comprehensive dataset statistics demonstrating the scope and characteristics of the final resource.
 
 \subsection{Source Datasets}
 
-The Aerial-D dataset is constructed from two complementary aerial benchmarks with different annotation styles: iSAID (instance segmentation) and LoveDA (semantic segmentation).
+The Aerial-D dataset is constructed from two complementary aerial datasets with different annotation styles: iSAID (instance segmentation) and LoveDA (semantic segmentation).
 
 We start by putting both sources into the same format so that a single model can learn from them side by side: square patches at 480×480. This size keeps small iSAID objects large enough to describe and segment, while fitting the input expectations of common vision encoders used in our model (e.g., CLIP/SigLIP image towers and SAM backbones\cite{clip,siglip,sam}).
 
@@ -195,7 +195,7 @@ The rule-based generation yields 506{,}194 starting expressions and identifies 2
 \end{figure*}
 
 
-Table~\ref{tab:dataset_comparison} compares Aerial-D with prior RRSIS datasets and shows how it scales along three axes: images, targets per image, and expressions per target. First, Aerial-D contains nearly three times as many images as previous datasets. Second, each image typically includes many segmented targets. Third, each target is paired with multiple referring expressions. Together, these factors yield more than 1.5 million referring expressions, making Aerial-D the largest RRSIS resource to date. Beyond scale, Aerial-D is one of the first to use a fully automatic pipeline that combines rule-based generation with LLM enhancement and supports both single-object and multi-object references. Figure~\ref{fig:category_distributions} breaks down how frequently each semantic category appears at the group and instance levels, confirming that vehicles, buildings, and infrastructure dominate the long tail and that the augmentation strategy preserves the original category balance.
+Table~\ref{tab:dataset_comparison} compares Aerial-D with prior RRSIS datasets and shows how it scales along three axes: images, targets per image, and expressions per target. First, Aerial-D contains nearly three times as many images as previous datasets. Second, each image typically includes many segmented targets. Third, each target is paired with multiple referring expressions. Together, these factors yield more than 1.5 million referring expressions, positioning Aerial-D among the largest publicly available RRSIS resources. Beyond scale, Aerial-D relies on a fully automatic pipeline that combines rule-based generation with LLM enhancement and supports both single-object and multi-object references. Figure~\ref{fig:category_distributions} breaks down how frequently each semantic category appears at the group and instance levels, confirming that vehicles, buildings, and infrastructure dominate the long tail and that the augmentation strategy preserves the original category balance.
 
 % Dataset comparison table
 \begin{table*}[t]

@@ -3,14 +3,6 @@
 ## Tasks That Need To Be Completed
 
 ### Article writing
-* We are using different terms all the time, Reffering instance segmentation, reffering expression segmentation. we should stick with one term, probably reffering expression segmentation
-* missing explanation right at the start of introduction of what that term comprises of
-* remove term "geographi complexities" as its vague. We can substitute it for something else.
-* "the biggest dataset" "the first fully automatic pipeline" lets not use these terms that are risky since they require scrutiny to know if they are true
-* "dataset represents pipline" no, was constructed with pipeline
-* "bechmarks" no, datasets
-* missing a phrase on abstract and introduction highlighting the historical capabilities as a special feature of the work
-* "We introduce" no, lets not use "we" since the work was done by one person. "This work" or "This work introduces" 
 * Table 1 , 3 and 6 are the only tables in the article. Need to renumber
 * Table 1: Aerial-D has both reffering instance segmentation and reffering semantic segmentation in it. We should sperate the two and count them seperately, which makes for a more fair comparison with the other datasets
 * Table 2: same thing here, we can evaluate the model on both tasks seperately rather than presenting just one unified number
@@ -49,3 +41,4 @@
 * then we mention how to train on the folder taht the o3 outputed
 
 #### clipsam/README.md is mostly fine
+
