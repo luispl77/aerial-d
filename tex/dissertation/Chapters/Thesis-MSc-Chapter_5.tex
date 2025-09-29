@@ -172,7 +172,7 @@ The cost calculations are based on current API pricing: o3 costs \$2.00 per mill
 
 Finally, we evaluate how much the historic-filter augmentation contributes to robustness by retraining the combined model without injecting filtered images. Models trained solely on clean, contemporary imagery often falter when archival photographs introduce monochrome toning, contrast loss, or sepia casts. Removing the filters exposes whether robustness stems from the augmentation or from dataset diversity alone.
 
-Table~\ref{tab:historic_ablation_results} reports the outcome using the same metric format as the combined evaluation. Without filter injections the model gains a few points on the clean validation splits—for instance RRSIS-D climbs to 64.36\% mIoU—but it loses resilience on the historic versions. RefSegRS suffers the most, dropping from \textcolor{blue}{32.79\%} to \textcolor{blue}{27.73\%} mIoU and from \textcolor{blue}{36.74\%} to \textcolor{blue}{32.21\%} oIoU when confronted with filtered validation imagery. The Aerial-D and NWPU-Refer historic splits also shed several points, illustrating that the augmentation specifically protects datasets whose semantics depend on subtle colour and contrast cues.
+Table~\ref{tab:historic_ablation_results} reports the outcome using a metric–split layout that highlights how the historic-filter removal affects each dataset. Without filter injections the model gains a few points on the clean validation splits—for instance RRSIS-D climbs to 64.36\% mIoU—but it loses resilience on the historic versions. RefSegRS suffers the most, dropping from \textcolor{blue}{32.79\%} to \textcolor{blue}{27.73\%} mIoU and from \textcolor{blue}{36.74\%} to \textcolor{blue}{32.21\%} oIoU when confronted with filtered validation imagery. The Aerial-D and NWPU-Refer historic splits also shed several points, illustrating that the augmentation specifically protects datasets whose semantics depend on subtle colour and contrast cues.
 
 These results confirm that modest exposure to historic degradations during training is enough to stabilise performance when evaluation imagery undergoes the same transformations. We therefore keep the filter injections in the final combined recipe despite the small trade-off in clean-split accuracy.
 
@@ -187,11 +187,11 @@ These results confirm that modest exposure to historic degradations during train
 \cmidrule(lr){5-6} \cmidrule(lr){7-8}
  & & & & \textbf{Orig.} & \textbf{Hist.} & \textbf{Orig.} & \textbf{Hist.} \\
 \midrule
-Aerial-D & 59.48\% (\textcolor{red}{-0.62}) & 43.37\% (\textcolor{red}{-0.58}) & 12.60\% (\textcolor{red}{-0.45}) & 49.21\% (\textcolor{red}{-0.57}) & \textcolor{blue}{43.57\%} (\textcolor{red}{-3.25}) & 62.88\% (\textcolor{red}{-0.56}) & \textcolor{blue}{58.14\%} (\textcolor{red}{-2.98}) \\
-RRSIS-D & 74.60\% (\textcolor{green!60!black}{+5.12}) & 58.39\% (\textcolor{green!60!black}{+4.77}) & 20.75\% (\textcolor{red}{-1.03}) & 64.36\% (\textcolor{green!60!black}{+2.66}) & \textcolor{blue}{59.02\%} (\textcolor{green!60!black}{+0.67}) & 75.59\% (\textcolor{green!60!black}{+2.15}) & \textcolor{blue}{72.50\%} (\textcolor{green!60!black}{+0.77}) \\
-NWPU-Refer & 46.02\% (\textcolor{green!60!black}{+5.49}) & 32.32\% (\textcolor{green!60!black}{+4.67}) & 10.66\% (\textcolor{green!60!black}{+2.21}) & 41.06\% (\textcolor{green!60!black}{+3.17}) & \textcolor{blue}{33.42\%} (\textcolor{green!60!black}{+1.90}) & 58.35\% (\textcolor{green!60!black}{+7.01}) & \textcolor{blue}{53.04\%} (\textcolor{green!60!black}{+6.87}) \\
-RefSegRS & 47.33\% (\textcolor{green!60!black}{+6.03}) & 13.23\% (\textcolor{green!60!black}{+4.18}) & 1.16\% (\textcolor{red}{-0.93}) & 41.31\% (\textcolor{green!60!black}{+1.21}) & \textcolor{blue}{27.73\%} (\textcolor{red}{-5.06}) & 50.30\% (\textcolor{green!60!black}{+5.25}) & \textcolor{blue}{32.21\%} (\textcolor{red}{-4.53}) \\
-Urban1960SatSeg & 78.46\% (\textcolor{green!60!black}{+0.41}) & 60.98\% (\textcolor{green!60!black}{+1.02}) & 28.66\% (\textcolor{green!60!black}{+0.41}) & 69.81\% (\textcolor{green!60!black}{+0.46}) & N/A & 87.80\% (\textcolor{green!60!black}{+0.53}) & N/A \\
+Aerial-D & 59.48\% & 43.37\% & 12.60\% & 49.21\% & \textcolor{blue}{43.57\%} (\textcolor{red}{-3.25}) & 62.88\% & \textcolor{blue}{58.14\%} (\textcolor{red}{-2.98}) \\
+RRSIS-D & 74.60\% & 58.39\% & 20.75\% & 64.36\% & \textcolor{blue}{59.02\%} (\textcolor{darkgreen}{+0.67}) & 75.59\% & \textcolor{blue}{72.50\%} (\textcolor{darkgreen}{+0.77}) \\
+NWPU-Refer & 46.02\% & 32.32\% & 10.66\% & 41.06\% & \textcolor{blue}{33.42\%} (\textcolor{darkgreen}{+1.90}) & 58.35\% & \textcolor{blue}{53.04\%} (\textcolor{darkgreen}{+6.87}) \\
+RefSegRS & 47.33\% & 13.23\% & 1.16\% & 41.31\% & \textcolor{blue}{27.73\%} (\textcolor{red}{-5.06}) & 50.30\% & \textcolor{blue}{32.21\%} (\textcolor{red}{-4.53}) \\
+Urban1960SatSeg & 78.46\% (\textcolor{green!60!black}{+0.41}) & 60.98\% (\textcolor{green!60!black}{+1.02}) & 28.66\% (\textcolor{green!60!black}{+0.41}) & \multicolumn{2}{c}{69.81\% (\textcolor{green!60!black}{+0.46})} & \multicolumn{2}{c}{87.80\% (\textcolor{green!60!black}{+0.53})} \\
 \bottomrule
 \end{tabular}%
 }
