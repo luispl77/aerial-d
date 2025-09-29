@@ -2,3 +2,8 @@
 tex/article/*.bbl
 tex/article/*.blg
 tex/article/*.fls
+
+# Editor/system artifacts
+.DS_Store
+**/.DS_Store
+.fuse_hidden*
