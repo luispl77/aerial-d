@@ -10,17 +10,6 @@ Introduction:
 * "each sample includes a hisstoric counterpart" innacurate, the historic filters are applied on the fly. Therefore, we remove completely this phrase.
 * "datasets from instance segmentation datasets" becomes instance/semantic segmentaion datasets
 * "applying the full toolchain" innacurate, we apply only the historic image transformations to other datasets, excepet for one which we apply some of the rule based tools. therefore, the accurate way of saying is not "full tool chain" but "some of our tools such as the historic transformations" and it is not across all data either
-Related Work:
-* "as well as benchmarks that test language" innacurate, as it suggests there are datasets and benchmarks, when there are only datasets. A more accurate addition to the first phrase would be simply replacing benchmarks with datasets.
-* missing citation on CLIP and SigLIP
-* talking about RMSIN, we should mention the core techers they are using for the three module. for instance, ARC is convolution, while the IIM contains a transformer block, CIM uses cross attention. we should alsomention that while this uses specialized networks for the vision backbone they use a swin transformer and a bert for language backbone. SO in reality, this seciton 2.2 Architectures for RRSIS needs a major rewrite because there is no such thing as "specialized networks" , everythin uses backbones. so we need to drop the "two families" thing. the other angle that needs rewriting is mentioning all these names IIM or CIM or ARC. this is not relevant. when describing each architecture, we should instead focus on backbones and how information is fused together: cross attention, convolution, and the general flow of the information while focusing not on random terms but the concepts that are employed. 
-* in fact, MRSNet is very similar to RMSIN, same backbones but the feature interaction is slightly different. needs more research to understand the brief highlihgt of difference
-* RSRefSeg is different, as it uses CLIP with SAM as the backbones, and has a lightweight fusion using convulutional layers to prompt SAM using the features from the CLIP text and vision encoders. It forms sparse prompts and dense prompts, and training is done on those convolutional layers as well as added LoRA matrices to the layers in CLIP and SAM vision encoder to adapt to the domain as well as extract important domain specific features that layer allow the model to segment the region
-* again on the overview we remove the innacura specialized network paths. 
-* going back to the datasets related work analysis, on RRSIS-D i think we forgot to mentino the source of data is DIOR, lets include that
-* we also forgot to mention RSRefSeg achieves SOTA benchmark IoU scores on RRSIS-Dand this is also proof of its effectiveness for the RRSIS task. 
-* on the end of the overview, there is an unsupported claim to strong generalization and "modest adaptation" lets not say these things, lets just focus on the supporting RRSIS-D results and strong / modern backbone utilization compared to the other architectures
-* also replcae "comprehensive benchmark" with comprehensive dataset again
 Aerial-D Dataset Construction:
 * "our distillation approach" is incomplete, what is is is a multimodal LLM expression generation component which includes a cost and efficient preceding distillation step on the LLM to allow us to generate expressions on a large scale of targets
 * the source datasets order of explanation of the image resizing and sliding windo is innacurate. we should say for LoveDA we simply resize to 480x480, etc, because images are just square images already, while iSAID has uniquely high resultion and varying resolution images, which require a sliding window approach with that same 480x480 resultion to get all patches that have instances into our starting images and annotations. 
@@ -86,4 +75,20 @@ Conclusion and Future Work:
 * then we mention how to train on the folder taht the o3 outputed
 
 #### clipsam/README.md is mostly fine
+
+## Completed Tasks
+
+### Article writing
+
+Related Work:
+* "as well as benchmarks that test language" innacurate, as it suggests there are datasets and benchmarks, when there are only datasets. A more accurate addition to the first phrase would be simply replacing benchmarks with datasets.
+* missing citation on CLIP and SigLIP
+* talking about RMSIN, we should mention the core techers they are using for the three module. for instance, ARC is convolution, while the IIM contains a transformer block, CIM uses cross attention. we should alsomention that while this uses specialized networks for the vision backbone they use a swin transformer and a bert for language backbone. SO in reality, this seciton 2.2 Architectures for RRSIS needs a major rewrite because there is no such thing as "specialized networks" , everythin uses backbones. so we need to drop the "two families" thing. the other angle that needs rewriting is mentioning all these names IIM or CIM or ARC. this is not relevant. when describing each architecture, we should instead focus on backbones and how information is fused together: cross attention, convolution, and the general flow of the information while focusing not on random terms but the concepts that are employed. 
+* in fact, MRSNet is very similar to RMSIN, same backbones but the feature interaction is slightly different. needs more research to understand the brief highlihgt of difference
+* RSRefSeg is different, as it uses CLIP with SAM as the backbones, and has a lightweight fusion using convulutional layers to prompt SAM using the features from the CLIP text and vision encoders. It forms sparse prompts and dense prompts, and training is done on those convolutional layers as well as added LoRA matrices to the layers in CLIP and SAM vision encoder to adapt to the domain as well as extract important domain specific features that layer allow the model to segment the region
+* again on the overview we remove the innacura specialized network paths. 
+* going back to the datasets related work analysis, on RRSIS-D i think we forgot to mentino the source of data is DIOR, lets include that
+* we also forgot to mention RSRefSeg achieves SOTA benchmark IoU scores on RRSIS-Dand this is also proof of its effectiveness for the RRSIS task. 
+* on the end of the overview, there is an unsupported claim to strong generalization and "modest adaptation" lets not say these things, lets just focus on the supporting RRSIS-D results and strong / modern backbone utilization compared to the other architectures
+* also replcae "comprehensive benchmark" with comprehensive dataset again
 
