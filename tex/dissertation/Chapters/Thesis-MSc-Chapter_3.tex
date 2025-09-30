@@ -8,44 +8,40 @@
 % The following line allows to ref this chapter
 \label{chap:architecture}
 
-This chapter reviews existing work in aerial image segmentation datasets, ranging from traditional semantic and instance segmentation datasets to specialized referring segmentation datasets and historical imagery applications. It then surveys architectures for Referring Remote Sensing Instance Segmentation (RRSIS), including approaches built on vision-language encoders (e.g., CLIP, SigLIP) and promptable segmentation decoders (e.g., SAM), as well as RSRefSeg-style bridging designs (Section~3.2).
+This section reviews the datasets and architectural developments that underpin aerial image understanding, with emphasis on instance and semantic segmentation resources, referring expression segmentation datasets, historical imagery, and architectures tailored to remote sensing.
 
 % #############################################################################
-\section{Aerial Image Segmentation Datasets}
+\section{Aerial Imagery Datasets}
 
-The foundation for effective aerial image understanding lies in comprehensive datasets that capture the diversity and complexity of remote sensing imagery. This section examines the evolution from traditional segmentation datasets to specialized referring segmentation datasets and historical imagery applications.
+Reliable progress in aerial image understanding depends on datasets that capture both discrete objects (e.g., ships, vehicles) and continuous land cover (e.g., roads, water, vegetation), as well as datasets that test language-based selection of specific targets. This section first summarizes instance and semantic segmentation resources that established pixel-level ground truth, and then discusses the emergence of referring expression segmentation datasets that couple images, masks, and natural language.
 
-\subsection{Traditional Aerial Segmentation Datasets}
+\subsection{Instance and Semantic Segmentation}
 
-Early efforts in aerial image segmentation focused on providing basic semantic and instance annotations for common remote sensing tasks. These foundational datasets established important benchmarks and annotation standards that continue to influence modern dataset construction.
+The iSAID dataset~\cite{zamir2019isaid} established the foundation for instance segmentation in aerial imagery by providing 655,451 object instances across 15 categories in 2,806 high-resolution images. Building upon the DOTA dataset~\cite{xia2018dota}, iSAID addressed the unique challenges of aerial imagery including high object density, large scale variations, and arbitrary orientations. The dataset demonstrated that existing computer vision methods require specialized adaptation for aerial domains, as off-the-shelf approaches achieved suboptimal performance. Example annotations are shown in Figure~\ref{fig:isaid_examples}. Key characteristics are summarized in Table~\ref{tab:source_comparison}.
 
-The iSAID dataset~\cite{zamir2019isaid} represents a significant advancement in instance segmentation for aerial imagery, providing detailed object-level annotations across diverse geographical regions. Building upon the DOTA dataset foundation~\cite{xia2018dota}, iSAID offers precise instance boundaries for 15 different categories commonly found in aerial imagery, including vehicles, buildings, and infrastructure elements. The dataset contains over 655,000 annotated instances across high-resolution imagery, establishing a comprehensive benchmark for instance-level understanding in remote sensing applications. Example annotations are shown in Figure~\ref{fig:isaid_examples}. Key characteristics are summarized in Table~\ref{tab:source_comparison}.
-
-\begin{figure}[htbp]
+\begin{figure}[t]
 \centering
 \includegraphics[width=0.8\textwidth]{Images/isaid_examples.png}
 \caption{iSAID dataset examples showing instance segmentation annotations for aerial imagery, demonstrating the detailed object-level boundaries across diverse geographical contexts.}
 \label{fig:isaid_examples}
 \end{figure}
 
-The LoveDA dataset~\cite{wang2021loveda} takes a complementary approach, focusing on semantic segmentation for land cover and infrastructure analysis. Unlike instance-based approaches, LoveDA provides dense pixel-level annotations for seven primary land cover categories including buildings, roads, water, barren land, forest, agriculture, and background. The dataset emphasizes multi-domain applicability by incorporating both urban and rural imagery collected from different geographical regions, enabling research into domain adaptation techniques for aerial image analysis. Representative samples appear in Figure~\ref{fig:loveda_examples}. Key characteristics are summarized in Table~\ref{tab:source_comparison}.
+Complementing instance-level analysis, the LoveDA dataset~\cite{wang2021loveda} focused on land-cover semantic segmentation across urban and rural environments. Covering 536.15 km² with 0.3m resolution imagery, LoveDA enables domain adaptation research by addressing style differences between geographical environments, with urban scenes dominated by artificial objects and rural scenes containing natural elements. Representative samples appear in Figure~\ref{fig:loveda_examples}.
 
-\begin{figure}[htbp]
+\begin{figure}[t]
 \centering
 \includegraphics[width=0.8\textwidth]{Images/loveda.png}
 \caption{LoveDA dataset examples showing semantic segmentation annotations for land use and land cover classification, highlighting the dense pixel-level labeling approach across urban and rural contexts.}
 \label{fig:loveda_examples}
 \end{figure}
 
-\subsection{Referring Segmentation Datasets}
+\subsection{Referring Expression Segmentation Datasets}
 
-Traditional segmentation datasets provide important foundations, but they lack the natural language interface necessary for interactive aerial image analysis. Referring segmentation datasets address this limitation by combining visual annotations with natural language descriptions, enabling text-guided segmentation capabilities.
+While instance and semantic segmentation establish pixel-accurate supervision, they assume a fixed label set. Referring expression segmentation reframes the problem: given a natural language phrase, the goal is to select and segment the specific object (or group) described. In aerial imagery, this line of work began with RefSegRS~\cite{yuan2023rrsis}, which introduced 4,420 image–language–mask triplets and formalized Referring Remote Sensing Instance Segmentation (RRSIS). The dataset highlighted aerial-specific challenges—small, densely packed targets and cluttered layouts—where language can disambiguate between visually similar instances. Example samples are illustrated in Figure~\ref{fig:aerial_datasets}.
 
-RefSegRS~\cite{chen2025rsrefseg} pioneered the field of referring segmentation for remote sensing imagery, introducing the first dataset to combine aerial imagery with natural language referring expressions. Built upon the SkyScapes dataset foundation, RefSegRS contains 4,420 triplets of images, referring expressions, and corresponding segmentation masks. The dataset focuses on establishing basic referring segmentation capabilities for aerial imagery, with expressions emphasizing spatial relationships, object attributes, and contextual descriptions that are characteristic of remote sensing analysis workflows. Example samples are illustrated in Figure~\ref{fig:aerial_datasets}.
+RRSIS-D~\cite{liu2024rotated} expanded both scale and annotation efficiency with 17,402 image–caption–mask triplets generated through a semi-automated pipeline using the Segment Anything Model (SAM)~\cite{sam}. The imagery originates from the DIOR dataset, grounding RRSIS-D in a broad remote-sensing corpus while leveraging automated mask generation. Beyond size, it targets aerial-specific phenomena—broad spatial scales and diverse object orientations—across 20 categories and seven attribute dimensions, enabling richer evaluation of language-guided selection in overhead scenes. Visual examples appear in Figure~\ref{fig:aerial_datasets}.
 
-RRSIS-D~\cite{yuan2023rrsis} expanded upon the RefSegRS foundation by introducing larger scale and semi-automated annotation approaches. The dataset contains 17,402 triplets derived from the RSVGD dataset, incorporating Segment Anything Model (SAM) assistance to accelerate annotation generation while maintaining quality standards. RRSIS-D addresses scale limitations of earlier datasets while introducing more diverse expression types across 20 different object categories and seven attribute dimensions, enabling more comprehensive evaluation of referring segmentation approaches. Visual examples appear in Figure~\ref{fig:aerial_datasets}. Comparative statistics across referring datasets are provided in Table~\ref{tab:rrsis_comparison}.
-
-\begin{figure}[htbp]
+\begin{figure}[t]
 \centering
 \subfigure[RefSegRS dataset example samples.]{\includegraphics[width=0.45\textwidth]{Images/refsegrs.png}\label{fig:refsegrs}}
 \hfill
@@ -54,15 +50,13 @@ RRSIS-D~\cite{yuan2023rrsis} expanded upon the RefSegRS foundation by introducin
 \label{fig:aerial_datasets}
 \end{figure}
 
-NWPU-Refer~\cite{yang2024large} represents the current state-of-the-art in aerial referring segmentation datasets, significantly expanding both scale and annotation sophistication. The dataset contains 49,745 triplets sourced from multiple global aerial imagery collections, providing comprehensive coverage across different geographical regions and imaging conditions. NWPU-Refer introduces enhanced annotation quality through purely manual annotation processes, resulting in more natural and diverse referring expressions. The dataset incorporates 32 object categories with six attribute dimensions, enabling evaluation of fine-grained referring segmentation capabilities that closely match real-world aerial image analysis requirements. Comparative statistics are shown in Table~\ref{tab:rrsis_comparison}.
+NWPU-Refer~\cite{yang2024large} further broadens coverage with 15,003 high-resolution images and 49,745 annotated targets spanning more than 30 countries. In contrast to semi-automated pipelines, it emphasizes purely manual annotation quality and explicitly supports single-object, multi-object, and non-object scenarios across 32 categories. Together, these datasets trace a steady shift from fixed-category segmentation toward language-conditioned, fine-grained selection in aerial imagery. Comparative statistics across all referring expression segmentation datasets are presented in Table~\ref{tab:rrsis_comparison}.
 
-\subsection{Historical Imagery Segmentation}
+\subsection{Historical Imagery Applications}
 
-While contemporary aerial datasets provide important foundations for modern remote sensing analysis, historical imagery represents a largely unexplored domain with significant research and practical value. Historical aerial imagery offers unique insights into temporal changes in land use, urban development patterns, and environmental evolution that cannot be captured through contemporary imagery alone. However, the scarcity of annotated historical datasets has limited progress in this important application area.
+Analysing historical aerial photographs introduces practical complications—reduced contrast, grayscale capture, film artifacts, and geometric distortions—yet these datasets are vital for studying long-term urban change. Urban1960SatSeg~\cite{hao2025urban1960satseg} addresses this gap with professionally annotated semantic segmentation over 1,240 km² of declassified mid-20th-century imagery from Xi'an, China. By focusing on degraded visual conditions, it provides a reference point for methods that must remain robust when applied to archival aerial data. Representative imagery appears in Figure~\ref{fig:historical_examples}, and dataset characteristics are summarized in Table~\ref{tab:historic_comparison}.
 
-The UrbanSatSeg1960 dataset~\cite{hao2025urban1960satseg} addresses this gap by providing semantic segmentation annotations for historical urban aerial imagery from the 1960s era. This specialized dataset focuses on urban environments captured during a pivotal period of global urbanization, offering ground truth annotations for land cover categories relevant to historical analysis including buildings, roads, vegetation, and open spaces. UrbanSatSeg1960 enables research into historical imagery understanding while providing essential training data for temporal analysis applications that require consistent segmentation capabilities across different imaging eras. Representative imagery appears in Figure~\ref{fig:historical_examples}.
-
-\begin{table}[htbp]
+\begin{table}[t]
 \centering
 \caption{Historical Imagery Dataset Summary}
 \label{tab:historic_comparison}
@@ -80,14 +74,14 @@ Categories & Buildings, roads, vegetation, open spaces \\
 \end{tabular}
 \end{table}
 
-\begin{figure}[htbp]
+\begin{figure}[t]
 \centering
 \includegraphics[width=0.6\textwidth]{Images/1960.png}
 \caption{Historical aerial imagery examples from the UrbanSatSeg1960 dataset showing the characteristic visual properties of 1960s aerial photography, including reduced contrast, grayscale capture, and period-specific urban development patterns.}
 \label{fig:historical_examples}
 \end{figure}
 
-\begin{table}[htbp]
+\begin{table}[t]
 \centering
 \caption{Source Aerial Dataset Comparison}
 \label{tab:source_comparison}
@@ -106,7 +100,7 @@ Attributes & - & Domain labels \\
 \end{tabular}
 \end{table}
 
-\begin{table}[htbp]
+\begin{table}[t]
 \centering
 \caption{Aerial Referring Segmentation (RRSIS) Dataset Comparison}
 \label{tab:rrsis_comparison}
@@ -129,49 +123,24 @@ Attributes & 3 & 7 & 6 dimensions \\
 % #############################################################################
 \section{Architectures for RRSIS}
 
-Architectures for referring segmentation in aerial imagery follow two broad paths. One family builds specialized networks tailored to overhead scenes, emphasizing multi-scale fusion and rotation handling without relying on large vision-language backbones. A second family leverages foundation models—vision encoders (e.g., CLIP~\cite{clip} or SigLIP~\cite{siglip,siglip2}) and segmentation decoders (e.g., SAM~\cite{sam})—and focuses on bridging text-vision semantics for mask prediction. This section outlines representative approaches from both lines of work.
+Architectures for referring expression segmentation in aerial imagery combine vision backbones, language encoders, and fusion mechanisms that translate textual cues into pixel-level masks. The Rotated Multi-Scale Interaction Network (RMSIN)~\cite{liu2024rotated} is a representative design that builds bespoke processing blocks on top of a Swin Transformer visual encoder and a BERT language backbone. Its Intra-scale Interaction module refines fine-grained details with transformer blocks, the Cross-scale Interaction module aligns multi-resolution features through cross-attention, and the Adaptive Rotated Convolution module injects rotation-aware convolutional filters to handle arbitrary object orientations.
 
-By the same authors who introduced the RRSIS-D dataset, the Rotated Multi-Scale Interaction Network (RMSIN) exemplifies the specialized-network path~\cite{liu2024rotated}. It introduces three modules—Intra-scale Interaction (IIM) for fine-grained detail, Cross-scale Interaction (CIM) for multi-resolution fusion, and Adaptive Rotated Convolution (ARC) for orientation variation—achieving improvements over strong baselines and showing the value of remote-sensing-specific inductive biases. This reflects a cohesive benchmark-method pairing within that line of work.
+MRSNet~\cite{yang2024large} adopts the same Swin–BERT backbone pairing but alters how features interact. Instead of RMSIN's triplet of modules, it employs hierarchical fusion that first consolidates information within each scale before exchanging context across scales, leading to a more progressive flow of visual detail toward the mask decoder. The shift in interaction pattern highlights how architectural variants largely differ in their feature fusion strategies rather than wholesale backbone changes.
 
-From the same authors who released the NWPU-Refer dataset, MRSNet advances the specialized-network line with intra-scale and hierarchical feature interaction modules designed to better capture multi-scale context in overhead scenes, mirroring the benchmark-method linkage seen with RMSIN and RRSIS-D. These specialized approaches emphasize bespoke inductive biases tailored specifically for the unique challenges of aerial imagery analysis.
+RSRefSeg~\cite{chen2025rsrefseg} illustrates the alternative of leaning fully on large vision–language models. It replaces bespoke encoders with CLIP~\cite{clip} or SigLIP~\cite{siglip} for multimodal feature extraction and integrates SAM~\cite{sam} as the segmentation decoder. A lightweight AttnPrompter module converts language-conditioned features into sparse and dense prompts for SAM, while LoRA adapters~\cite{lora} fine-tune both CLIP/SigLIP and the SAM vision encoder to aerial imagery. Figure~\ref{fig:rsrefseg_architecture} visualizes this configuration and highlights how the prompts interface with SAM. This design achieves the strongest reported IoU on RRSIS-D~\cite{liu2024rotated,chen2025rsrefseg} while requiring updates only to the bridging layers and low-rank adapters.
 
-In contrast, foundation-model approaches emphasize powerful pretrained backbones and light semantic bridging, trading bespoke inductive biases for transfer from large-scale pretraining. These approaches leverage the substantial progress in vision-language models and segmentation foundations to achieve strong performance through parameter-efficient adaptation.
-
-Vision-language models such as CLIP~\cite{clip} establish crucial connections between visual and textual modalities through contrastive learning, enabling zero-shot classification capabilities that transfer effectively to aerial imagery domains. The learned joint embedding spaces capture semantic relationships that prove valuable for understanding aerial scene content and object categories. SigLIP~\cite{siglip,siglip2} represents an advancement in vision-language training methodologies, improving upon CLIP's contrastive approach through more efficient training objectives and enhanced representation learning. These improvements translate to better performance on downstream aerial image understanding tasks where precise visual-textual alignment is critical.
-
-The Segment Anything Model (SAM) provides a foundational approach to semantic segmentation through its prompt-based architecture, as illustrated in Figure~\ref{fig:sam_architecture}~\cite{sam}. SAM's design incorporates three key components that work in concert to achieve exceptional segmentation performance across diverse domains. The image encoder processes input imagery into rich hierarchical feature representations using a Vision Transformer (ViT) backbone, capturing both fine-grained details and global context essential for understanding complex aerial scenes. The prompt encoder handles various input modalities including points, boxes, and masks, transforming these diverse prompt types into unified embedding representations that guide the segmentation process. The mask decoder utilizes these image and prompt embeddings through a sophisticated attention mechanism to generate precise segmentation boundaries, producing multiple candidate masks with confidence scores that enable robust target selection.
-
-This architecture demonstrates remarkable generalization capabilities across diverse image domains, including aerial imagery, where its ability to process multiple prompt types enables flexible segmentation workflows that can adapt to different user requirements and annotation strategies. The model's foundation training on massive datasets provides strong zero-shot capabilities for aerial imagery, while its prompt-based design allows for interactive refinement of segmentation results through iterative point or box inputs.
-
-\begin{figure}[htbp]
+\begin{figure*}[t]
 \centering
-\includegraphics[width=1.0\textwidth]{Images/sam.png}
-\caption{Segment Anything Model (SAM) architecture showing the image encoder, prompt encoder, and mask decoder components. The model processes various prompt types including points, boxes, and text to generate precise segmentation masks with hierarchical feature processing and attention-based mask generation.}
-\label{fig:sam_architecture}
-\end{figure}
-
-RSRefSeg~\cite{chen2025rsrefseg} represents the foundation-model path by coupling a vision-language encoder with a segmentation decoder via a learned prompting bridge mechanism. As shown in Figure~\ref{fig:rsrefseg_architecture}, the architecture integrates SigLIP vision-language encoders with SAM mask decoders through custom prompter networks that convert text semantics into decoder-friendly prompts.
-
-The architecture addresses the fundamental challenge of bridging text-vision semantics for precise mask prediction in aerial imagery. The SigLIP encoder processes both the input aerial image and the referring expression, creating aligned representations in a joint embedding space. This vision-language understanding provides the semantic foundation necessary for distinguishing between visually similar objects based on their textual descriptions.
-
-The critical innovation lies in the AttnPrompter mechanism, which serves as the bridge between the vision-language understanding and the segmentation generation. This component transforms the text-aligned visual features into the specific prompt formats required by SAM's architecture. The dual-pathway design processes both local token-level and global sentence-level text-visual interactions, generating both sparse prompts (such as point and box coordinates) and dense prompts (such as mask embeddings) that guide SAM's mask decoder toward the target object described in the referring expression.
-
-SAM's mask decoder receives these carefully constructed prompts and leverages its pretrained segmentation capabilities to generate precise object boundaries. The decoder's attention mechanisms utilize the semantic guidance provided by the prompter to focus on the relevant regions within the aerial image, producing high-quality segmentation masks that accurately capture the boundaries of the referred object even in complex aerial scenes with high object density and varying scales.
-
-This foundation-model approach achieves strong performance through parameter-efficient fine-tuning strategies such as LoRA (Low-Rank Adaptation)~\cite{lora}, which enables effective task-specific adaptation while preserving the powerful pretrained representations learned during foundation model training. The architecture addresses the unique challenges of aerial imagery analysis, including varied object scales, complex spatial relationships, and domain-specific terminology requirements, while benefiting from the robust generalization capabilities inherited from its foundation model components.
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=\textwidth]{Images/clipsam.png}
-\caption{RSRefSeg architecture overview showing the integration of SigLIP vision-language encoder with SAM mask decoder through the AttnPrompter bridging mechanism. The dual-pathway design processes both local (token-level) and global (sentence-level) text-visual interactions to generate sparse and dense prompts for precise aerial image segmentation guided by natural language descriptions.}
+\includegraphics[width=0.9\textwidth]{Images/clipsam.png}
+\caption{Overview of the RSRefSeg architecture~\cite{chen2025rsrefseg}, which couples a vision–language encoder with a segmentation decoder via a learned prompting bridge.}
 \label{fig:rsrefseg_architecture}
-\end{figure}
+\end{figure*}
 
 % #############################################################################
 \section{Overview}
 
-The current landscape of aerial image segmentation is shaped by three pillars that enable language-guided segmentation. First, instance and semantic datasets such as iSAID and LoveDA supply pixel-accurate supervision for objects and land cover. Second, referring segmentation benchmarks including RefSegRS, RRSIS-D, and NWPU-Refer pair images with natural expressions and masks, enabling evaluation of language-conditioned target selection at varying scales and annotation regimes. Third, architectural developments span specialized remote-sensing networks and foundation-model designs that leverage strong vision and language backbones.
+The current landscape of aerial image segmentation is shaped by three pillars that enable language-guided segmentation. First, instance and semantic datasets such as iSAID and LoveDA supply pixel-accurate supervision for objects and land cover. Second, referring expression segmentation datasets including RefSegRS, RRSIS-D, and NWPU-Refer pair images with natural expressions and masks, enabling evaluation of language-conditioned target selection at varying scales and annotation regimes. Third, architectural developments span specialized remote-sensing networks (e.g., RMSIN, MRSNet) and foundation-model designs (e.g., RSRefSeg~\cite{chen2025rsrefseg}) that leverage strong vision and language backbones.
 
-Crucially, the complementary supervision in iSAID and LoveDA presents an opportunity to construct a larger and more diverse referring segmentation resource by converting instance- and land-cover annotations into language-conditioned targets—motivating the creation of Aerial-D as a comprehensive benchmark for aerial referring expressions.
+Crucially, the complementary supervision in iSAID and LoveDA presents an opportunity to construct a larger and more diverse referring expression segmentation resource by converting instance- and land-cover annotations into language-conditioned targets—motivating the creation of Aerial-D as a comprehensive dataset for aerial referring expressions.
 
-Within this context, RSRefSeg stands out as a particularly compelling choice for referring expression segmentation: it benefits from powerful pretrained vision-language encoders and a high-capacity segmentation decoder, connected by a lightweight bridging mechanism. This combination offers strong generalization with modest task-specific adaptation, making it a natural starting point for modern aerial referring segmentation systems that can leverage the comprehensive supervision provided by large-scale automatically generated datasets.
+Within this context, RSRefSeg stands out as a particularly compelling choice for referring expression segmentation: it benefits from powerful pretrained vision–language encoders (e.g., CLIP/SigLIP) and a high-capacity segmentation decoder (SAM) connected by a lightweight bridging mechanism. The resulting system establishes the leading IoU on RRSIS-D~\cite{chen2025rsrefseg}, demonstrating that foundation-model backbones can be adapted effectively to aerial referring expression segmentation.

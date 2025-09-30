@@ -56,7 +56,7 @@ where $\eta$ is the learning rate and $\nabla_\theta \mathcal{L}(\theta_t)$ repr
 \label{fig:perceptron}
 \end{figure}
 
-\begin{figure}[htbp]
+\begin{figure}[t]
 \centering
 \includegraphics[width=0.6\textwidth]{Images/mlp.png}
 \caption{Multi-layer perceptron architecture showing feedforward neural network structure operating on feature inputs $x_1, x_2, \ldots, x_N$.}
@@ -108,7 +108,7 @@ The transformer block combines self-attention with feed-forward layers and resid
 
 where $\mathbf{H}$ represents the input hidden states and FFN denotes the feed-forward network. Multiple transformer blocks can be stacked to create deeper models that capture increasingly complex patterns in the input sequences. The output token embeddings from the final transformer layer can then be used for downstream tasks by attaching task-specific heads, such as classification layers for sentiment analysis or language modeling heads for text generation.
 
-\begin{figure}[tb]
+\begin{figure}[t]
 \centering
 \includegraphics[width=0.9\textwidth]{Images/transformer.png}
 \caption{Self-attention mechanism in transformers. The diagram shows how attention scores $\alpha$ are computed for each token, with specific examples of attention weights for tokens "path" and "rocks" relative to other words in the sequence "the stream chose its path through rocks".}
@@ -132,7 +132,7 @@ Similar to text transformers, positional embeddings are added to patch embedding
 
 The output patch embeddings from the final transformer layer provide rich spatial representations that can be utilized for various computer vision tasks by attaching appropriate task-specific heads, such as classification heads for image categorization or detection heads for object localization. The Vision Transformer demonstrates that the same architectural principles underlying text transformers can be successfully applied to visual data, reinforcing the universal applicability of self-attention mechanisms across multiple modalities including text, vision, and other sequential data types.
 
-\begin{figure}[tb]
+\begin{figure}[t]
 \centering
 \includegraphics[width=0.9\textwidth]{Images/vit.png}
 \caption{Vision Transformer (ViT) architecture for image classification and feature extraction. The input image is divided into square patches, which are then linearly projected and processed through transformer blocks, similar to how text transformers handle word tokens.}
@@ -153,7 +153,7 @@ Instance segmentation extends semantic segmentation by identifying and delineati
 
 Referring instance segmentation represents the most sophisticated variant, combining instance-level precision with natural language understanding. This task requires the model to segment a specific object instance based on a natural language description or prompt, such as "large vehicle in between two planes." The model must simultaneously understand the linguistic description and identify the corresponding visual region, bridging the gap between language and vision modalities. This approach enables more intuitive human-computer interaction and supports complex queries that cannot be addressed through traditional category-based segmentation methods.
 
-\begin{figure}[htbp]
+\begin{figure}[t]
 \centering
 \includegraphics[width=1.0\textwidth]{Images/segmentation.png}
 \caption{Comparison of segmentation types: semantic segmentation, instance segmentation, and referring instance segmentation with natural language prompts.}
@@ -181,7 +181,7 @@ This contrastive objective enables CLIP to achieve remarkable zero-shot classifi
 
 The learned joint embedding space has proven valuable for numerous downstream vision-language tasks beyond classification. The aligned representations enable applications such as image retrieval using text queries, caption generation, visual question answering, and multimodal reasoning tasks. The versatility of CLIP embeddings stems from their ability to capture semantic relationships that transfer across different tasks and domains, making them fundamental building blocks for modern multimodal systems.
 
-\begin{figure}[htbp]
+\begin{figure}[t]
 \centering
 \subfigure[Contrastive pre-training methodology.]{\includegraphics[width=0.45\textwidth]{Images/contrastive_pretraining.png}\label{fig:contrastive_pretraining}}
 \hfill
@@ -224,7 +224,7 @@ Similarly, Google's Gemini 2.5~\cite{gemini25}.
 
 These models leverage massive computational resources and extensive multimodal training datasets to achieve performance levels that approach human-level understanding in many vision-language tasks, setting new benchmarks for what is possible in artificial multimodal intelligence.
 
-\begin{figure}[htbp]
+\begin{figure}[t]
 \centering
 \includegraphics[width=0.8\textwidth]{Images/gpt.png}
 \caption{GPT autoregressive language model architecture showing the transformer decoder stack with next-token prediction and feedback mechanism.}
