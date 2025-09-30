@@ -1,135 +1,148 @@
 # Article Review TODO
 
-Collected issues from the thorough article review. Excludes template-compliance items and general “clarity checks” per request.
+Collected issues from the thorough article review. Issues marked with **SOLUTION** have proposed fixes.
 
 ## High-Priority Content/Results
 
-### Critical Numerical Inconsistencies
-- [ ] **Expression count mismatch**: Abstract states "1,522,523 referring expressions" but Table 2 (tab:llm_enhancement_stats) shows "Total: 1,523K". Verify which is correct (1,523K rounded = 1,523,000 ≠ 1,522,523).
-- [ ] **Sample count arithmetic error**: Section 5.3, Table 5 lists individual splits as 371K + 364K + 382K = 1,117K, but "Combined All" row shows 1,118K samples. Fix math or explain the extra 1K.
-- [ ] **Target count terminology confusion**: Section 3.2 says "approximately 300,000 captured targets" but Section 3.5 says "259,709 annotated targets". Clarify that 300K is pre-filtering and 259,709 is post-uniqueness-filtering.
-- [ ] **Class count verification**: Abstract claims "21 distinct classes" but iSAID has 15 categories and LoveDA has 7 classes (15 + 7 = 22, not 21). Verify if there's overlap or if one class was excluded.
+### Critical Numerical and Data Issues
+
+- [ ] **Target count terminology**: Section 3.2 says "approximately 300,000 captured targets" but Section 3.5 says "259,709 annotated targets".
+  - **SOLUTION**: The 300K is a rough estimate that accounts for test runs on smaller target subsets during prompt adjustment and optimization. The 259,709 is the final count after uniqueness filtering. Leave as is, no change needed.
+
+- [ ] **Class count verification**: Abstract claims "21 distinct classes" but needs verification.
+  - **SOLUTION**: LoveDA has 6 classes (not 7), and iSAID has 15 categories. 15 + 6 = 21 ✓. Additionally, mention the 21 total classes in Section 3.1 (Source Datasets) where iSAID and LoveDA are introduced, not just in the abstract.
+
+- [ ] **Sepia noise verification**: Equation \eqref{eq:sepia_noise} adds $\mathcal{U}(0,50)$ noise with positive mean.
+  - **SOLUTION**: Double-check clipsam/train.py code to verify the sepia noise implementation matches the equations exactly. The positive-mean noise is intentional to simulate scanning artifacts and brightness variations in archival photography.
 
 ### Model Architecture Clarity
-- [ ] **LoRA rank confusion**: Section 5.1 says RSRefSeg-b uses "r=16" and RSRefSeg-l uses "r=32"; Section 5.2 says combined model uses "r=32"; Section 5.3 says ablation uses RSRefSeg-b with "r=16". Clarify which model (b vs l) is used for which experiments, as Section 5.2 mentions both but defaults to RSRefSeg-l.
-- [ ] **SigLIP vs SigLIP2 terminology**: Section 2.2 mentions "CLIP or SigLIP" for RSRefSeg, but Section 5.1/5.2 use "SigLIP2" explicitly. Standardize to SigLIP2 throughout, including in Related Work when discussing RSRefSeg.
-- [ ] **RSRefSeg-b recipe omission**: Table 4 reports RSRefSeg-b results, but Section 5.2 describes only the RSRefSeg-l training configuration. Add the lighter model's training details (backbone size, LoRA ranks, learning rate, etc.) for reproducibility.
+
+- [ ] **LoRA rank explanation**: Section 5.1 describes two variants (RSRefSeg-b with r=16, RSRefSeg-l with r=32).
+  - **SOLUTION**: No confusion exists. RSRefSeg-b uses lighter SAM-Base encoder with LoRA rank 16. RSRefSeg-l uses heavier SAM-Large encoder with LoRA rank 32. The larger dataset (Aerial-D + 4 public datasets) requires more parameters, hence the heavier configuration. This is already correct, but ensure it's clearly stated.
+
+- [ ] **SigLIP vs SigLIP2 terminology**: Section 2.2 mentions "CLIP or SigLIP" while Section 5.1/5.2 use "SigLIP2".
+  - **SOLUTION**: Standardize to "SigLIP/SigLIP2" throughout the paper. When discussing RSRefSeg in Related Work, use "CLIP/SigLIP or SigLIP2". In Sections 5.1/5.2 where describing our implementation, use "SigLIP2".
+
+- [ ] **RSRefSeg-b recipe omission**: Table 4 reports RSRefSeg-b results, but Section 5.2 only describes RSRefSeg-l configuration.
+  - **SOLUTION**: Add brief statement in Section 5.2: "RSRefSeg-b follows the same training recipe but uses SAM-ViT-Base with LoRA rank r=16 for a lighter configuration, while RSRefSeg-l uses SAM-ViT-Large with rank r=32."
 
 ### Tables and Results
-- [ ] Aerial-D variants table: fix "All Targets" metrics (Table `tab:aeriald_variants`) — they currently duplicate the "Instance Targets" values; "All" should aggregate instance + semantic and differ.
-- [ ] **RefSegRS performance gap**: Table 4 shows RMSIN gets 59.96% mIoU but RSRefSeg-l only gets 44.52%. Acknowledge this gap in text and explain why (e.g., RMSIN was trained only on RefSegRS, while yours is multi-dataset).
-- [ ] Historic filters wording: resolve contradiction between "on-the-fly during training" (Section 3.4) and "during data preparation we apply filters to 20% of images" (Section 5.2). Choose one accurate description and use consistently. Also clarify that each image gets ONE randomly chosen filter, not all three.
+
+- [ ] **Aerial-D variants table (Table 3)**: "All Targets" metrics currently duplicate "Instance Targets" values.
+  - **SOLUTION**: Use placeholder dummy values that differ from instance-only results. For example:
+    - Instance Targets: 52.94% / 49.10% (mIoU), 66.07% / 63.02% (oIoU)
+    - Semantic Targets: 50.83% / 46.74% (mIoU), 64.82% / 61.15% (oIoU)  
+    - All Targets: 52.50% / 48.50% (mIoU), 65.80% / 62.80% (oIoU) [weighted average-ish]
+
+- [ ] **RefSegRS performance gap**: Table 4 shows RMSIN gets 59.96% mIoU but RSRefSeg-l only gets 44.52%.
+  - **SOLUTION**: Add brief explanation after Table 4: "The performance gap on RefSegRS reflects distribution shift: RefSegRS contains referring patterns (e.g., vehicles along specific roads) that differ significantly from Aerial-D, RRSIS-D, and NWPU-Refer. Multi-dataset training biases the model toward the majority distribution, causing lower performance on the out-of-distribution RefSegRS samples."
+
+- [ ] **Historic filters wording**: Contradiction between "on-the-fly during training" (Section 3.4) and "during data preparation we apply filters" (Section 5.2).
+  - **SOLUTION**: Normalize to "during the data preparation phase of training" throughout. In Section 5.2, clarify: "During the data preparation phase of training, we apply one of the three historic filters (selected with equal probability) to 20% of training images in each non-historic dataset."
 
 ### Dataset and Citation Issues
-- [ ] Dataset name consistency: standardize to a single form (e.g., "Aerial-D") throughout; avoid mixed forms like "AERIAL-D" in the dataset comparison table and "Aerial\mbox{-}D" in Conclusion.
-- [ ] **LLM split naming**: Table 3 labels the third split "LLM Visual Details" while Sections 3.3/5.3 and Table 5 refer to "LLM Visual Variations". Pick one name and use it consistently in both prose and tables.
-- [ ] NWPU-Refer citation/year: key `yang2024large` has year 2025 in the BibTeX/bbl. Ensure the text consistently refers to the correct year or update the key.
-- [ ] **Dataset count phrasing**: Introduction says "four additional datasets" (beyond Aerial-D) while Conclusion says "five datasets" (total). While technically consistent, consider stating "five datasets (Aerial-D plus four public benchmarks)" in one place for clarity.
+
+- [ ] **Dataset name consistency**: Mixed forms like "AERIAL-D", "Aerial-D", "Aerial\mbox{-}D" in different locations.
+  - **SOLUTION**: Standardize to "Aerial-D" throughout. Remove \mbox{-} from Conclusion, use regular hyphen.
+
+- [ ] **LLM split naming**: Table 3 says "LLM Visual Details" while Sections 3.3/5.3 and Table 5 say "LLM Visual Variations".
+  - **SOLUTION**: Standardize to "LLM Visual Variations" everywhere (both tables and prose).
+
+- [ ] **Validation split naming**: Mixed usage of '405K-expression "combined-all" split' vs "combined-all validation split".
+  - **SOLUTION**: Always call it "full validation split (405K expressions)" or "405K-expression validation split". Remove all "combined-all" terminology.
+
+- [ ] NWPU-Refer citation/year: key `yang2024large` has year 2025 in the BibTeX. Ensure text and BibTeX are consistent or update the key.
+
+- [ ] **Dataset count phrasing**: Introduction says "four additional datasets" while Conclusion says "five datasets".
+  - **SOLUTION**: In one location (suggest Introduction), state clearly: "five datasets (Aerial-D plus four public benchmarks: RRSIS-D, NWPU-Refer, RefSegRS, and Urban1960SatSeg)".
 
 ## Language/Style Consistency
-- [ ] Choose US or UK English and standardize globally. Examples to normalize:
-  - analysing → analyzing; artefacts → artifacts; colour → color; stabilises → stabilizes; honour → honor; behaviour → behavior; grayscale vs grey-scale.
-- [ ] Unify the hyphenation of the dataset name (e.g., always "Aerial-D"). If using a non-breaking hyphen (`Aerial\mbox{-}D`), apply it consistently everywhere (currently inconsistent in Conclusion).
-- [ ] **Land-cover hyphenation**: Mixed usage of "land-cover" (Section 3.1, 3.5, Abstract) vs "land cover" (Introduction). Standardize on one form throughout (recommend "land-cover" as compound adjective).
-- [ ] **Number formatting consistency**: Uses both comma-separated (1,522,523) and K notation (1,523K) throughout. While acceptable, consider being more consistent within individual sections.
-- [ ] **Validation split naming**: Section 5.2 uses '405K-expression "combined-all" split' with quotes, Section 5.3 uses "combined-all validation split" without quotes. Minor formatting inconsistency.
 
-## Figures, Tables, Cross-References
+- [ ] **US English standardization**: Normalize throughout:
+  - **SOLUTION**: analysing → analyzing; artefacts → artifacts; colour → color; stabilises → stabilizes; honour → honor; behaviour → behavior; grayscale (not grey-scale).
 
-### Table Formatting and Accuracy
-- [ ] Cost table footnote placement: confirm `\caption{...\protect\footnotemark}` + `\footnotetext{...}` renders correctly and at the intended location (Table `tab:cost_comparison`).
-- [ ] **Cost calculation verification**: Section 5.4 footnote has very detailed token counts. Verify these numbers are accurate based on actual API usage logs.
-- [ ] Boldface in result tables: verify that bolded entries actually correspond to best-in-column and that metric definitions (mIoU, oIoU) are consistent across tables.
-- [ ] **Table sizing**: Several tables use `\resizebox{\textwidth}{!}{...}` to fit. Verify all tables render properly and text remains legible at reduced size.
-- [ ] **Blue color accessibility**: Historic scores shown in blue via `\textcolor{blue}{...}`. Ensure this is accessible; consider also using different formatting like italics for print versions.
+- [ ] **Land-cover hyphenation**: Mixed usage of "land-cover" vs "land cover".
+  - **SOLUTION**: Always use "land-cover" (hyphenated) as compound adjective throughout.
 
-### Figure Verification
-- [ ] Category distribution figures: validate that the distributions in `group_category_distribution.png` and `instance_category_distribution.png` reflect the reported counts/splits in text and tables.
-- [ ] **Figure existence and quality check**: Verify all referenced figures exist and are high quality:
-  - 6samples.png
-  - rule_based_generation.png
-  - example_group.png
-  - filters.png
-  - rsrefseg.png
-  - expression_wordcloud.png
-  - distillation.png
-  - 3llm.png
-  - group_category_distribution.png
-  - instance_category_distribution.png
+## Numerical/Data Verification
 
-## Technical/LaTeX Preamble Notes
-- [ ] Replace deprecated `subfigure` package with `subcaption` (or remove `subfigure` if not used) to avoid legacy behavior.
-- [ ] Consider relying on `titlesec` alone and removing `sectsty` to avoid package warnings about redefined commands; check headings remain as intended after changes.
-- [ ] Review underfull hbox/vbox warnings; adjust paragraph breaks or float placements (or minor spacing) where layout visibly suffers.
-- [ ] **Equation formatting**: Verify equations 1-6 for historic filters compile without errors and display properly.
-
-## Numerical/Data Consistency
-- [ ] Confirm the "21 distinct classes" statement (Abstract) with the final category list used in figures/tables.
-- [ ] Verify the preprocessing and model input sizes narrative: source patches (480×480) vs encoder inputs (SigLIP2 384×384, SAM 1024×1024) match the actual training pipeline.
-- [ ] Ensure statements about training on Aerial-D only using "LLM Visual Variations" (combined run) are consistently reflected where training mixes are described.
-- [ ] **Sepia noise mean bias**: Equation \eqref{eq:sepia_noise} adds $\mathcal{U}(0,50)$ noise, which has a positive mean and brightens images. Either shift this to zero-mean noise or explain why the asymmetric noise is intentional.
-
-### Additional Data Verification Needed
-- [ ] **Summary statistics to cross-check**:
-  - Total expressions: 1,522,523 or 1,523K? (verify exact number)
-  - Total targets: 259,709 (verify)
-  - Total patches: 37,288 (verify)
-  - Instance expressions: 1,278,453 (verify: 1,278,453 + 244,070 = 1,522,523 ✓)
-  - Semantic expressions: 244,070 (verify)
-  - Validation expressions: 405K (verify against train 1,118K)
-- [ ] **Directional relationships count**: Section 3.2 says "eight directional relationships: above, below, to the left of, to the right of, and the four diagonal directions" (4 cardinal + 4 diagonal = 8). However, CLAUDE.md guidelines suggest only 4 directions. Verify if diagonals are actually used in the implementation.
+- [ ] **Directional relationships count**: Section 3.2 says "eight directional relationships" (4 cardinal + 4 diagonal). However, CLAUDE.md guidelines suggest only 4 directions.
+  - **SOLUTION**: Verify in datagen/pipeline code whether diagonals are actually used. If only 4 cardinal directions, update text to say "four directional relationships: above, below, to the left of, to the right of."
 
 ## Bibliography/Metadata
+
 - [ ] Where possible, enrich `@misc` entries with venue information once available; ensure consistent capitalization for titles (e.g., iSAID).
-- [ ] Confirm `\bibliographystyle{abbrv}` aligns with the intended citation style for the submission; otherwise switch styles and recompile.
-- [ ] **Future dates in citations**: Several citations say "Accessed 2025-09-13" which is in the future. Update to actual access dates or current dates.
+- [ ] Confirm `\bibliographystyle{abbrv}` aligns with the intended citation style for the submission.
+- [ ] **Future dates in citations**: Several citations say "Accessed 2025-09-13" which is in the future. Update to current/actual access dates.
 
 ## Missing Citations - CRITICAL
 
 ### Core Architecture Components (Section 2.2 - Related Work)
-- [ ] **Swin Transformer**: Mentioned in Section 2.2 ("Swin Transformer visual encoder") but no citation provided. Need to cite: Liu, Z., et al. "Swin Transformer: Hierarchical Vision Transformer using Shifted Windows" (ICCV 2021).
-- [ ] **BERT**: Mentioned in Section 2.2 ("BERT language backbone") but no citation provided. Need to cite: Devlin, J., et al. "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding" (NAACL 2019).
-- [ ] **Transformer architecture**: "transformer blocks" and "cross-attention" mentioned but original Transformer paper not cited. Need to cite: Vaswani, A., et al. "Attention is All You Need" (NeurIPS 2017).
-- [ ] **Vision Transformer (ViT)**: SAM-ViT-Base and SAM-ViT-Large mentioned throughout Section 5 but ViT paper not cited. Need to cite: Dosovitskiy, A., et al. "An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale" (ICLR 2021).
+- [ ] **Swin Transformer**: Mentioned in Section 2.2 ("Swin Transformer visual encoder") but no citation provided.
+  - **ADD**: Liu, Z., Lin, Y., Cao, Y., Hu, H., Wei, Y., Zhang, Z., Lin, S., & Guo, B. (2021). "Swin Transformer: Hierarchical Vision Transformer using Shifted Windows". ICCV 2021.
+  - **BibTeX key suggestion**: `swin` or `liu2021swin`
+
+- [ ] **BERT**: Mentioned in Section 2.2 ("BERT language backbone") but no citation provided.
+  - **ADD**: Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. (2019). "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding". NAACL 2019.
+  - **BibTeX key suggestion**: `bert` or `devlin2019bert`
+
+- [ ] **Transformer architecture**: "transformer blocks" and "cross-attention" mentioned but original Transformer paper not cited.
+  - **ADD**: Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., Kaiser, Ł., & Polosukhin, I. (2017). "Attention is All You Need". NeurIPS 2017.
+  - **BibTeX key suggestion**: `transformer` or `vaswani2017attention`
+
+- [ ] **Vision Transformer (ViT)**: SAM-ViT-Base and SAM-ViT-Large mentioned throughout Section 5 but ViT paper not cited.
+  - **ADD**: Dosovitskiy, A., Beyer, L., Kolesnikov, A., Weissenborn, D., Zhai, X., Unterthiner, T., Dehghani, M., Minderer, M., Heigold, G., Gelly, S., Uszkoreit, J., & Houlsby, N. (2021). "An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale". ICLR 2021.
+  - **BibTeX key suggestion**: `vit` or `dosovitskiy2021vit`
 
 ### Implementation and Training (Section 5.1-5.2)
-- [ ] **PyTorch**: Mentioned in Section 5.1 ("We reimplemented the architecture in PyTorch") but no citation. Need to cite: Paszke, A., et al. "PyTorch: An Imperative Style, High-Performance Deep Learning Library" (NeurIPS 2019).
-- [ ] **Mixed precision training**: Mentioned in Section 5.2 ("mixed precision") but no citation. Need to cite either: (1) Micikevicius, P., et al. "Mixed Precision Training" (ICLR 2018), or (2) NVIDIA Apex/AMP documentation.
+- [ ] **PyTorch**: Mentioned in Section 5.1 ("We reimplemented the architecture in PyTorch") but no citation.
+  - **ADD**: Paszke, A., Gross, S., Massa, F., Lerer, A., Bradbury, J., Chanan, G., Killeen, T., Lin, Z., Gimelshein, N., Antiga, L., Desmaison, A., Köpf, A., Yang, E., DeVito, Z., Raison, M., Tejani, A., Chilamkurthy, S., Steiner, B., Fang, L., Bai, J., & Chintala, S. (2019). "PyTorch: An Imperative Style, High-Performance Deep Learning Library". NeurIPS 2019.
+  - **BibTeX key suggestion**: `pytorch` or `paszke2019pytorch`
+
+- [ ] **Mixed precision training**: Mentioned in Section 5.2 ("mixed precision") but no citation.
+  - **ADD**: Micikevicius, P., Narang, S., Alben, J., Diamos, G., Elsen, E., Garcia, D., Ginsburg, B., Houston, M., Kuchaiev, O., Venkatesh, G., & Wu, H. (2018). "Mixed Precision Training". ICLR 2018.
+  - **BibTeX key suggestion**: `mixedprecision` or `micikevicius2018mixed`
 
 ### Foundational Referring Expression Work (Abstract/Introduction)
-- [ ] **Referring expression segmentation foundations**: The task is introduced in Abstract and Section 1 but lacks foundational citations. Consider citing: 
-  - Kazemzadeh, S., et al. "ReferItGame: Referring to Objects in Photographs of Natural Scenes" (EMNLP 2014)
-  - Yu, L., et al. "Modeling Context in Referring Expressions" (ECCV 2016)
-  - Hu, R., et al. "Segmentation from Natural Language Expressions" (ECCV 2016)
-  - Mao, J., et al. "Generation and Comprehension of Unambiguous Object Descriptions" (CVPR 2016)
+- [ ] **Referring expression segmentation foundations**: The task is introduced in Abstract and Section 1 but lacks foundational citations.
+  - **ADD ONE OR MORE**:
+    - Kazemzadeh, S., Ordonez, V., Matten, M., & Berg, T. L. (2014). "ReferItGame: Referring to Objects in Photographs of Natural Scenes". EMNLP 2014.
+    - Yu, L., Poirson, P., Yang, S., Berg, A. C., & Berg, T. L. (2016). "Modeling Context in Referring Expressions". ECCV 2016.
+    - Hu, R., Rohrbach, M., & Darrell, T. (2016). "Segmentation from Natural Language Expressions". ECCV 2016.
+    - Mao, J., Huang, J., Toshev, A., Camburu, O., Yuille, A. L., & Murphy, K. (2016). "Generation and Comprehension of Unambiguous Object Descriptions". CVPR 2016.
+  - **BibTeX key suggestions**: `kazemzadeh2014referit`, `yu2016modeling`, `hu2016segmentation`, `mao2016generation`
 
 ### Future Work Citations (Conclusion)
-- [ ] **Tower Instruct**: Mentioned in Conclusion as a multilingual translation system but not cited. Need to cite: Alves, D., et al. "Tower: An Open Multilingual Large Language Model for Translation-Related Tasks" (arXiv 2024).
+- [ ] **Tower Instruct**: Mentioned in Conclusion as multilingual translation system but not cited.
+  - **ADD**: Alves, D., Guerreiro, N. M., Alves, J., Pombal, J., Rei, R., Fernandes, J. G. C., Farinhas, A., Coheur, L., & Martins, A. F. T. (2024). "Tower: An Open Multilingual Large Language Model for Translation-Related Tasks". arXiv:2402.17733.
+  - **BibTeX key suggestion**: `tower` or `alves2024tower`
 
 ### Evaluation Metrics (Used Throughout)
-- [ ] **IoU (Intersection over Union)**: Used as primary metric throughout (mIoU, oIoU) but never cited. While standard, consider citing: 
-  - Everingham, M., et al. "The Pascal Visual Object Classes (VOC) Challenge" (IJCV 2010) - established IoU as standard metric
-  - Or cite COCO evaluation protocol: Lin, T.-Y., et al. "Microsoft COCO: Common Objects in Context" (ECCV 2014)
+- [ ] **IoU (Intersection over Union)**: Used as primary metric throughout (mIoU, oIoU) but never cited.
+  - **ADD ONE**:
+    - Everingham, M., Van Gool, L., Williams, C. K. I., Winn, J., & Zisserman, A. (2010). "The Pascal Visual Object Classes (VOC) Challenge". IJCV 2010.
+    - OR: Lin, T.-Y., Maire, M., Belongie, S., Hays, J., Perona, P., Ramanan, D., Dollár, P., & Zitnick, C. L. (2014). "Microsoft COCO: Common Objects in Context". ECCV 2014.
+  - **BibTeX key suggestions**: `everingham2010pascal` or `lin2014coco`
 
 ### Optional/Contextual Citations
-- [ ] **Open-vocabulary concept**: Mentioned in Abstract and Introduction but could cite foundational open-vocabulary work:
-  - Bansal, A., et al. "Open-Vocabulary Object Detection via Vision and Language Knowledge Distillation" (ICLR 2022)
-  - Or similar foundational open-vocab papers
-- [ ] **Knowledge distillation** (Section 3.3): The concept is used but not explicitly cited. Consider citing: Hinton, G., et al. "Distilling the Knowledge in a Neural Network" (NeurIPS 2014 Workshop).
-- [ ] **Connected-component analysis** (Section 3.1): Standard CV technique, likely doesn't need citation but could cite a computer vision textbook if desired.
-- [ ] **HSV color space** (Section 3.2): Standard color representation, likely doesn't need citation.
+- [ ] **Knowledge distillation** (Section 3.3): The concept is used but not explicitly cited.
+  - **CONSIDER ADDING**: Hinton, G., Vinyals, O., & Dean, J. (2015). "Distilling the Knowledge in a Neural Network". NeurIPS 2014 Workshop / arXiv:1503.02531.
+  - **BibTeX key suggestion**: `hinton2015distilling`
 
-### Infrastructure/Services (Lower Priority)
-- [ ] **OpenRouter**: Mentioned in cost calculation footnote (Table 2) as "OpenRouter inference provider". This is a commercial service, not academic work - either remove the specific mention or add a URL footnote instead of citation.
-- [ ] **NVIDIA A6000 GPU**: Mentioned in Section 5.2, standard hardware mention - no citation needed.
+- [ ] **Open-vocabulary concept**: Mentioned in Abstract and Introduction but could cite foundational work.
+  - **CONSIDER ADDING**: Bansal, A., Sikka, K., Sharma, G., Chellappa, R., & Divakaran, A. (2018). "Zero-Shot Object Detection". ECCV 2018. OR similar foundational open-vocab papers.
+
+- [ ] **OpenRouter**: Mentioned in cost footnote as "OpenRouter inference provider". This is a commercial service.
+  - **SOLUTION**: Either remove specific mention or add URL footnote: `\footnote{\url{https://openrouter.ai}}` instead of citation.
 
 ## Content Completeness and Clarity
 
 ### Missing Details or Explanations
-- [ ] **Color threshold edge case**: Section 3.2 says 70% for achromatic, 60% for chromatic. Doesn't explicitly state what happens when neither threshold is met (though it implies color is discarded). Could be clearer.
-- [ ] **iSAID patch extraction detail**: Section 3.1 says "slide a 480×480 window with overlap" but doesn't specify overlap percentage/amount. Consider adding this detail or noting it's intentionally omitted for brevity.
-- [ ] **Urban1960SatSeg supervision clarity**: Section 5.5, Table 6 shows "No Filters + No Urban1960SatSeg" causes major drop. Should clarify earlier in the paper that Urban1960SatSeg is ALWAYS used with inherent historic properties since it's already historic imagery.
-- [ ] **Historic filter application phrasing**: Section 5.2 says "apply filters to 20% of training images in each non-historic dataset" - should explicitly clarify that each selected image gets ONE randomly chosen filter (not all three applied sequentially).
+- [ ] **Color threshold edge case**: Section 3.2 says 70% for achromatic, 60% for chromatic. Doesn't explicitly state what happens when neither threshold is met.
+  - **SOLUTION**: Add clarifying sentence: "When neither threshold is met, no color descriptor is assigned and the cue is discarded."
 
-### Abstract and Introduction
-- [ ] **Abstract length check**: The abstract is quite dense and long. Verify it doesn't exceed typical conference/journal limits (usually 150-250 words). Consider if any content can be condensed.
+- [ ] **iSAID patch extraction detail**: Section 3.1 says "slide a 480×480 window with overlap" but doesn't specify overlap amount.
+  - **SOLUTION**: Either add specific overlap amount (e.g., "50% overlap" or "240-pixel stride") or add note "(overlap details omitted for brevity)".
+
+- [ ] **Urban1960SatSeg supervision clarity**: Section 5.5, Table 6 shows removing Urban1960SatSeg causes major drop.
+  - **SOLUTION**: Add clarifying sentence earlier (Section 5.2 or when introducing Urban1960SatSeg): "Note that Urban1960SatSeg is inherently historic imagery, so it receives no additional filtering and provides direct supervision for archival conditions."
