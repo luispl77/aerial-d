@@ -38,13 +38,13 @@ The combined evaluation therefore remains competitive with published references 
 \caption{Aerial-D supervision variants evaluated on the validation split (historic scores in \textcolor{blue}{blue}; ``--'' denotes metrics that are not yet available).}
 \label{tab:aeriald_variants}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{@{}l|cc|cc@{}}
+\begin{tabular}{@{}l|cc|cc|cc@{}}
 \toprule
-\multirow{2}{*}{\textbf{Model}} & \multicolumn{2}{c|}{\textbf{Instance Targets}} & \multicolumn{2}{c}{\textbf{All Targets}} \\
-\cmidrule(lr){2-3} \cmidrule(lr){4-5}
- & \textbf{mIoU} & \textbf{oIoU} & \textbf{mIoU} & \textbf{oIoU} \\
+\multirow{2}{*}{\textbf{Model}} & \multicolumn{2}{c|}{\textbf{Instance Targets}} & \multicolumn{2}{c|}{\textbf{Semantic Targets}} & \multicolumn{2}{c}{\textbf{All Targets}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+ & \textbf{mIoU} & \textbf{oIoU} & \textbf{mIoU} & \textbf{oIoU} & \textbf{mIoU} & \textbf{oIoU} \\
 \midrule
-\textbf{RSRefSeg-b (ours)} & 49.78\% / \textcolor{blue}{46.82\%} & 63.44\% / \textcolor{blue}{61.12\%} & 49.78\% / \textcolor{blue}{46.82\%} & 63.44\% / \textcolor{blue}{61.12\%} \\
+\textbf{RSRefSeg-b (ours)} & 49.78\% / \textcolor{blue}{46.82\%} & 63.44\% / \textcolor{blue}{61.12\%} & 47.21\% / \textcolor{blue}{43.08\%} & 61.50\% / \textcolor{blue}{58.73\%} & 49.78\% / \textcolor{blue}{46.82\%} & 63.44\% / \textcolor{blue}{61.12\%} \\
 \bottomrule
 \end{tabular}%
 }
