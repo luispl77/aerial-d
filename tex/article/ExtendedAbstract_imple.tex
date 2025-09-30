@@ -10,7 +10,7 @@ This section details our comprehensive approach to constructing Aerial-D, a larg
 
 \subsection{Source Datasets}
 
-The Aerial-D dataset is constructed from two complementary aerial datasets with different annotation styles: iSAID (instance segmentation) and LoveDA (semantic segmentation).
+The Aerial-D dataset is constructed from two complementary aerial datasets with different annotation styles: iSAID (instance segmentation) and LoveDA (semantic segmentation). Together, these source datasets provide 21 distinct object and land-cover classes, with iSAID contributing 15 instance categories (e.g., vehicles, ships, buildings) and LoveDA contributing 6 semantic land-cover classes (e.g., farmland, forest, water).
 
 We start by putting both sources into the same format so that a single model can learn from them side by side: square patches at 480×480. This size keeps small iSAID objects large enough to describe and segment, while fitting the input expectations of common vision encoders used in our model (e.g., CLIP/SigLIP image towers and SAM backbones\cite{clip,siglip,sam}).
 
@@ -20,11 +20,11 @@ We first resize the 1024×1024 LoveDA tiles directly to 480×480 while preservin
 
 The core challenge is figuring out how to describe these target objects using only what we know from their bounding boxes, masks, and categories. We utilize the bounding box coordinates to understand where each object sits within the image patch. As shown in Figure \ref{fig:rule_example}, we divide each patch into a three-by-three grid marked with dotted lines, so we can say an object is "in the top right" or "in the center". When we have multiple objects of the same type, we also check if any are in extreme positions like the topmost or leftmost instance of that category.
 
-Since we also have the pixel masks for each object, we can analyze their colors by looking at hue–saturation–value (HSV) distributions to distinguish between light and dark objects and a controlled palette of chromatic colors. We require at least 70\% dominance for achromatic labels (“light” or “dark”) and a single hue to occupy at least 60\% of the chromatic pixels before we commit to a specific color; otherwise the instance is marked as ambiguous and the colour cue is discarded. This thresholds ambiguous multi-hue regions and helps us ignore noisy signals that would otherwise mislead the language generation. We also avoid using color descriptors for buildings and water since these typically show mixed colors that aren't useful for identification.
+Since we also have the pixel masks for each object, we can analyze their colors by looking at hue–saturation–value (HSV) distributions to distinguish between light and dark objects and a controlled palette of chromatic colors. We require at least 70\% dominance for achromatic labels (“light” or “dark”) and a single hue to occupy at least 60\% of the chromatic pixels before we commit to a specific color; When neither threshold is met, no color descriptor is assigned and the cue is discarded. This thresholds ambiguous multi-hue regions and helps us ignore noisy signals that would otherwise mislead the language generation. We also avoid using color descriptors for buildings and water since these typically show mixed colors that aren't useful for identification.
 
 We also create relationships between nearby objects by calculating angles between their positions, allowing us to generate expressions like "the ship to the left of the harbor" or "the vehicle above the building". The system uses eight directional relationships: above, below, to the left of, to the right of, and the four diagonal directions.
 
-All these rules combine to generate various referring expressions for each object, as demonstrated in Figure \ref{fig:rule_example} where a single plane generates multiple possible descriptions including "the plane in the top right", "the light plane in the top right", and versions with relational descriptions. However, a significant challenge emerges when multiple objects end up with identical characteristics and generate the exact same expressions, creating ambiguous references where one phrase could describe multiple different objects. We solve this fundamental problem by taking the set of all expressions for all objects and targets in each image, matching them against each other to find duplicates, and when we find expressions that are identical, we cancel both expressions out and discard them as ambiguous. This filtering stage is crucial: it removes targets that cannot be uniquely verbalised using the rules alone, ensures the rule-based component only passes forward unambiguous instances, and guarantees that the downstream dataset never asks models to resolve intentionally ambiguous descriptions.
+All these rules combine to generate various referring expressions for each object, as demonstrated in Figure \ref{fig:rule_example} where a single plane generates multiple possible descriptions including "the plane in the top right", "the light plane in the top right", and versions with relational descriptions. However, a significant challenge emerges when multiple objects end up with identical characteristics and generate the exact same expressions, creating ambiguous references where one phrase could describe multiple different objects. We solve this fundamental problem by taking the set of all expressions for all objects and targets in each image, matching them against each other to find duplicates, and when we find expressions that are identical, we cancel both expressions out and discard them as ambiguous. This filtering stage is crucial: it removes targets that cannot be uniquely verbalized using the rules alone, ensures the rule-based component only passes forward unambiguous instances, and guarantees that the downstream dataset never asks models to resolve intentionally ambiguous descriptions.
 
 \begin{figure*}[t]
 \centering
@@ -79,9 +79,9 @@ This dual-task prompting transforms basic expressions like "the group of 4 large
 
 However, the full dataset contains approximately 300,000 captured targets including both objects and groups. To generate expressions, we process each target individually, meaning we would need 300,000 separate LLM requests. Using production-grade LLMs at this scale—for example, OpenAI’s o3 model\cite{o3} with strong visual capabilities—would cost thousands of dollars; Table \ref{tab:cost_comparison} reports the exact breakdown, making direct application prohibitively expensive for research-scale dataset construction.
 
-To address this scalability challenge, we employ a knowledge distillation approach, as illustrated in Figure \ref{fig:llm_distillation}. We utilize OpenAI’s o3 model\cite{o3} and compare it against a much more lightweight open‑weights model, Gemma3\cite{gemma3}. We obtain 500 high‑quality outputs from o3 on a representative random subset of targets from the initial dataset. These outputs serve as training data for supervised fine‑tuning using the parameter‑efficient QLoRA method\cite{qlora} on Gemma3‑12B.
+To address this scalability challenge, we employ a knowledge distillation~\cite{hinton2015distilling} approach, as illustrated in Figure \ref{fig:llm_distillation}. We utilize OpenAI’s o3 model\cite{o3} and compare it against a much more lightweight open‑weights model, Gemma3\cite{gemma3}. We obtain 500 high‑quality outputs from o3 on a representative random subset of targets from the initial dataset. These outputs serve as training data for supervised fine‑tuning using the parameter‑efficient QLoRA method\cite{qlora} on Gemma3‑12B.
 
-During fine-tuning we apply LoRA adapters across both the text decoder and the SigLIP-derived vision stack embedded in Gemma3, which improves instruction adherence, suppresses hallucinations, and stabilises the two-task output schema. The custom-tailored Gemma3 variant can then process all 300,000 targets on a single GPU while honouring the dual-task prompt structure—behaviour the base Gemma3 model fails to follow reliably without distillation. Notably, the distilled model’s output quality approaches o3’s once fine‑tuned; qualitative comparisons in Figure \ref{fig:distillation_comparison} show closely matched enhancements with markedly reduced hallucinations relative to the base Gemma3 model.
+During fine-tuning we apply LoRA adapters across both the text decoder and the SigLIP-derived vision stack embedded in Gemma3, which improves instruction adherence, suppresses hallucinations, and stabilizes the two-task output schema. The custom-tailored Gemma3 variant can then process all 300,000 targets on a single GPU while honoring the dual-task prompt structure—behavior the base Gemma3 model fails to follow reliably without distillation. Notably, the distilled model’s output quality approaches o3’s once fine‑tuned; qualitative comparisons in Figure \ref{fig:distillation_comparison} show closely matched enhancements with markedly reduced hallucinations relative to the base Gemma3 model.
 
 \begin{figure*}[t]
 \centering
@@ -142,7 +142,7 @@ I_{c}(x) = \big(I_{\gamma}(x) - \mu\big)\,c + \mu.
 I_{\text{grain}}(x) = \operatorname{clip}\big(I_{c}(x) + \eta(x)\big),\quad \eta(x)\sim\mathcal{N}(0,\sigma^2).
 \label{eq:grain}
 \end{equation}
-We use $\gamma=1.1$, $c=0.85$, and $\sigma=0.1\times 255$ to produce mild contrast loss and film grain.
+We use $\gamma=1.2$, $c=0.8$, and $\sigma=0.1\times 255$ to produce mild contrast loss and film grain.
 
 Finally, we apply a fixed sepia transform (\eqnref{eq:sepia}) followed by uniform sensor/scan noise (\eqnref{eq:sepia_noise}):
 \begin{equation}
@@ -162,7 +162,7 @@ I_{\text{sepia}}(x) = \operatorname{clip}\big(\mathbf{S}(x) + \xi(x)\big),\quad 
 \label{eq:sepia_noise}
 \end{equation}
 
-These effects mimic tonal range reduction, lens grain, and scanning artefacts typical of mid‑century aerial photography while preserving the spatial structure that segmentation relies on. Figure~\ref{fig:historic_filters} illustrates the visual impact of each transformation.
+These effects mimic tonal range reduction, lens grain, and scanning artifacts typical of mid‑century aerial photography while preserving the spatial structure that segmentation relies on. Figure~\ref{fig:historic_filters} illustrates the visual impact of each transformation.
 
 \begin{figure*}[t]
 \centering
@@ -214,7 +214,7 @@ RefSegRS & 0.13m & 4,420 & 4,420 & -- & \checkmark & $\times$ & 512 & Manual \\
 RRSIS-D & 0.5m-30m & 17,402 & 17,402 & -- & \checkmark & $\times$ & 800 & Semi-auto \\
 NWPU-Refer & 0.12m-0.5m & 15,003 & 49,745 & -- & \checkmark & \checkmark & 1,024-2,048 & Manual \\
 \midrule
-\multirow{2}{*}{\textbf{AERIAL-D}} & \multirow{2}{*}{\textbf{0.3m-4.5m}} & \multirow{2}{*}{\textbf{37,288}} & \textbf{1,278,453} & -- & \textbf{\checkmark} & \textbf{\checkmark} & \multirow{2}{*}{\textbf{480}} & \multirow{2}{*}{\textbf{Automated + LLM}} \\
+\multirow{2}{*}{\textbf{Aerial-D}} & \multirow{2}{*}{\textbf{0.3m-4.5m}} & \multirow{2}{*}{\textbf{37,288}} & \textbf{1,278,453} & -- & \textbf{\checkmark} & \textbf{\checkmark} & \multirow{2}{*}{\textbf{480}} & \multirow{2}{*}{\textbf{Automated + LLM}} \\
  & & & -- & \textbf{244,070} & $\times$ & \textbf{\checkmark} & & \\
 \bottomrule
 \end{tabular}%
@@ -232,7 +232,7 @@ NWPU-Refer & 0.12m-0.5m & 15,003 & 49,745 & -- & \checkmark & \checkmark & 1,024
 \midrule
 Rule-Based & 371K & 135K & 506K \\
 LLM Language Variations & 364K & 133K & 497K \\
-LLM Visual Details & 382K & 137K & 519K \\
+LLM Visual Variations & 382K & 137K & 519K \\
 \midrule
 \textbf{Total} & \textbf{1,118K} & \textbf{405K} & \textbf{1,523K} \\
 \bottomrule
