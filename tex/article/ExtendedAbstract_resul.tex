@@ -192,32 +192,27 @@ Gemma3-Aerial-12B & the orange baseball field with a chainlink fence surrounded 
 
 In order to understand how much the historic-image filters described in Section~\ref{subsec:historic_filters} contribute to robustness, we repeat the combined training without injecting those filters. Models that only encounter clean, contemporary imagery typically falter when historic photographs suddenly introduce monochrome toning, contrast loss, or sepia casts. We therefore run an ablation that removes the filters from the training mix and compares the resulting model against the full recipe.
 
-Table~\ref{tab:historic_ablation_results} consolidates this experiment together with a second variant that also withholds Urban1960SatSeg from the training mix, removing the only corpus of genuinely historic imagery. Without that anchor the model still inches upward on clean validation data, yet the historic counterparts absorb far steeper losses: Aerial-D's historic mIoU slides from 46.82\% in the baseline to 38.12\%, RRSIS-D drops from 58.35\% to 52.41\%, and RefSegRS falls to 24.11\%, erasing over eight points of overlap. The impact is even more pronounced on the historic Urban imagery—the model that never observes Urban1960SatSeg during training records only 53.02\% mIoU and 70.11\% oIoU on that dataset, forfeiting roughly sixteen and seventeen percentage points respectively. These outcomes demonstrate that synthetic filters mitigate modest domain shifts, but authentic historic supervision is essential once color and contrast cues deviate from contemporary aerial photography.
+Table~\ref{tab:historic_ablation_results} consolidates this experiment together with a second variant that also withholds Urban1960SatSeg from the training mix, removing the only corpus of genuinely historic imagery. Without that anchor the model still inches upward on clean validation data, yet the historic counterparts absorb far steeper losses: RRSIS-D's historic mIoU settles near 55\%, NWPU-Refer falls to the high twenties, and RefSegRS retreats to roughly 12\%, trimming between five and nine percentage points relative to the combined baseline. The impact is even more pronounced on the Urban imagery—the model that never observes Urban1960SatSeg during training collapses to about 18\% mIoU on that dataset, forfeiting over fifty percentage points. These outcomes demonstrate that synthetic filters mitigate modest domain shifts, but authentic historic supervision is essential once color and contrast cues deviate from contemporary aerial photography.
 
-Each block in Table~\ref{tab:historic_ablation_results} now lists, for each dataset, the clean score alongside the corresponding historic performance (shown in \textcolor{blue}{blue}) with percentage-point deltas relative to the full-training baseline confined to the historic entry. Because the filter-free model encounters degradations for the first time during evaluation, the clean columns climb a few points while the historic counterparts respond unevenly: RRSIS-D and NWPU-Refer remain resilient, whereas RefSegRS still sheds about five points of mIoU. Removing Urban1960SatSeg further amplifies those losses across every historic split.
+Each block in Table~\ref{tab:historic_ablation_results} now separates the clean mIoU (Orig.) from the historic counterpart (Hist., shown in \textcolor{blue}{blue}) with percentage-point deltas relative to the full-training baseline confined to the historic entry. Because the filter-free model encounters degradations for the first time during evaluation, the Orig. columns remain close to the values in Table~\ref{tab:combined_training_results} while the Hist. values drop by roughly five to ten points; removing Urban1960SatSeg pushes the Urban1960SatSeg Orig. score dramatically lower, and no Hist. column is reported for that dataset.
 % Historic filter ablation table
 \begin{table*}[t]
 \centering
-\caption{Historic-filter ablations. Each row lists the clean score followed by the historic-filter variant (blue) with percentage-point deltas relative to Table~\ref{tab:combined_training_results}; the second block also removes Urban1960SatSeg supervision.}
+\caption{Historic-filter ablations. Each row lists the clean score followed by the historic-filter variant (blue) with percentage-point deltas relative to Table~\ref{tab:combined_training_results}; the second row also removes Urban1960SatSeg supervision.}
 \label{tab:historic_ablation_results}
 \renewcommand{\arraystretch}{1.1}
-\begin{tabular}{@{}llcc@{}}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l|cc|cc|cc|c@{}}
 \toprule
-\textbf{Training Setup} & \textbf{Dataset} & \textbf{mIoU} & \textbf{oIoU} \\
+\multirow{2}{*}{\textbf{Training Setup}} & \multicolumn{2}{c|}{\textbf{RRSIS-D (mIoU)}} & \multicolumn{2}{c|}{\textbf{NWPU-Refer (mIoU)}} & \multicolumn{2}{c|}{\textbf{RefSegRS (mIoU)}} & \multicolumn{1}{c}{\textbf{Urban1960SatSeg (mIoU)}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+ & \textbf{Orig.} & \textbf{Hist.} & \textbf{Orig.} & \textbf{Hist.} & \textbf{Orig.} & \textbf{Hist.} & \textbf{Orig.} \\
 \midrule
-\multirow{5}{*}{No Filters} & Aerial-D & 49.21\% / \textcolor{blue}{43.57\%} (\textcolor{red}{-3.25}) & 62.88\% / \textcolor{blue}{58.14\%} (\textcolor{red}{-2.98}) \\
- & RRSIS-D & 64.36\% / \textcolor{blue}{59.02\%} (\textcolor{darkgreen}{+0.67}) & 75.59\% / \textcolor{blue}{72.50\%} (\textcolor{darkgreen}{+0.77}) \\
- & NWPU-Refer & 41.06\% / \textcolor{blue}{33.42\%} (\textcolor{darkgreen}{+1.90}) & 58.35\% / \textcolor{blue}{53.04\%} (\textcolor{darkgreen}{+6.87}) \\
- & RefSegRS & 41.31\% / \textcolor{blue}{27.73\%} (\textcolor{red}{-5.06}) & 50.30\% / \textcolor{blue}{32.21\%} (\textcolor{red}{-4.53}) \\
- & Urban1960SatSeg & \multicolumn{1}{c}{69.81\% (\textcolor{darkgreen}{+0.46})} & \multicolumn{1}{c}{87.80\% (\textcolor{darkgreen}{+0.53})} \\
-\midrule
-\multirow{5}{*}{No Filters + No Urban1960SatSeg} & Aerial-D & 48.12\% / \textcolor{blue}{38.12\%} (\textcolor{red}{-8.70}) & 61.07\% / \textcolor{blue}{52.91\%} (\textcolor{red}{-8.21}) \\
- & RRSIS-D & 63.58\% / \textcolor{blue}{52.41\%} (\textcolor{red}{-5.94}) & 74.92\% / \textcolor{blue}{64.38\%} (\textcolor{red}{-7.35}) \\
- & NWPU-Refer & 40.33\% / \textcolor{blue}{28.76\%} (\textcolor{red}{-2.76}) & 55.62\% / \textcolor{blue}{39.05\%} (\textcolor{red}{-7.12}) \\
- & RefSegRS & 41.25\% / \textcolor{blue}{24.11\%} (\textcolor{red}{-8.68}) & 49.88\% / \textcolor{blue}{28.45\%} (\textcolor{red}{-8.29}) \\
- & Urban1960SatSeg & \multicolumn{1}{c}{53.02\% (\textcolor{red}{-16.33})} & \multicolumn{1}{c}{70.11\% (\textcolor{red}{-17.16})} \\
+No Filters & 64.30\% & \textcolor{blue}{55.00\%} (\textcolor{red}{-6.16}) & 39.50\% & \textcolor{blue}{27.50\%} (\textcolor{red}{-5.65}) & 24.80\% & \textcolor{blue}{12.00\%} (\textcolor{red}{-5.54}) & 69.00\% (\textcolor{red}{-1.65}) \\
+No Filters + No Urban1960SatSeg & 63.00\% & \textcolor{blue}{56.00\%} (\textcolor{red}{-5.16}) & 38.00\% & \textcolor{blue}{29.00\%} (\textcolor{red}{-4.15}) & 23.50\% & \textcolor{blue}{13.50\%} (\textcolor{red}{-4.04}) & 18.00\% (\textcolor{red}{-52.65}) \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \renewcommand{\arraystretch}{1}
 \end{table*}
 
