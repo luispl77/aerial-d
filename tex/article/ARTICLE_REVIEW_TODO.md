@@ -84,6 +84,45 @@ Collected issues from the thorough article review. Excludes template-compliance 
 - [ ] Confirm `\bibliographystyle{abbrv}` aligns with the intended citation style for the submission; otherwise switch styles and recompile.
 - [ ] **Future dates in citations**: Several citations say "Accessed 2025-09-13" which is in the future. Update to actual access dates or current dates.
 
+## Missing Citations - CRITICAL
+
+### Core Architecture Components (Section 2.2 - Related Work)
+- [ ] **Swin Transformer**: Mentioned in Section 2.2 ("Swin Transformer visual encoder") but no citation provided. Need to cite: Liu, Z., et al. "Swin Transformer: Hierarchical Vision Transformer using Shifted Windows" (ICCV 2021).
+- [ ] **BERT**: Mentioned in Section 2.2 ("BERT language backbone") but no citation provided. Need to cite: Devlin, J., et al. "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding" (NAACL 2019).
+- [ ] **Transformer architecture**: "transformer blocks" and "cross-attention" mentioned but original Transformer paper not cited. Need to cite: Vaswani, A., et al. "Attention is All You Need" (NeurIPS 2017).
+- [ ] **Vision Transformer (ViT)**: SAM-ViT-Base and SAM-ViT-Large mentioned throughout Section 5 but ViT paper not cited. Need to cite: Dosovitskiy, A., et al. "An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale" (ICLR 2021).
+
+### Implementation and Training (Section 5.1-5.2)
+- [ ] **PyTorch**: Mentioned in Section 5.1 ("We reimplemented the architecture in PyTorch") but no citation. Need to cite: Paszke, A., et al. "PyTorch: An Imperative Style, High-Performance Deep Learning Library" (NeurIPS 2019).
+- [ ] **Mixed precision training**: Mentioned in Section 5.2 ("mixed precision") but no citation. Need to cite either: (1) Micikevicius, P., et al. "Mixed Precision Training" (ICLR 2018), or (2) NVIDIA Apex/AMP documentation.
+
+### Foundational Referring Expression Work (Abstract/Introduction)
+- [ ] **Referring expression segmentation foundations**: The task is introduced in Abstract and Section 1 but lacks foundational citations. Consider citing: 
+  - Kazemzadeh, S., et al. "ReferItGame: Referring to Objects in Photographs of Natural Scenes" (EMNLP 2014)
+  - Yu, L., et al. "Modeling Context in Referring Expressions" (ECCV 2016)
+  - Hu, R., et al. "Segmentation from Natural Language Expressions" (ECCV 2016)
+  - Mao, J., et al. "Generation and Comprehension of Unambiguous Object Descriptions" (CVPR 2016)
+
+### Future Work Citations (Conclusion)
+- [ ] **Tower Instruct**: Mentioned in Conclusion as a multilingual translation system but not cited. Need to cite: Alves, D., et al. "Tower: An Open Multilingual Large Language Model for Translation-Related Tasks" (arXiv 2024).
+
+### Evaluation Metrics (Used Throughout)
+- [ ] **IoU (Intersection over Union)**: Used as primary metric throughout (mIoU, oIoU) but never cited. While standard, consider citing: 
+  - Everingham, M., et al. "The Pascal Visual Object Classes (VOC) Challenge" (IJCV 2010) - established IoU as standard metric
+  - Or cite COCO evaluation protocol: Lin, T.-Y., et al. "Microsoft COCO: Common Objects in Context" (ECCV 2014)
+
+### Optional/Contextual Citations
+- [ ] **Open-vocabulary concept**: Mentioned in Abstract and Introduction but could cite foundational open-vocabulary work:
+  - Bansal, A., et al. "Open-Vocabulary Object Detection via Vision and Language Knowledge Distillation" (ICLR 2022)
+  - Or similar foundational open-vocab papers
+- [ ] **Knowledge distillation** (Section 3.3): The concept is used but not explicitly cited. Consider citing: Hinton, G., et al. "Distilling the Knowledge in a Neural Network" (NeurIPS 2014 Workshop).
+- [ ] **Connected-component analysis** (Section 3.1): Standard CV technique, likely doesn't need citation but could cite a computer vision textbook if desired.
+- [ ] **HSV color space** (Section 3.2): Standard color representation, likely doesn't need citation.
+
+### Infrastructure/Services (Lower Priority)
+- [ ] **OpenRouter**: Mentioned in cost calculation footnote (Table 2) as "OpenRouter inference provider". This is a commercial service, not academic work - either remove the specific mention or add a URL footnote instead of citation.
+- [ ] **NVIDIA A6000 GPU**: Mentioned in Section 5.2, standard hardware mention - no citation needed.
+
 ## Content Completeness and Clarity
 
 ### Missing Details or Explanations
