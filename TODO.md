@@ -35,7 +35,6 @@ Conclusion and Future Work:
 * on the future work for multilingual, we can also mention more generally we can use specialized translation models to produce multilingual expression translations from the dataset, while keeping the full process still fully automatic. thes models can be LLMs with the proven gemma 3 distilation pipeline being able to be adapted for this task, or a dedicated translation model such as tower instruct
 * for the gemini 2.5 "exhibit image geneation" is innacurate, rather the model is trained to produce complete segmentation masks of objects and bounding boxes, with remarkable generalizaiont capabilities inherent of foundation LLMs, can be used to for instance take every image of Aerial-D and produce additional instance segmentations , expanding the mask and object/target variety in the dataset to be unrestricted, much like we unrestrict the language
 * on the conclusion side, emphasize the importance of Aerial-D in enabling a harder benchmark for RRSIS and in general referring expression segmentaiton in aerial pphotos, allowing for model work and experimentation with it 
-
 ### Dissertation writing:
 
 * Cover - add the Examination Committee and correct month and year
