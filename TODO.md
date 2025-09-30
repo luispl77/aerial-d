@@ -3,13 +3,6 @@
 ## Tasks That Need To Be Completed
 
 ### Article writing
-Introduction:
-* missing command after "group-level expressions"
-* "A critical component to developing" here we say models for RRSIS, but more generally its models for RRSIS and referring segmentation of aerial photos
-* "compared with prior RRSIS datasets" lands wrong, is it the large-scale? we should explicitly mention something like , significantly larger than some of the prior RRSIS benchmarks
-* "each sample includes a hisstoric counterpart" innacurate, the historic filters are applied on the fly. Therefore, we remove completely this phrase.
-* "datasets from instance segmentation datasets" becomes instance/semantic segmentaion datasets
-* "applying the full toolchain" innacurate, we apply only the historic image transformations to other datasets, excepet for one which we apply some of the rule based tools. therefore, the accurate way of saying is not "full tool chain" but "some of our tools such as the historic transformations" and it is not across all data either
 Related Work:
 * "as well as benchmarks that test language" innacurate, as it suggests there are datasets and benchmarks, when there are only datasets. A more accurate addition to the first phrase would be simply replacing benchmarks with datasets.
 * missing citation on CLIP and SigLIP
@@ -86,4 +79,15 @@ Conclusion and Future Work:
 * then we mention how to train on the folder taht the o3 outputed
 
 #### clipsam/README.md is mostly fine
+
+## Completed Tasks
+
+### Article writing
+Introduction:
+* missing command after "group-level expressions"
+* "A critical component to developing" here we say models for RRSIS, but more generally its models for RRSIS and referring segmentation of aerial photos
+* "compared with prior RRSIS datasets" lands wrong, is it the large-scale? we should explicitly mention something like , significantly larger than some of the prior RRSIS benchmarks
+* "each sample includes a hisstoric counterpart" innacurate, the historic filters are applied on the fly. Therefore, we remove completely this phrase.
+* "datasets from instance segmentation datasets" becomes instance/semantic segmentaion datasets
+* "applying the full toolchain" innacurate, we apply only the historic image transformations to other datasets, excepet for one which we apply some of the rule based tools. therefore, the accurate way of saying is not "full tool chain" but "some of our tools such as the historic transformations" and it is not across all data either
 
