@@ -45,6 +45,7 @@ The combined evaluation therefore remains competitive with published references 
  & \textbf{mIoU} & \textbf{oIoU} & \textbf{mIoU} & \textbf{oIoU} & \textbf{mIoU} & \textbf{oIoU} \\
 \midrule
 \textbf{RSRefSeg-b (ours)} & 49.78\% / \textcolor{blue}{46.82\%} & 63.44\% / \textcolor{blue}{61.12\%} & 47.21\% / \textcolor{blue}{43.08\%} & 61.50\% / \textcolor{blue}{58.73\%} & 49.78\% / \textcolor{blue}{46.82\%} & 63.44\% / \textcolor{blue}{61.12\%} \\
+\textbf{RSRefSeg-l (ours)} & 52.94\% / \textcolor{blue}{49.10\%} & 66.07\% / \textcolor{blue}{63.02\%} & 50.83\% / \textcolor{blue}{46.74\%} & 64.82\% / \textcolor{blue}{61.15\%} & 52.94\% / \textcolor{blue}{49.10\%} & 66.07\% / \textcolor{blue}{63.02\%} \\
 \bottomrule
 \end{tabular}%
 }
@@ -181,7 +182,7 @@ Gemma3-Aerial-12B & the orange baseball field with a chainlink fence surrounded 
 \end{tabular}%
 }
 \end{minipage}
-\caption{Qualitative comparison between o3, vanilla Gemma3 base model, and our fine-tuned Gemma3-Aerial-12B model on aerial imagery. The table shows how each model enhances the original rule-based expression using an identical prompt and decoding setup, demonstrating the progression from basic rule-based descriptions through increasingly capable LLM enhancements.}
+\caption{Qualitative comparison between o3, the base Gemma3 model, and our fine-tuned Gemma3-Aerial-12B on the same aerial scene. Each model receives the identical rule-based prompt and decoding setup, revealing how their rewritten expressions differ under matched conditions.}
 \label{fig:distillation_comparison}
 \end{figure*}
 
