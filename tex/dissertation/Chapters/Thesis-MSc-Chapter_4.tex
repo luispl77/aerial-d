@@ -42,20 +42,16 @@ The lack of accompanying language annotations is the primary limitation of both 
 % #############################################################################
 \section{Rule-Based Expression Generation}
 
-Both iSAID and LoveDA deliver rich geometric annotations—instance masks in COCO format on one side, semantic maps on the other—but neither includes the natural language expressions required for referring segmentation. Our first step is therefore to squeeze as much descriptive signal as possible from those annotations alone: we mine every positional, visual, and relational cue we can extract and arrange them into language templates that serve as the initial expression candidates. We refer to this deterministic pipeline as the rule-based generation stage. At a high level, it advances through the following stages, which we summarize here before unpacking each component in depth.
-
-\begin{itemize}
-\item \textbf{Patch Preparation}: Extract 480$\times$480 patches from iSAID using a sliding window with overlap and resize LoveDA tiles while converting select semantic classes into instance masks.
-\item \textbf{Grid Position Assignment}: Partition each patch into a three-by-three grid, handling borderline cases with multiple valid positional labels.
-\item \textbf{Color and Visual Attributes}: Classify object colors in HSV space with dominance thresholds and suppress noisy cues for categories with unreliable chromatic signals.
-\item \textbf{Extreme Position Detection}: Identify topmost, bottommost, leftmost, and rightmost instances within each category using separation margins that avoid ambiguous ties.
-\item \textbf{Spatial Relationship Extraction}: Compute angle-based relationships between nearby objects using adaptive distance thresholds to capture meaningful relative positioning.
-\item \textbf{Group Formation}: Cluster nearby instances with DBSCAN, assign group-level attributes, and support relationships across instance and group combinations.
-\item \textbf{Expression Synthesis and Filtering}: Combine all attributes through templated generation and remove duplicate expressions to ensure each phrase uniquely refers to a single target.
-\end{itemize}
-
-\subsubsection{Overview}
-The rule-based expression generation pipeline systematically transforms semantic segmentation and instance segmentation datasets into referring expression datasets through a sequential five-step process that analyzes spatial, visual, and relational properties of objects and groups within aerial imagery. The development of these rules emerged through extensive experimentation and empirical analysis, where we iteratively observed cases of ambiguity in generated expressions and refined the rule parameters through trial and error until all major edge cases were resolved, consistently aiming for maximum accuracy and minimal ambiguity between generated referring expressions. This comprehensive approach begins with patch extraction from source datasets and culminates in linguistically diverse and contextually accurate referring expressions.
+Both iSAID and LoveDA deliver rich geometric annotations—instance masks in COCO format on one side, semantic maps on the other—but neither includes the natural language expressions required for referring segmentation. Our first step is therefore to squeeze as much descriptive signal as possible from those annotations alone: we mine every positional, visual, and relational cue we can extract and arrange them into language templates that serve as the initial expression candidates. We refer to this deterministic pipeline as the rule-based generation stage. The pipeline systematically transforms semantic segmentation and instance segmentation datasets into referring expression resources through a sequential process that analyzes spatial, visual, and relational properties of objects and groups within aerial imagery. The development of these rules emerged through extensive experimentation and empirical analysis, where we iteratively observed cases of ambiguity in generated expressions and refined the rule parameters until the most challenging edge cases were resolved. This comprehensive approach begins with patch extraction from source datasets and culminates in linguistically diverse and contextually accurate referring expressions. At a high level, it advances through the following stages:
+\begin{enumerate}[label=\textbf{\arabic*.}, leftmargin=*]
+    \item \textbf{Patch Preparation}: extracts 480$\times$480 patches from iSAID using a sliding window with overlap and resizes LoveDA tiles while converting select semantic classes into instance masks.
+    \item \textbf{Grid Position Assignment}: partitions each patch into a three-by-three grid and handles borderline cases with multiple valid positional labels.
+    \item \textbf{Color and Visual Attributes}: classifies object colors in HSV space with dominance thresholds and suppresses noisy cues for categories with unreliable chromatic signals.
+    \item \textbf{Extreme Position Detection}: identifies topmost, bottommost, leftmost, and rightmost instances within each category using separation margins that avoid ambiguous ties.
+    \item \textbf{Spatial Relationship Extraction}: computes angle-based relationships between nearby objects using adaptive distance thresholds to capture meaningful relative positioning.
+    \item \textbf{Group Formation}: clusters nearby instances with DBSCAN, assigns group-level attributes, and supports relationships across instance and group combinations.
+    \item \textbf{Expression Synthesis and Filtering}: combines all attributes through templated generation and removes duplicate expressions to ensure each phrase uniquely refers to a single target.
+\end{enumerate}
 
 \begin{figure}[H]
 \centering
