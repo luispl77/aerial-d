@@ -392,8 +392,8 @@ The combined evaluation therefore remains competitive with published references 
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
  & \textbf{mIoU} & \textbf{oIoU} & \textbf{mIoU} & \textbf{oIoU} & \textbf{mIoU} & \textbf{oIoU} \\
 \midrule
-\textbf{RSRefSeg-b (ours)} & 49.78\% / \textcolor{blue}{46.82\%} & 63.44\% / \textcolor{blue}{61.12\%} & 47.21\% / \textcolor{blue}{43.08\%} & 61.50\% / \textcolor{blue}{58.73\%} & 49.12\% / \textcolor{blue}{45.92\%} & 62.98\% / \textcolor{blue}{60.58\%} \\
-\textbf{RSRefSeg-l (ours)} & 52.94\% / \textcolor{blue}{49.10\%} & 66.07\% / \textcolor{blue}{63.02\%} & 50.83\% / \textcolor{blue}{46.74\%} & 64.82\% / \textcolor{blue}{61.15\%} & 52.50\% / \textcolor{blue}{48.50\%} & 65.80\% / \textcolor{blue}{62.80\%} \\
+\textbf{RSRefSeg-b (ours)} & 49.49\% / \textcolor{blue}{40.98\%} & 62.25\% / \textcolor{blue}{56.61\%} & 54.26\% / \textcolor{blue}{47.00\%} & 64.01\% / \textcolor{blue}{57.34\%} & 47.10\% / \textcolor{blue}{39.77\%} & 62.40\% / \textcolor{blue}{56.60\%} \\
+\textbf{RSRefSeg-l (ours)} & 51.82\% / \textcolor{blue}{42.70\%} & 62.32\% / \textcolor{blue}{56.26\%} & 55.48\% / \textcolor{blue}{49.01\%} & 64.72\% / \textcolor{blue}{58.89\%} & 49.81\% / \textcolor{blue}{42.18\%} & 63.95\% / \textcolor{blue}{58.41\%} \\
 \bottomrule
 \end{tabular}%
 }
@@ -520,7 +520,7 @@ Table~\ref{tab:historic_ablation_results} summarises both setups. Each row lists
 
 \begin{table*}[t]
 \centering
-\caption{Historic-filter ablations. Each row lists the clean score followed by the historic-filter variant (blue) with percentage-point deltas relative to Table~\ref{tab:combined_training_results}; the second row also removes Urban1960SatSeg supervision.}
+\caption{Historic-filter ablations for the RSRefSeg-b base architecture. Each row lists the clean score followed by the historic-filter variant (blue) with percentage-point deltas relative to Table~\ref{tab:combined_training_results}; the second row also removes Urban1960SatSeg supervision.}
 \label{tab:historic_ablation_results}
 \renewcommand{\arraystretch}{1.1}
 \resizebox{\textwidth}{!}{%
@@ -530,8 +530,9 @@ Table~\ref{tab:historic_ablation_results} summarises both setups. Each row lists
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
  & \textbf{Orig.} & \textbf{Hist.} & \textbf{Orig.} & \textbf{Hist.} & \textbf{Orig.} & \textbf{Hist.} & \textbf{Orig.} \\
 \midrule
-No Filters & 64.30\% & \textcolor{blue}{55.00\%} (\textcolor{red}{-6.16}) & 39.50\% & \textcolor{blue}{27.50\%} (\textcolor{red}{-5.65}) & 24.80\% & \textcolor{blue}{12.00\%} (\textcolor{red}{-5.54}) & 69.00\% (\textcolor{red}{-1.65}) \\
-No Filters + No Urban1960SatSeg & 63.00\% & \textcolor{blue}{56.00\%} (\textcolor{red}{-5.16}) & 38.00\% & \textcolor{blue}{29.00\%} (\textcolor{red}{-4.15}) & 23.50\% & \textcolor{blue}{13.50\%} (\textcolor{red}{-4.04}) & 18.00\% (\textcolor{red}{-52.65}) \\
+No Filters & 64.29\% & \textcolor{blue}{56.88\%} (\textcolor{red}{-4.28}) & 41.41\% & \textcolor{blue}{32.40\%} (\textcolor{red}{-0.75}) & 44.25\% & \textcolor{blue}{25.47\%} (\textcolor{green}{+7.93}) & 68.88\% (\textcolor{red}{-1.77}) \\
+No Urban1960SatSeg & 64.41\% & \textcolor{blue}{61.16\%} (\pm 0.00) & 40.70\% & \textcolor{blue}{34.89\%} (\textcolor{green}{+1.74}) & 44.05\% & \textcolor{blue}{34.51\%} (\textcolor{green}{+16.97}) & 4.87\% (\textcolor{red}{-65.78}) \\
+No Filters + No Urban1960SatSeg & - & - & - & - & - & - & - \\
 \bottomrule
 \end{tabular}%
 }
