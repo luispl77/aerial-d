@@ -1,3 +1,4 @@
+Introduction changes
 - more appropriate title: Generalized Referring Expression Segmentation on Aerial Photos 
 Abstract changes:
 - "... precise visual localization of target regions. Considering these capabilities in connection to different types of aerial imagery (e.g., modern aerial photos collected through drones, historical photos from aerial archives, high-resolution satellite imagery, etc) ..." 
@@ -7,3 +8,18 @@ Abstract changes:
 - individual object instances, groups of instances, and semantic categories spanning 21 distinct classes that range from vehicles and infrastructure to land coverage types. The dataset was constructed through
 - Large Language Model (LLM) enhancement procedure that enriched both the linguistic variety and the focus on visual details within the referring expressions. We also propose a novel architecture featuring ...,and train models on Aerial-D together with prior arial datasets, yielding unified instance and semantic segmentation from text, for both modern and historical images. Results show that ... Moreover, the results on historical images show robustness to monochrome, sepia, and grainy degradations that appear in archival aerial photography. The dataset, trained models, and complete software pipeline are publicly available ...
  
+Related work changes:
+- This section reviews datasets and recent architectural developments associated to aerial image understanding. [end]
+- depends on datasets that capture both individual objects ... and semantic classes ... 
+- as well as datasets that test language-based selection of specific targets. [remove rest of paragraph]
+- In turn, the iSAID dataset ... instance segmentation in aerial imagery, providing ... object instance annotations across 15 categories
+- unique chalenges of aerial imagery, including high object densities, scale variations, and arbitrary orientations
+- LoveDA is one of the richest datasets for semantic segmentation of aerial images, featuring both urban and rural environments and a total of 6land coverage classes. Covering 536.15 km 2, with 0.3m resolution imagry, LoveDA ...
+- [remove both titles,  Instance and Semantic Segmentation, and Referring Expression Segmentation
+Datasets]
+- Research on remote sensing referring expression segmentation began with RefSegRS [29], which introduced 4,420 image-language-mask triplets and formalized the Reffering Remote Sensing Instance Segmentation (RRSIS) problem. The dataset highlighted aerial-specific challenges, namely small, densely packed target and cluttered layouts, where language processing ...
+- using a semi-automated pipeline using the Segment Anything Model [14]. The imagery in this dataset originated from the DIOR dataset, grounding RRSIS-D in a broad remote-sensing corpus ...
+- Beyond size, RRSIS-D targets aerial-specific phenomena, namely broad spatial scaled and diverse object orientations across 20 categories and seve ...
+- NWPU-Refer [27] further broadened coverage with 15,003 high-resolution images and 49,745 annotated targets spaning more than 30 countries. In contrast to semi-atomated pipelines, NWPU-Refer emphasized purely manual annotation quality and it explicitly supports single-object, multi-object and non-object scenarios across 32 categories. [remove the rest of the paragraph]
+- [replace Historical Imagery Applications title with this aditional paragraph:] All the aforementioned datasets feature modern RGB images, although collected through different procedures and considering different resolutions. Despite the many interesting potential applications, the previous studies have focused on the analysis of historical aerial imagery. Analysing historic aerial photographs introduces practical complications, related to reduced contrast, grayscale capture, film artifacts, and geometric distortions. [remove sentenc] Urban1960SatSeg [9] is on of the few existing exceptions, featuring professionally annotated semantic segmentation masks for 4 classes over 1,240 km2 of declassified mid-20th-century imagery... on degraded visual conditions, this dataset provides a reference point for methods ...
+-  
