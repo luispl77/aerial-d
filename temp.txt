@@ -1,0 +1,9 @@
+- more appropriate title: Generalized Referring Expression Segmentation on Aerial Photos 
+Abstract changes:
+- "... precise visual localization of target regions. Considering these capabilities in connection to different types of aerial imagery (e.g., modern aerial photos collected through drones, historical photos from aerial archives, high-resolution satellite imagery, etc) ..." 
+- "and scenes contain very high object densities" here also mention objects with partial occlusions
+- " ... This work presents Aerial-D, a new large-scale ..."
+- " dataset for aerial imagery, comprising ... image patches with 1,522,523 referring expressions that cover 259,709 annotated targets that span across individual
+- individual object instances, groups of instances, and semantic categories spanning 21 distinct classes that range from vehicles and infrastructure to land coverage types. The dataset was constructed through
+- Large Language Model (LLM) enhancement procedure that enriched both the linguistic variety and the focus on visual details within the referring expressions. We also propose a novel architecture featuring ...,and train models on Aerial-D together with prior arial datasets, yielding unified instance and semantic segmentation from text, for both modern and historical images. Results show that ... Moreover, the results on historical images show robustness to monochrome, sepia, and grainy degradations that appear in archival aerial photography. The dataset, trained models, and complete software pipeline are publicly available ...
+ 
