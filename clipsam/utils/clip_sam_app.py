@@ -5,8 +5,7 @@ from flask import Flask, render_template, request, jsonify, send_file
 import torch
 from PIL import Image
 import numpy as np
-import json
-from clip_sam_model_utils import load_model, make_prediction
+from clip_sam_model_utils import load_model
 import torchvision.transforms as T
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
@@ -32,7 +31,7 @@ def parse_args():
     parser.add_argument('--model_name', type=str, required=True, help='Model name for checkpoint loading')
     parser.add_argument('--gpu_id', type=int, default=0, help='GPU ID to use')
     parser.add_argument('--input_size', type=int, default=384, help='Input size for images')
-    parser.add_argument('--get_domain_logits', action='store_true', help='Get domain classification logits during prediction')
+    parser.add_argument('--sam_model', type=str, default='facebook/sam-vit-base', help='SAM backbone to use')
     return parser.parse_args()
 
 def get_isaid_images(split=None):
@@ -157,15 +156,9 @@ def predict():
         start_event.record()
         
         # Make prediction using the pre-loaded model
-        domain_logits = None
         with torch.no_grad():
             with torch.amp.autocast(device_type='cuda'):
-                # If domain logits are requested and the model supports it
-                if args.get_domain_logits and hasattr(model, 'siglip_domain_classifier') and model.siglip_domain_classifier is not None:
-                    output, domain_logits = model(image_tensor, text, return_domain_logits_inference=True)
-                else:
-                    # Standard prediction
-                    output = model(image_tensor, text)
+                output = model(image_tensor, text)
 
         # End timing and synchronize
         end_event.record()
@@ -180,24 +173,6 @@ def predict():
         # Calculate total VRAM used for this prediction
         vram_used = peak_vram - initial_vram
         
-        # Process domain logits if they exist
-        domain_results = None
-        if domain_logits is not None:
-            domain_map = {0: 'iSAID', 1: 'DeepGlobe', 2: 'LoveDA'}
-            domain_results = {}
-            
-            # Process SigLIP domain logits
-            if 'siglip' in domain_logits:
-                siglip_probs = torch.softmax(domain_logits['siglip'], dim=1).cpu().numpy()[0]
-                domain_results['SigLIP'] = {name: f"{prob:.4f}" for name, prob in zip(domain_map.values(), siglip_probs)}
-            
-            # Process SAM domain logits
-            if 'sam' in domain_logits:
-                sam_probs = torch.softmax(domain_logits['sam'], dim=1).cpu().numpy()[0]
-                domain_results['SAM'] = {name: f"{prob:.4f}" for name, prob in zip(domain_map.values(), sam_probs)}
-            
-            print(f"Domain Classification: {domain_results}")
-
         # Start visualization timing
         vis_start_time = time.time()
         
@@ -267,9 +242,6 @@ def predict():
             }
         }
         
-        if domain_results:
-            response_data['domain_classification'] = domain_results
-            
         return jsonify(response_data)
         
     except Exception as e:
@@ -301,12 +273,12 @@ if __name__ == '__main__':
     initial_vram = torch.cuda.memory_reserved(device) / 1024**2  # Convert to MB
     
     # Load model
-    print(f"Loading model from {checkpoint_path}")
+    print(f"Loading model from {checkpoint_path} with SAM backbone {args.sam_model}")
     model = load_model(
         'clip_sam', 
         checkpoint_path, 
-        args.gpu_id, 
-        enable_domain_adaptation=args.get_domain_logits
+        args.gpu_id,
+        sam_model_name=args.sam_model
     )
     model.eval()
     

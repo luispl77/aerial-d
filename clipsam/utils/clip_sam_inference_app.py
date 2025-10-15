@@ -4,7 +4,6 @@ from flask import Flask, render_template, request, jsonify, send_file
 import torch
 from PIL import Image
 import numpy as np
-import json
 from clip_sam_model_utils import load_model
 import torchvision.transforms as T
 import matplotlib.pyplot as plt
@@ -40,6 +39,7 @@ def parse_args():
     parser.add_argument('--model_name', type=str, required=True, help='Model name for checkpoint loading')
     parser.add_argument('--gpu_id', type=int, default=0, help='GPU ID to use')
     parser.add_argument('--input_size', type=int, default=384, help='Input size for images')
+    parser.add_argument('--sam_model', type=str, default='facebook/sam-vit-base', help='SAM backbone to use')
     parser.add_argument('--port', type=int, default=5002, help='Port to run the Flask app on')
     return parser.parse_args()
 
@@ -385,8 +385,8 @@ if __name__ == '__main__':
     initial_vram = torch.cuda.memory_reserved(device) / 1024**2  # Convert to MB
     
     # Load model
-    print(f"Loading model from {checkpoint_path}")
-    model = load_model('clip_sam', checkpoint_path, args.gpu_id)
+    print(f"Loading model from {checkpoint_path} with SAM backbone {args.sam_model}")
+    model = load_model('clip_sam', checkpoint_path, args.gpu_id, sam_model_name=args.sam_model)
     model.eval()
     
     # Measure VRAM after loading model

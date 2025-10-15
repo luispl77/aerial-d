@@ -6,7 +6,7 @@ import sys
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(ROOT_DIR)
 
-def load_model(model_type, checkpoint_path, gpu_id=0, enable_domain_adaptation=False):
+def load_model(model_type, checkpoint_path, gpu_id=0, sam_model_name='facebook/sam-vit-base'):
     """Load the CLIP-SAM model from checkpoint."""
     if model_type != 'clip_sam':
         raise ValueError(f"Unsupported model type: {model_type}")
@@ -14,22 +14,47 @@ def load_model(model_type, checkpoint_path, gpu_id=0, enable_domain_adaptation=F
     # Import here to avoid circular imports
     from model import SigLipSamSegmentator
     
-    # Initialize model with default parameters, considering domain adaptation
+    # Initialize model with default parameters
     model = SigLipSamSegmentator(
         siglip_model_name='google/siglip2-so400m-patch14-384',
-        sam_model_name='facebook/sam-vit-base',
+        sam_model_name=sam_model_name,
         down_spatial_times=2,
         with_dense_feat=True,
-        device='cpu',  # First load to CPU
-        enable_domain_adaptation=enable_domain_adaptation
+        device='cpu'  # First load to CPU
     )
     
     # Load checkpoint to CPU first
     device = torch.device(f'cuda:{gpu_id}')
     checkpoint = torch.load(checkpoint_path, map_location='cpu')
-    
-    # Load parameters, ignoring missing keys (e.g., domain classifier in non-DA model)
-    model.load_state_dict(checkpoint['model_state_dict'], strict=False)
+
+    checkpoint_state = checkpoint['model_state_dict']
+    model_state = model.state_dict()
+
+    matched_keys = 0
+    skipped_keys = []
+    for key, value in checkpoint_state.items():
+        if key in model_state and model_state[key].shape == value.shape:
+            model_state[key] = value
+            matched_keys += 1
+        else:
+            skipped_keys.append(key)
+
+    if matched_keys == 0:
+        raise RuntimeError(
+            "No matching parameters were found when loading the checkpoint. "
+            "Ensure the SAM backbone and SigLIP configuration match the training setup."
+        )
+
+    model.load_state_dict(model_state)
+
+    if skipped_keys:
+        preview = ', '.join(skipped_keys[:5])
+        if len(skipped_keys) > 5:
+            preview += ', ...'
+        print(
+            f"Warning: skipped {len(skipped_keys)} checkpoint parameters due to mismatched shape or missing keys. "
+            f"Examples: {preview}"
+        )
     
     # Now transfer to GPU
     model = model.to(device)
