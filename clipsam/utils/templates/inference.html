@@ -166,6 +166,11 @@
         <div class="result-container" id="resultContainer">
             <h4>Segmentation Result</h4>
             <img id="resultImage" class="result-image" alt="Segmentation Result">
+            <div class="mt-3">
+                <a id="downloadMaskBtn" class="btn btn-success" href="#" download style="display: none;">
+                    Download Binary Mask
+                </a>
+            </div>
         </div>
 
         <!-- Metrics Container -->
@@ -227,6 +232,7 @@
         const resultContainer = document.getElementById('resultContainer');
         const resultImage = document.getElementById('resultImage');
         const metricsContainer = document.getElementById('metricsContainer');
+        const downloadMaskBtn = document.getElementById('downloadMaskBtn');
 
         // File input change handler
         fileInput.addEventListener('change', handleFileSelect);
@@ -355,6 +361,7 @@
             hideError();
             resultContainer.style.display = 'none';
             metricsContainer.style.display = 'none';
+            downloadMaskBtn.style.display = 'none';
 
             fetch('/api/predict', {
                 method: 'POST',
@@ -373,6 +380,14 @@
                     const resultUrl = data.result_url + '?t=' + Date.now();
                     resultImage.src = resultUrl;
                     resultContainer.style.display = 'block';
+                    if (data.mask_url) {
+                        const maskUrl = data.mask_url + '?t=' + Date.now();
+                        downloadMaskBtn.href = maskUrl;
+                        downloadMaskBtn.download = data.mask_url.split('/').pop();
+                        downloadMaskBtn.style.display = 'inline-block';
+                    } else {
+                        downloadMaskBtn.style.display = 'none';
+                    }
                     
                     // Update metrics
                     updateMetrics(data.metrics);
@@ -437,6 +452,7 @@
                     fileInput.value = '';
                     updateGenerateButton();
                     hideError();
+                    downloadMaskBtn.style.display = 'none';
                 } else {
                     showError(data.error);
                 }

@@ -305,6 +305,12 @@ def predict():
         plt.tight_layout()
         plt.savefig(result_path, bbox_inches='tight', pad_inches=0.1, dpi=100)
         plt.close()
+
+        # Save binary mask (white mask, black background)
+        mask_filename = f"mask_{os.path.splitext(filename)[0]}_{uuid.uuid4().hex[:8]}.png"
+        mask_path = os.path.join(RESULTS_PATH, mask_filename)
+        mask_image = Image.fromarray((mask_resized * 255).astype(np.uint8))
+        mask_image.save(mask_path)
         
         # Calculate visualization time
         visualization_time_ms = (time.time() - vis_start_time) * 1000
@@ -317,6 +323,7 @@ def predict():
         return jsonify({
             'status': 'success',
             'result_url': f'/static/results/{result_filename}',
+            'mask_url': f'/static/results/{mask_filename}',
             'metrics': {
                 'prediction_time_ms': round(float(prediction_time_ms), 2),
                 'visualization_time_ms': round(visualization_time_ms, 2),

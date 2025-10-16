@@ -607,7 +607,7 @@ class DatasetMetrics:
             instance_categories_sorted, instance_counts_sorted = zip(*instance_data)
             
             # Create a modern, clean chart
-            plt.figure(figsize=(18, 12))
+            plt.figure(figsize=(18, 8))
             
             # Generate distinct colors for each category using a high-quality colormap
             colors = cm.tab20(np.linspace(0, 1, len(instance_categories_sorted)))
@@ -665,7 +665,7 @@ class DatasetMetrics:
                 group_categories_cleaned = [cat.replace('_', ' ').lower() for cat in group_categories_sorted]
                 
                 # Create a modern, clean chart
-                plt.figure(figsize=(18, 12))
+                plt.figure(figsize=(18, 8))
                 
                 # Generate distinct colors for each category using a high-quality colormap
                 colors = cm.tab20(np.linspace(0, 1, len(group_categories_cleaned)))
@@ -717,16 +717,16 @@ class DatasetMetrics:
             # Create word cloud
             wordcloud = WordCloud(
                 width=1600, 
-                height=800, 
+                height=600, 
                 background_color='white',
                 max_words=200,
                 colormap='viridis',
-                relative_scaling=0.5,
+                relative_scaling=0.4,
                 random_state=42
             ).generate(all_text)
             
             # Plot word cloud
-            plt.figure(figsize=(20, 10))
+            plt.figure(figsize=(20, 7.5))
             plt.imshow(wordcloud, interpolation='bilinear')
             plt.axis('off')
             plt.tight_layout()
