@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aerial-D: Open-Vocabulary Referring Segmentation of Aerial Photos</title>
+    <title>Generalized Referring Expression Segmentation on Aerial Photos</title>
     <style>
         * {
             margin: 0;
@@ -228,7 +228,7 @@
                 <img src="ist_logo.png" alt="IST Logo" class="logo">
             </div>
 
-            <h1 class="title">Aerial-D: Open-Vocabulary Referring Segmentation of Aerial Photos</h1>
+            <h1 class="title">Generalized Referring Expression Segmentation on Aerial Photos</h1>
             <div class="subtitle">The Largest Referring Expression Segmentation Dataset for Aerial Imagery</div>
 
             <div class="author">Luis Pedro Soares Marnoto Gaspar Lopes</div>
@@ -272,10 +272,10 @@
         <div class="section">
             <h2 class="section-title">Abstract</h2>
             <p class="abstract">
-                Referring expression segmentation is a fundamental task in computer vision that integrates natural language understanding with precise visual localization of target regions. Applying this to aerial imagery presents unique challenges because spatial resolution varies widely across datasets, targets often shrink to only a few pixels, and scenes contain very high object densities. This work presents <span class="highlight">Aerial-D</span>, a large-scale referring expression segmentation dataset for aerial imagery comprising <strong>37,288 image patches</strong> with <strong>1,522,523 referring expressions</strong> covering <strong>259,709 annotated targets</strong> across individual objects, groups, and semantic categories spanning <strong>21 distinct classes</strong> from vehicles and infrastructure to land-cover types.
+                Referring expression segmentation is a fundamental task in computer vision that integrates natural language understanding with precise visual localization of target regions. Considering aerial imagery (for example, modern drone surveys, historic aerial archives, and high-resolution satellite captures) introduces unique challenges because spatial resolution varies widely across datasets, color usage is inconsistent, targets often shrink to only a few pixels, and scenes contain extreme object densities with frequent occlusions. This work presents <span class="highlight">Aerial-D</span>, a new large-scale referring expression segmentation dataset for aerial imagery comprising <strong>37,288 image patches</strong> with <strong>1,522,523 referring expressions</strong> covering <strong>259,709 annotated targets</strong> across individual instances, coherent groups, and semantic categories spanning <strong>21 distinct classes</strong> that range from vehicles and infrastructure to land-cover types.
             </p>
             <p class="abstract">
-                The dataset is constructed through a <span class="highlight">fully automatic pipeline</span> that combines systematic rule-based expression generation with <strong>Large Language Model enhancement</strong>, enriching both the linguistic variety and visual detail within the referring expressions. As an additional capability, the pipeline produces dedicated historic counterparts for each scene, supporting real-world archival analyses such as monitoring urban change across decades. Models are trained on Aerial-D together with prior aerial datasets, yielding unified instance, semantic, and historic segmentation from text, with the historic branch demonstrating robustness to monochrome, sepia, and grainy degradations that appear in archival aerial photography.
+                The dataset is constructed through a <span class="highlight">fully automatic pipeline</span> that combines systematic rule-based expression generation with Large Language Model enhancement, enriching both linguistic variety and the visual detail captured within each description. As an additional capability, the pipeline produces dedicated historic counterparts for every scene, supporting archival analyses such as monitoring urban change across decades. We adopt the RSRefSeg architecture featuring a SigLIP2 vision-language encoder and a SAM segmentation decoder and train models on Aerial-D together with prior aerial datasets, yielding unified instance and semantic segmentation from text for both modern and historic imagery. Results show that this combined training achieves competitive performance on contemporary benchmarks while maintaining strong accuracy under the monochrome, sepia, and grainy degradations that characterize archival aerial photography.
             </p>
         </div>
 
@@ -297,12 +297,6 @@
                     <div class="feature-title">🤖 Fully Automated Pipeline</div>
                     <div class="feature-desc">
                         First fully automatic construction pipeline combining rule-based generation with LLM enhancement and distillation.
-                    </div>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-title">📜 Historic Imagery Support</div>
-                    <div class="feature-desc">
-                        Includes historic image augmentations for archival analysis, supporting long-term urban change detection.
                     </div>
                 </div>
                 <div class="feature-card">
