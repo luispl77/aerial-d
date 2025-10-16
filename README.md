@@ -1,43 +1,69 @@
-## AerialSeg: Open‑Vocabulary Aerial Image Segmentation with Referring Expressions
+# Generalized Referring Expression Segmentation on Aerial Photos
 
-> 📝 **Documentation under construction** - The codebase is complete, but README files and documentation are being finalized.
-
-[![Project Page](https://img.shields.io/badge/Project%20Page-visit-blue)](https://luispl77.github.io/aerialseg)
+[![Project Page](https://img.shields.io/badge/Project%20Page-visit-blue)](https://luispl77.github.io/aerial-d)
 [![Dataset](https://img.shields.io/badge/Dataset-HuggingFace-orange)](https://huggingface.co/datasets/luisml77/aerial-d)
-[![Paper](https://img.shields.io/badge/Paper-Coming%20Soon-lightgrey)](#)
+[![Paper](https://img.shields.io/badge/Paper-Preprint-lightgrey)](https://luispl77.github.io/aerial-d)
 
-![AerialSeg dataset example](docs/dataset.png)
+![Aerial-D dataset example](docs/dataset.png)
 
-AerialSeg is an open‑source framework for segmenting aerial images from natural‑language prompts. It includes:
-- Aerial‑D: an automatic dataset pipeline for building referring expressions over aerial imagery
-- ClipSAM: a SigLIP+SAM model for referring segmentation
-- LLM tooling: Gemma3/OpenAI utilities for enhancing expressions and fine‑tuning
+## Overview
+AerialSeg delivers end-to-end tooling for the article *Generalized Referring Expression Segmentation on Aerial Photos*. The project introduces:
+- **Aerial-D**, a 37,288-image dataset with 1.52M referring expressions covering instances, groups, and semantic regions across 21 categories.
+- **Automatic data generation**, combining rule-based templates with LLM rewriting to produce grounded language at scale while filtering ambiguous references.
+- **Unified RSRefSeg training**, pairing SigLIP2 and SAM with LoRA adapters to learn from Aerial-D alongside RefSegRS, RRSIS-D, NWPU-Refer, and Urban1960SatSeg.
+- **Historic robustness**, using stochastic grayscale, sepia, and grain filters plus real historic imagery to maintain accuracy on archival photographs.
 
-Use the root `requirements.txt` for dependencies.
+## Repository Structure
+- `datagen/`: dataset extraction, rule-driven expression generation, and enhancement utilities.
+- `clipsam/`: RSRefSeg implementation, training, evaluation, and visualization tools.
+- `llm/`: Gemma3 fine-tuning (QLoRA), OpenAI o3 reference scripts, and evaluation assets.
+- `docs/`, `tex/`: documentation figures and manuscript sources.
 
----
+## Getting Started
 
-## Aerial‑D Generation Pipeline
-First, we build the dataset. We take aerial images and automatically write short descriptions for each object, then keep only the ones that clearly point to a single target. When needed, we also produce a "historic" version to stress‑test robustness. To reproduce the fully automatic pipeline from the paper, see `datagen/README.md` and [Section 4](https://luispl77.github.io/aerialseg#section-4).
+### Environment Setup
+The project relies on dedicated conda environments per component:
+- `conda activate aerial-seg-datagen` for `datagen/`
+- `conda activate aerial-seg` for `clipsam/`
+- `conda activate gemma3` for `llm/`
 
----
+Install Python dependencies with the environment-specific `requirements.txt` files or use the root list for a monolithic setup.
 
-## Model Training and Testing (RSRefSeg)
-Next, we teach the model to follow text and segment the right thing. The RSRefSeg architecture is trained on Aerial‑D and can also be trained jointly with RRSISD, RefSegRS, NWPU‑Refer, and Urban1960SatBench to test transfer. To reproduce the results reported in the paper, follow `clipsam/README.md` and see [Table 3](https://luispl77.github.io/aerialseg#table-3) and [Table 6](https://luispl77.github.io/aerialseg#table-6).
+### Dataset Generation
+```bash
+cd /cfs/home/u035679/aerialseg/datagen
+./pipeline/run_pipeline.sh            # full automated pipeline
+./pipeline/run_pipeline.sh --clean    # regenerate intermediates
+./pipeline/run_pipeline.sh --num_images 100  # subset for debugging
+```
+Outputs are written to `datagen/dataset/` with optional historic-filter augmentations available at training time.
 
----
+### Model Training and Evaluation
+```bash
+cd /cfs/home/u035679/aerialseg/clipsam
+python train.py --epochs 5 --batch_size 4 --lr 1e-4
+python train.py --enable_grl --grl_lambda_schedule exponential
+python test.py --model_name <checkpoint_name>
+```
+The RSRefSeg checkpoints in the article fine-tune SigLIP2-SO400M and SAM-ViT (Base or Large) using LoRA ranks 16 and 32 respectively while mixing Aerial-D with external datasets.
 
-## LLM Fine‑Tuning Pipeline
-Finally, we polish the language. After the rule‑based pipeline, the descriptions are rewritten by language models, which makes them more natural and visually informative. The `llm/` folder has the code to train the Gemma 3 model (QLoRA) used for this large‑scale enhancement, plus O3‑based augmentation. To recreate these results, use `llm/README.md` and the paper’s LLM section ([link](https://luispl77.github.io/aerialseg#llm-finetuning)).
+### LLM Expression Enhancement
+```bash
+cd /cfs/home/u035679/aerialseg/llm
+python gemma3_enhance.py --input_dir ../datagen/dataset --output_dir enhanced_output
+python o3_enhance.py --dataset_dir ../datagen/dataset
+```
+Gemma3-12B is distilled from 500 high-quality OpenAI o3 samples using QLoRA, driving the large-scale enhancement pass at roughly 238× lower cost than direct o3 usage.
 
----
+## Historic Image Filters
+Training-time augmentations approximate monochrome, grainy, and sepia degradations through luminance conversion, gamma/contrast adjustments, and additive noise. Combined with Urban1960SatSeg, these filters preserve segmentation quality under archival conditions.
 
-## Citations
-If you use this repository, please cite the dataset and (when available) the thesis/paper.
+## Cite Aerial-D
+Please cite the dataset when using this repository:
 
 ```bibtex
 @dataset{aerial-d-2024,
-  title={AERIAL-D: Referring Expression Instance Segmentation in Aerial Imagery},
+  title={Aerial-D: Referring Expression Segmentation for Aerial Imagery},
   author={Luis M. Lopes and contributors},
   year={2024},
   publisher={Hugging Face},
@@ -45,18 +71,8 @@ If you use this repository, please cite the dataset and (when available) the the
 }
 ```
 
----
-
-## Acknowledgments
-- iSAID and LoveDA datasets
-- Hugging Face Transformers, PyTorch, OpenCV, Flask
-- SAM and SigLIP authors
-- Google Gemma and OpenAI models used for language enhancement
-
----
-
 ## Contributing
-Issues and pull requests are welcome. Please open an issue to discuss substantial changes.
+Issues and pull requests are welcome. Please open an issue before submitting substantial changes.
 
 ## Contact
-For questions, please contact: [maarnotto@gmail.com](mailto:maarnotto@gmail.com) or open an issue on the repository.
+For inquiries, email [maarnotto@gmail.com](mailto:maarnotto@gmail.com) or open a GitHub issue.
