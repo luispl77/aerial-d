@@ -7,3 +7,7 @@ tex/article/*.fls
 .DS_Store
 **/.DS_Store
 .fuse_hidden*
+
+# Local datasets
+datagen/HistAerialDataset/
+HistAerialDataset.zip

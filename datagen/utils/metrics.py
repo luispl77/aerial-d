@@ -625,7 +625,7 @@ class DatasetMetrics:
                         fontweight='bold', fontsize=16, color='black')
             
             # Enhanced styling with larger fonts
-            plt.xlabel("Category", fontsize=24, fontweight='bold', labelpad=25)
+            plt.xlabel("")
             plt.ylabel("Number of Instances", fontsize=24, fontweight='bold', labelpad=25)
             plt.xticks(rotation=45, ha='right', fontsize=22, fontweight='bold')
             plt.yticks(fontsize=22, fontweight='bold')
@@ -683,7 +683,7 @@ class DatasetMetrics:
                             fontweight='bold', fontsize=15, color='black')
                 
                 # Enhanced styling with larger fonts
-                plt.xlabel("Group Category", fontsize=24, fontweight='bold', labelpad=25)
+                plt.xlabel("")
                 plt.ylabel("Number of Groups", fontsize=24, fontweight='bold', labelpad=25)
                 plt.xticks(rotation=45, ha='right', fontsize=22, fontweight='bold')
                 plt.yticks(fontsize=22, fontweight='bold')
