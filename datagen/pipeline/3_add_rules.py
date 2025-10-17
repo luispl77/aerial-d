@@ -1,15 +1,5 @@
 #!/usr/bin/env python3
-"""
-Pipeline Step 3: Process DeepGlobe Road Extraction Dataset
-Converts DeepGlobe road extraction data to instance segmentation format
-compatible with the iSAID pipeline.
-
-This script:
-1. Loads DeepGlobe images (1024x1024) and corresponding road masks
-2. Crops each image into 4 tiles (512x512 each) or resizes to 480x480
-3. Extracts connected components for road pixels
-4. Generates XML annotations in the same format as iSAID pipeline
-"""
+# Placeholder script for legacy DeepGlobe step.
 
 import os
 import numpy as np

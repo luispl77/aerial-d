@@ -51,7 +51,7 @@ while [[ $# -gt 0 ]]; do
         *)
             echo "Unknown option: $1"
             echo "Usage: $0 [--num_images N] [--start_image_id X] [--end_image_id Y] [--num_workers W] [--random_seed S] [--clean] [--zip]"
-            echo "Note: --num_images N will select N images from each split for iSAID, LoveDA, and DeepGlobe datasets"
+            echo "Note: --num_images N will select N images from each split for iSAID and LoveDA datasets"
             echo "      --clean will delete the dataset directory before starting"
             echo "      --zip will create a zip archive of the final dataset"
             exit 1
@@ -91,11 +91,11 @@ STEP1_ARGS="$NUM_IMAGES $START_IMAGE_ID $END_IMAGE_ID $NUM_WORKERS $RANDOM_SEED"
 # Run each pipeline script in sequence
 run_script "1_isaid_patches.py" "$STEP1_ARGS"
 run_script "2_loveda_patches.py" "$STEP1_ARGS"
-run_script "3_deepglobe_patches.py" "$STEP1_ARGS"
-run_script "4_add_rules.py"
-run_script "5_generate_all_expressions.py"
-run_script "6_filter_unique.py"
-run_script "7_historic_filter.py"
+run_script "3_add_rules.py"
+run_script "4_generate_all_expressions.py"
+run_script "5_filter_unique.py"
+run_script "6_historic_filter.py"
+run_script "7_vllm_enhance.py"
 
 # Run zip script if requested
 if [ "$ZIP" = true ]; then
