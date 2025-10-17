@@ -13,6 +13,13 @@ AerialSeg delivers end-to-end tooling for the article *Generalized Referring Exp
 - **Unified RSRefSeg training**, pairing SigLIP2 and SAM with LoRA adapters to learn from Aerial-D alongside RefSegRS, RRSIS-D, NWPU-Refer, and Urban1960SatSeg.
 - **Historic robustness**, using stochastic grayscale, sepia, and grain filters plus real historic imagery to maintain accuracy on archival photographs.
 
+### Hugging Face Collection
+All public artifacts live in the [Aerial-D collection on Hugging Face](https://huggingface.co/collections/luisml77/aerial-d):
+- `luisml77/aerial-d` — full dataset release
+- `luisml77/rsrefseg` — checkpoints (`rsrefseg_aerial-d.pt`, `rsrefseg_combined.pt`)
+- `luisml77/gemma3-aerial-12b` — Gemma3 finetuned weights for Step 7
+- `luisml77/aerial-d-o3-mini` — distilled o3 dataset used for Gemma3 training
+
 ## Repository Structure
 - `datagen/`: dataset extraction, rule-driven expression generation, historic filtering, and enhancement utilities.
 - `rsrefseg/`: SigLIP+SAM training/testing, visualizations, and style-transfer experiments.
@@ -42,9 +49,9 @@ huggingface-cli download luisml77/aerial-d --repo-type dataset --local-dir datag
 cd /cfs/home/u035679/aerialseg/datagen
 ./pipeline/run_pipeline.sh --clean
 # Package the result into aeriald.zip if needed
-python zip_dataset.py --base_dir dataset --zip_path aeriald.zip
+python pipeline/zip_dataset.py --base_dir dataset --zip_path aeriald.zip
 ```
-The pipeline extracts iSAID/LoveDA patches, assigns rules (3×3 grid, relations, extremes, size cues), generates expressions, filters for uniqueness, and applies optional historic filters. Utilities for viewing and metrics live under `datagen/utils/`.
+The pipeline extracts iSAID/LoveDA patches, assigns rules (3×3 grid, relations, extremes, size cues), generates expressions, filters for uniqueness, and applies optional historic filters. Step 7 (`7_vllm_enhance.py`) expects the Gemma3 checkpoint produced in the **LLM Expression Enhancement** section; either complete those steps first or download the published `gemma3-aerial-12b` weights and run vLLM on that checkpoint before enabling Step 7. Utilities for viewing and metrics live under `datagen/utils/`.
 
 ### Model Training and Evaluation (Aerial-D)
 `model.py` defines the SigLIP2 + SAM architecture (RSRefSeg) with LoRA adapters. Training and testing use the dataset downloaded above.
@@ -56,6 +63,14 @@ python train.py --dataset_root ../datagen/dataset --custom_name aeriald_run
 
 # Test the produced checkpoint
 python test.py --model_name aeriald_run --dataset_type aeriald
+
+# Skip training: download the published Aerial-D checkpoint
+huggingface-cli download luisml77/aerial-seg --repo-type model --local-dir models/rsrefseg_aeriald
+python test.py --model_name rsrefseg_aeriald --dataset_type aeriald
+
+# Evaluate the combined multi-dataset checkpoint (requires SAM ViT-Large)
+huggingface-cli download luisml77/rsrefseg --repo-type model --local-dir models/rsrefseg_combined
+python test.py --model_name rsrefseg_combined --dataset_type aeriald --sam_model facebook/sam-vit-large
 ```
 The training script fine-tunes SigLIP2-SO400M and SAM-ViT (Base or Large) on Aerial-D only. The optional `--custom_name` flag controls the run folder name under `rsrefseg/models/`, which you pass to `test.py` for evaluation. Visualization-only and Flask inference utilities remain available under `rsrefseg/utils/`.
 
