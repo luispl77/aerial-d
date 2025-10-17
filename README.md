@@ -30,22 +30,34 @@ The project relies on dedicated conda environments per component:
 Install Python dependencies with the environment-specific `requirements.txt` files or use the root list for a monolithic setup.
 
 ### Dataset Generation
+You can reproduce Aerial-D locally or download the public release.
+
+**Download from Hugging Face**
+```bash
+huggingface-cli download luisml77/aerial-d --repo-type dataset --local-dir datagen/dataset
+```
+
+**Optional: rebuild locally**
 ```bash
 cd /cfs/home/u035679/aerialseg/datagen
-./pipeline/run_pipeline.sh            # full automated pipeline
-./pipeline/run_pipeline.sh --clean    # regenerate intermediates
-./pipeline/run_pipeline.sh --num_images 100  # subset for debugging
+./pipeline/run_pipeline.sh --clean
+# Package the result into aeriald.zip if needed
+python zip_dataset.py --base_dir dataset --zip_path aeriald.zip
 ```
-Outputs are written to `datagen/dataset/` with optional historic-filter augmentations available at training time. Key steps include iSAID/LoveDA patch extraction, rule attribution (3×3 grid, relations, extremes, size cues), expression generation, uniqueness filtering, and optional LLM enhancement. The `datagen/utils/` folder houses web viewers (`app.py`, `rule_viewer.py`), metrics scripts, Hugging Face dataset utilities, and historic-effect debugging helpers.
+The pipeline extracts iSAID/LoveDA patches, assigns rules (3×3 grid, relations, extremes, size cues), generates expressions, filters for uniqueness, and applies optional historic filters. Utilities for viewing and metrics live under `datagen/utils/`.
 
-### Model Training and Evaluation
+### Model Training and Evaluation (Aerial-D)
+`model.py` defines the SigLIP2 + SAM architecture (RSRefSeg) with LoRA adapters. Training and testing use the dataset downloaded above.
+
 ```bash
+# Train (writes checkpoint under rsrefseg/models/ by default)
 cd /cfs/home/u035679/aerialseg/rsrefseg
-python train.py --epochs 5 --batch_size 4 --lr 1e-4
-python train.py --enable_grl --grl_lambda_schedule exponential
-python test.py --model_name <checkpoint_name>
+python train.py --dataset_root ../datagen/dataset --custom_name aeriald_run
+
+# Test the produced checkpoint
+python test.py --model_name aeriald_run --dataset_type aeriald
 ```
-The RSRefSeg checkpoints fine-tune SigLIP2-SO400M and SAM-ViT (Base or Large) using LoRA ranks 16/32 while mixing Aerial-D with RefSegRS, RRSIS-D, NWPU-Refer, and Urban1960SatBench. Scripts cover resuming, dataset-specific evaluation, visualization-only passes, and style-transfer experiments (`utils/test_style_transfer.py`). Flask inference apps live under `rsrefseg/utils/`.
+The training script fine-tunes SigLIP2-SO400M and SAM-ViT (Base or Large) on Aerial-D only. The optional `--custom_name` flag controls the run folder name under `rsrefseg/models/`, which you pass to `test.py` for evaluation. Visualization-only and Flask inference utilities remain available under `rsrefseg/utils/`.
 
 ### LLM Expression Enhancement
 ```bash

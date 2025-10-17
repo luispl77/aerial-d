@@ -100,7 +100,7 @@ run_script "7_vllm_enhance.py"
 # Run zip script if requested
 if [ "$ZIP" = true ]; then
     echo -e "\nCreating zip archive of dataset..."
-    python "utils/zip_dataset.py"
+    python "zip_dataset.py"
     
     if [ $? -ne 0 ]; then
         echo "Warning: zip_dataset.py failed to execute properly"
