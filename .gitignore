@@ -1,13 +1,145 @@
-# LaTeX build artifacts (tex/article)
-tex/article/*.bbl
-tex/article/*.blg
-tex/article/*.fls
-
-# Editor/system artifacts
+# OS and editor artifacts
 .DS_Store
 **/.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 .fuse_hidden*
+*.swp
+*.swo
+*.tmp
+*.temp
+*.bak
+*.backup
+*~
+*.code-workspace
+.vscode/
 
-# Local datasets
-datagen/HistAerialDataset/
+# Python artifacts
+__pycache__/
+*/__pycache__/
+*.py[cod]
+*.pyo
+
+# Environment files
+.env
+
+# Root-level datasets and archives
 HistAerialDataset.zip
+datagen/HistAerialDataset/
+*.zip
+*.tar
+*.gz
+
+# Datagen assets
+datagen/isaid/
+datagen/rrsisd/
+datagen/refsegrs
+datagen/NWPU-Refer
+datagen/Urban1960SatBench
+datagen/saved_visualizations/
+datagen/patches
+datagen/patches_modified
+datagen/patches*/
+datagen/dataset*
+datagen/temp*
+datagen/debug*
+datagen/utils/debug/
+datagen/utils/debug_json_files.py
+datagen/gemma_pytorch
+datagen/llm_crops
+datagen/llm_crops_descriptions
+datagen/llm_crops_enhanced_expressions
+datagen/llm_crops_combined_output
+datagen/sota
+datagen/SOTA
+datagen/gemini_finetuning_data
+datagen/gemini_triplet_finetuning_data
+datagen/gen-lang*
+datagen/google-cloud-sdk
+datagen/aeriald.zip
+datagen/patch_visualization
+datagen/LoveDA*
+datagen/melbourne_1945_tiles/
+datagen/deepglobe/
+datagen/histaerial/
+datagen/utils/dataset*
+datagen/utils/debug*
+
+# Clipsam artifacts
+clipsam/utils/static/
+clipsam/results/
+clipsam/visualizations/
+clipsam/models/
+clipsam/aeriald.zip
+clipsam/aeriald/
+clipsam/utils/style_transfer_results/
+clipsam/style_transfer_results/
+clipsam/utils/filter_examples/
+
+# LLM artifacts
+llm/gemma-3-4b-it
+llm/gemma-3-1b-it
+llm/gemma_pytorch
+llm/gemma_model/
+llm/debug_output/
+llm/enhanced_annotations*/
+llm/enhanced_gemma_annotations*/
+llm/enhanced*/
+llm/gemma-product-simple
+llm/gemma-aerial-referring
+llm/gemma-aerial-referring-12b-lora
+llm/gemma-aerial-referring-4b-lora
+llm/gemma-env
+llm/merged_model*/
+llm/gemma-aerial-12b
+llm/gemma-aerial-12b_old
+llm/debug*
+llm/temp*
+
+# Web / inference artifacts
+clipsam/utils/static/uploads/
+clipsam/utils/static/results/
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.bcf
+*.fdb_latexmk
+*.fls
+*.log
+*.maf
+*.mtc*
+*.mlf*
+*.mlt*
+*.out
+*.toc
+*.lof
+*.lot
+*.nav
+*.snm
+*.vrb
+*.run.xml
+*.synctex.gz
+*.ist
+*.nlo
+*.nls
+*.tdo
+*.listing
+*.auxlock
+*.pre
+*.pytxcode
+pythontex-files-*/
+*.sagetex.sage
+*.sagetex.py
+*.sagetex.scmd
+*.tmp
+tex/ieee_article/*.pdf
+tex/ieee_article/*.synctex.gz
+tex/dissertation/*.pdf
+
+# Generated documentation caches
+docs/_build/
