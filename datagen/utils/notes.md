@@ -73,7 +73,7 @@ LLM:
 
 
 notes about call:
-- start with showing the training run results, the full dataset 2 runs (fusion and clipsam), quantitative and qualitative. 
+- start with showing the training run results, the full dataset 2 runs (fusion and rsrefseg), quantitative and qualitative. 
 - then the random expression filter run.
 - is filtering the expressions on a object a good idea (to include more signal), and if so, would a random selection be enough, leaving on the annotations all the expressions regardless
 - show 40 run manual classification of expressions. show why its improved (prompt for more natural language, and for unique expressions, prompt to go off of a existing rule one)

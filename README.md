@@ -15,7 +15,7 @@ AerialSeg delivers end-to-end tooling for the article *Generalized Referring Exp
 
 ## Repository Structure
 - `datagen/`: dataset extraction, rule-driven expression generation, historic filtering, and enhancement utilities.
-- `clipsam/`: SigLIP+SAM training/testing, visualizations, and style-transfer experiments.
+- `rsrefseg/`: SigLIP+SAM training/testing, visualizations, and style-transfer experiments.
 - `llm/`: Gemma3 enhancement pipeline, QLoRA fine-tuning, and O3 reference scripts.
 - `docs/`, `tex/`: documentation figures and manuscript sources.
 
@@ -24,7 +24,7 @@ AerialSeg delivers end-to-end tooling for the article *Generalized Referring Exp
 ### Environment Setup
 The project relies on dedicated conda environments per component:
 - `conda activate aerial-seg-datagen` for `datagen/`
-- `conda activate aerial-seg` for `clipsam/`
+- `conda activate aerial-seg` for `rsrefseg/`
 - `conda activate gemma3` for `llm/`
 
 Install Python dependencies with the environment-specific `requirements.txt` files or use the root list for a monolithic setup.
@@ -40,12 +40,12 @@ Outputs are written to `datagen/dataset/` with optional historic-filter augmenta
 
 ### Model Training and Evaluation
 ```bash
-cd /cfs/home/u035679/aerialseg/clipsam
+cd /cfs/home/u035679/aerialseg/rsrefseg
 python train.py --epochs 5 --batch_size 4 --lr 1e-4
 python train.py --enable_grl --grl_lambda_schedule exponential
 python test.py --model_name <checkpoint_name>
 ```
-The RSRefSeg checkpoints fine-tune SigLIP2-SO400M and SAM-ViT (Base or Large) using LoRA ranks 16/32 while mixing Aerial-D with RefSegRS, RRSIS-D, NWPU-Refer, and Urban1960SatBench. Scripts cover resuming, dataset-specific evaluation, visualization-only passes, and style-transfer experiments (`utils/test_style_transfer.py`). Flask inference apps live under `clipsam/utils/`.
+The RSRefSeg checkpoints fine-tune SigLIP2-SO400M and SAM-ViT (Base or Large) using LoRA ranks 16/32 while mixing Aerial-D with RefSegRS, RRSIS-D, NWPU-Refer, and Urban1960SatBench. Scripts cover resuming, dataset-specific evaluation, visualization-only passes, and style-transfer experiments (`utils/test_style_transfer.py`). Flask inference apps live under `rsrefseg/utils/`.
 
 ### LLM Expression Enhancement
 ```bash

@@ -15,7 +15,7 @@ import glob
 
 def main():
     # Path to the results directory
-    results_dir = "/cfs/home/u035679/aerialseg/clipsam/results"
+    results_dir = "/cfs/home/u035679/aerialseg/rsrefseg/results"
     
     # Output file
     output_file = os.path.join(results_dir, "compiled_results.txt")

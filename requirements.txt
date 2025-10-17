@@ -1,5 +1,5 @@
 # AerialSeg Combined Requirements
-# Consolidated from datagen/, clipsam/, and llm/ requirements
+# Consolidated from datagen/, rsrefseg/, and llm/ requirements
 
 # Core ML/DL packages
 torch==2.7.1

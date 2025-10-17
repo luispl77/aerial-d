@@ -18,7 +18,7 @@ AerialSeg is a research project focused on **open-vocabulary segmentation of aer
 ├── datagen/                    # Dataset generation pipeline
 │   ├── pipeline/              # Rule-based annotation pipeline (Steps 1-8)
 │   └── utils/                 # Utilities, debug scripts, web apps
-├── clipsam/                   # SigLIP+SAM model implementation
+├── rsrefseg/                  # SigLIP+SAM model implementation
 │   ├── model.py              # Main model architecture
 │   ├── train.py              # Training script
 │   ├── test.py               # Evaluation script
@@ -58,7 +58,7 @@ Sequential pipeline for creating the AerialD dataset:
 - `batch_metrics_calculator.py` - Dataset statistics calculator
 - Debug scripts: `1_debug_*.py` through `4_debug_*.py`
 
-### 3. **clipsam/** - Model Implementation
+### 3. **rsrefseg/** - Model Implementation
 
 - `model.py` - SigLipSamSegmentator architecture with domain adaptation
 - `train.py` - Training script with gradient reversal layer
@@ -77,7 +77,7 @@ Sequential pipeline for creating the AerialD dataset:
 ### Requirements Files
 
 - `/cfs/home/u035679/aerialseg/datagen/requirements.txt` - Dataset generation dependencies
-- `/cfs/home/u035679/aerialseg/clipsam/requirements.txt` - Model training dependencies
+- `/cfs/home/u035679/aerialseg/rsrefseg/requirements.txt` - Model training dependencies
 - `/cfs/home/u035679/aerialseg/llm/requirements.txt` - LLM enhancement dependencies
 
 ### Key Dependencies
@@ -108,7 +108,7 @@ cd /cfs/home/u035679/aerialseg/datagen
 ### Model Training
 
 ```bash
-cd /cfs/home/u035679/aerialseg/clipsam
+cd /cfs/home/u035679/aerialseg/rsrefseg
 
 # Basic training
 python train.py --epochs 5 --batch_size 4 --lr 1e-4
@@ -123,7 +123,7 @@ python train.py --enable_grl --grl_lambda_schedule exponential
 ### Model Testing/Evaluation
 
 ```bash
-cd /cfs/home/u035679/aerialseg/clipsam
+cd /cfs/home/u035679/aerialseg/rsrefseg
 
 # Test model
 python test.py --model_name clip_sam_20250731_105510_epochs1_bs4x2_lr0.0001
@@ -143,7 +143,7 @@ python app.py --split train --port 5001
 python rule_viewer.py --split val --port 5002
 
 # ClipSAM inference app
-cd /cfs/home/u035679/aerialseg/clipsam/utils
+cd /cfs/home/u035679/aerialseg/rsrefseg/utils
 python clip_sam_app.py
 ```
 
@@ -187,9 +187,9 @@ python o3_enhance.py --dataset_dir ../datagen/dataset
 ### Primary Documentation
 
 - `/cfs/home/u035679/aerialseg/datagen/utils/docs.md` - Detailed pipeline documentation
-- `/cfs/home/u035679/aerialseg/clipsam/README.md` - RSRefSeg implementation overview
+- `/cfs/home/u035679/aerialseg/rsrefseg/README.md` - RSRefSeg implementation overview
 - `/cfs/home/u035679/aerialseg/llm/README.md` - Gemma3 setup and usage
-- `/cfs/home/u035679/aerialseg/clipsam/utils/README_style_transfer.md` - Style transfer methods
+- `/cfs/home/u035679/aerialseg/rsrefseg/utils/README_style_transfer.md` - Style transfer methods
 
 ### Development Notes
 
@@ -213,7 +213,7 @@ python o3_enhance.py --dataset_dir ../datagen/dataset
 
 - **ALWAYS activate the correct conda environment before running any commands**:
   - `conda activate aerial-seg-datagen` for datagen/ folder code
-  - `conda activate aerial-seg` for clipsam/ folder code
+  - `conda activate aerial-seg` for rsrefseg/ folder code
   - `conda activate gemma3` for llm/ folder code
 - **IMPORTANT**: Never run Python scripts without first activating the appropriate environment
 
@@ -244,7 +244,7 @@ python o3_enhance.py --dataset_dir ../datagen/dataset
 
 ### 2. **Model Checkpoints**
 
-- Models are stored in `/cfs/home/u035679/aerialseg/clipsam/models/`
+- Models are stored in `/cfs/home/u035679/aerialseg/rsrefseg/models/`
 - Follow naming convention: `clip_sam_YYYYMMDD_HHMMSS_epochs{N}_bs{batch_size}_lr{lr}`
 
 ### 3. **Dataset Locations**
@@ -264,7 +264,7 @@ python o3_enhance.py --dataset_dir ../datagen/dataset
 
 ### 6. **Environment Setup**
 
-- Each component (datagen, clipsam, llm) has its own requirements.txt
+- Each component (datagen, rsrefseg, llm) has its own requirements.txt
 - Consider using virtual environments for different components
 
 ### 8. **LaTeX Document Structure**

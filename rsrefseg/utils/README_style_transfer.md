@@ -20,7 +20,7 @@ This script tests various methods to transform aerial images from one domain (e.
 
 ### Test iSAID → DeepGlobe transformation:
 ```bash
-cd /cfs/home/u035679/aerialseg/clipsam/utils
+cd /cfs/home/u035679/aerialseg/rsrefseg/utils
 python test_style_transfer.py --source_domain iSAID --target_domain DeepGlobe
 ```
 

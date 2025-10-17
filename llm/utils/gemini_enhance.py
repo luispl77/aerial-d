@@ -81,7 +81,7 @@ ENHANCEMENT_RESPONSE_SCHEMA = {
 def parse_arguments():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description='Enhance aerial image annotations using Gemini API')
-    parser.add_argument('--dataset_path', type=str, default='/tmp/u035679/aerial_seg_clipsam/aeriald/patches/train',
+    parser.add_argument('--dataset_path', type=str, default='/tmp/u035679/aerial_seg_rsrefseg/aeriald/patches/train',
                         help='Path to the dataset directory')
     parser.add_argument('--output_dir', type=str, default='./enhanced_annotations',
                         help='Directory to save enhanced annotations')

@@ -70,16 +70,16 @@ datagen/histaerial/
 datagen/utils/dataset*
 datagen/utils/debug*
 
-# Clipsam artifacts
-clipsam/utils/static/
-clipsam/results/
-clipsam/visualizations/
-clipsam/models/
-clipsam/aeriald.zip
-clipsam/aeriald/
-clipsam/utils/style_transfer_results/
-clipsam/style_transfer_results/
-clipsam/utils/filter_examples/
+# RSRefSeg artifacts
+rsrefseg/utils/static/
+rsrefseg/results/
+rsrefseg/visualizations/
+rsrefseg/models/
+rsrefseg/aeriald.zip
+rsrefseg/aeriald/
+rsrefseg/utils/style_transfer_results/
+rsrefseg/style_transfer_results/
+rsrefseg/utils/filter_examples/
 
 # LLM artifacts
 llm/gemma-3-4b-it
