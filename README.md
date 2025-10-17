@@ -14,11 +14,11 @@ AerialSeg delivers end-to-end tooling for the article *Generalized Referring Exp
 - **Historic robustness**, using stochastic grayscale, sepia, and grain filters plus real historic imagery to maintain accuracy on archival photographs.
 
 ### Hugging Face Collection
-All public artifacts live in the [Aerial-D collection on Hugging Face](https://huggingface.co/collections/luisml77/aerial-d):
-- `luisml77/aerial-d` — full dataset release
-- `luisml77/rsrefseg` — checkpoints (`rsrefseg_aerial-d.pt`, `rsrefseg_combined.pt`)
-- `luisml77/gemma3-aerial-12b` — Gemma3 finetuned weights for Step 7
-- `luisml77/aerial-d-o3-mini` — distilled o3 dataset used for Gemma3 training
+All public artifacts live in the [Aerial-D collection on Hugging Face](https://huggingface.co/collections/luisml77/aerial-d-68a17e2431daebb96218edce):
+1. [luisml77/gemma-aerial-12b](https://huggingface.co/luisml77/gemma-aerial-12b) — Gemma3 finetuned weights for Step 7
+2. [luisml77/aeriald_o3_500](https://huggingface.co/datasets/luisml77/aeriald_o3_500) — distilled 500-sample o3 dataset for Gemma3 distillation
+3. [luisml77/aerial-d](https://huggingface.co/datasets/luisml77/aerial-d) — full dataset release
+4. [luisml77/rsrefseg](https://huggingface.co/luisml77/rsrefseg) — RSRefSeg checkpoints (`rsrefseg_aerial-d.pt`, `rsrefseg_combined.pt`)
 
 ## Repository Structure
 - `datagen/`: dataset extraction, rule-driven expression generation, historic filtering, and enhancement utilities.
@@ -29,12 +29,11 @@ All public artifacts live in the [Aerial-D collection on Hugging Face](https://h
 ## Getting Started
 
 ### Environment Setup
-The project relies on dedicated conda environments per component:
-- `conda activate aerial-seg-datagen` for `datagen/`
-- `conda activate aerial-seg` for `rsrefseg/`
-- `conda activate gemma3` for `llm/`
-
-Install Python dependencies with the environment-specific `requirements.txt` files or use the root list for a monolithic setup.
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
 
 ### Dataset Generation
 You can reproduce Aerial-D locally or download the public release.
@@ -51,7 +50,7 @@ cd /cfs/home/u035679/aerialseg/datagen
 # Package the result into aeriald.zip if needed
 python pipeline/zip_dataset.py --base_dir dataset --zip_path aeriald.zip
 ```
-The pipeline extracts iSAID/LoveDA patches, assigns rules (3×3 grid, relations, extremes, size cues), generates expressions, filters for uniqueness, and applies optional historic filters. Step 7 (`7_vllm_enhance.py`) expects the Gemma3 checkpoint produced in the **LLM Expression Enhancement** section; either complete those steps first or download the published `gemma3-aerial-12b` weights and run vLLM on that checkpoint before enabling Step 7. Utilities for viewing and metrics live under `datagen/utils/`.
+The pipeline extracts iSAID/LoveDA patches, assigns rules (3×3 grid, relations, extremes, size cues), generates expressions, filters for uniqueness, and applies optional historic filters. Step 7 (`7_vllm_enhance.py`) expects the Gemma3 checkpoint produced in the **LLM Expression Enhancement** section; either complete those steps first or download [luisml77/gemma-aerial-12b](https://huggingface.co/luisml77/gemma-aerial-12b) and the distilled dataset [luisml77/aeriald_o3_500](https://huggingface.co/datasets/luisml77/aeriald_o3_500) from the collection before enabling Step 7. Utilities for viewing and metrics live under `datagen/utils/`.
 
 ### Model Training and Evaluation (Aerial-D)
 `model.py` defines the SigLIP2 + SAM architecture (RSRefSeg) with LoRA adapters. Training and testing use the dataset downloaded above.
