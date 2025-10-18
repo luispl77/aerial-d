@@ -84,8 +84,8 @@ class SigLipSamSegmentator(nn.Module):
             self.lora_cfg = lora_cfg
             
         # Load SigLIP models
-        self.clip_vision_processor = SiglipProcessor.from_pretrained(siglip_model_name).image_processor
-        self.clip_text_processor = SiglipProcessor.from_pretrained(siglip_model_name).tokenizer
+        self.clip_vision_processor = SiglipProcessor.from_pretrained(siglip_model_name, use_fast=True).image_processor
+        self.clip_text_processor = SiglipProcessor.from_pretrained(siglip_model_name, use_fast=True).tokenizer
         
         siglip_model = SiglipModel.from_pretrained(siglip_model_name).to(self.device)
         self.clip_vision_encoder = siglip_model.vision_model

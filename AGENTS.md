@@ -211,10 +211,9 @@ python o3_enhance.py --dataset_dir ../datagen/dataset
 
 ### 0. **Conda Environment Management**
 
-- **ALWAYS activate the correct conda environment before running any commands**:
-  - `conda activate aerial-seg-datagen` for datagen/ folder code
-  - `conda activate aerial-seg` for rsrefseg/ folder code
-  - `conda activate gemma3` for llm/ folder code
+- **ALWAYS activate the `aerial` conda environment before running any commands**:
+  - `conda activate aerial`
+- Legacy environments (`aerial-seg-datagen`, `aerial-seg`, `gemma3`) remain available for reproduction but the unified `aerial` env supersedes them for day-to-day work.
 - **IMPORTANT**: Never run Python scripts without first activating the appropriate environment
 
 ### 0.1. **Script Execution Policy**
