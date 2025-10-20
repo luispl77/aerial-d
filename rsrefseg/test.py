@@ -121,11 +121,12 @@ def parse_args():
     parser.add_argument('--with_dense_feat', type=bool, default=True, help='Use dense features')
     parser.add_argument('--vis_only', action='store_true', help='Only run visualization without computing metrics')
     parser.add_argument('--dataset_type', type=str, choices=['aeriald', 'rrsisd', 'refsegrs', 'nwpu', 'urban1960'], default='aeriald', help='Dataset to evaluate against')
-    parser.add_argument('--dataset_root', type=str, default='./aeriald', help='Root directory of the AERIAL-D dataset')
-    parser.add_argument('--rrsisd_root', type=str, default='./datasets/rrsisd', help='Root directory of the RRSISD dataset')
-    parser.add_argument('--refsegrs_root', type=str, default='./datasets/refsegrs', help='Root directory of the RefSegRS dataset')
-    parser.add_argument('--nwpu_root', type=str, default='./datasets/nwpu-refer', help='Root directory of the NWPU-Refer dataset')
-    parser.add_argument('--urban1960_root', type=str, default='./datasets/urban1960', help='Root directory of the Urban1960 dataset')
+    default_dataset_root = os.path.join('..', 'datagen')
+    parser.add_argument('--dataset_root', type=str, default=os.path.join(default_dataset_root, 'dataset'), help='Root directory of the AERIAL-D dataset')
+    parser.add_argument('--rrsisd_root', type=str, default=os.path.join(default_dataset_root, 'rrsisd'), help='Root directory of the RRSISD dataset')
+    parser.add_argument('--refsegrs_root', type=str, default=os.path.join(default_dataset_root, 'refsegrs', 'RefSegRS'), help='Root directory of the RefSegRS dataset')
+    parser.add_argument('--nwpu_root', type=str, default=os.path.join(default_dataset_root, 'NWPU-Refer'), help='Root directory of the NWPU-Refer dataset')
+    parser.add_argument('--urban1960_root', type=str, default=os.path.join(default_dataset_root, 'Urban1960SatBench'), help='Root directory of the Urban1960 dataset')
     parser.add_argument('--aeriald_target_filter', type=str, choices=['all', 'instance', 'semantic'], default='all', help='Subset of AERIAL-D expressions to evaluate')
     parser.add_argument('--seed', type=int, default=42, help='Random seed for patch selection')
     parser.add_argument('--historic', action='store_true', help='Apply historic transformations (Basic B&W, B&W + Grain, or Sepia + Noise) randomly to images before testing')
@@ -550,7 +551,11 @@ class RRSISDDataset:
         
         # Set paths for RRSISD structure
         self.ann_dir = os.path.join(dataset_root, 'images', 'rrsisd', 'ann_split')
+        if not os.path.isdir(self.ann_dir):
+            self.ann_dir = os.path.join(dataset_root, 'images', 'ann_split')
         self.image_dir = os.path.join(dataset_root, 'images', 'rrsisd', 'JPEGImages')
+        if not os.path.isdir(self.image_dir):
+            self.image_dir = os.path.join(dataset_root, 'images', 'JPEGImages')
         
         # Add transform to match model configuration  
         self.transform = T.Compose([
@@ -848,7 +853,8 @@ class NWPUDataset:
         
         # Import the NWPUReferProcessor from our processing script
         import sys
-        sys.path.append('../datagen/utils')
+        utils_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'datagen', 'utils')
+        sys.path.append(utils_path)
         from process_nwpu_refer import NWPUReferProcessor
         
         # Initialize the processor
