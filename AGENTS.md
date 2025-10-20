@@ -310,6 +310,11 @@ tex/
   - Dissertation: Use `pdflatex main.tex` in the `/Users/luispl/Documents/aerialseg/tex/dissertation/` directory
   - Article: Use `pdflatex ExtendedAbstract.tex` in the `/Users/luispl/Documents/aerialseg/tex/article/` directory
 - **Figure and Table References**: NEVER use parenthetical references like "(see Figure~\ref{fig:example})" or "(Figure~\ref{fig:example})". Instead, naturally incorporate references into the prose using phrases such as "as shown in Figure~\ref{fig:example}", "illustrated in Figure~\ref{fig:example}", or "Table~\ref{tab:example} details...". References should flow as part of the sentence structure, not as afterthoughts tacked onto the end of paragraphs.
+- **Punctuation Style**: 
+  - NEVER use em-dashes (—) or en-dashes (--) as parenthetical elements within sentences. Rewrite to use complete sentences or subordinate clauses instead.
+  - NEVER use colons (:) to introduce lists or elaborations within running text. Instead, use transition words such as "namely", "for instance", "including", "such as", "specifically", etc.
+  - Example WRONG: "The dataset includes three types: vehicles, buildings, and roads."
+  - Example CORRECT: "The dataset includes three types, namely vehicles, buildings, and roads."
 
 ### 10. **Critical Writing Pattern - ALWAYS Follow This Structure**
 
