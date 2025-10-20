@@ -309,6 +309,7 @@ tex/
 - **Compilation**: 
   - Dissertation: Use `pdflatex main.tex` in the `/Users/luispl/Documents/aerialseg/tex/dissertation/` directory
   - Article: Use `pdflatex ExtendedAbstract.tex` in the `/Users/luispl/Documents/aerialseg/tex/article/` directory
+- **Figure and Table References**: NEVER use parenthetical references like "(see Figure~\ref{fig:example})" or "(Figure~\ref{fig:example})". Instead, naturally incorporate references into the prose using phrases such as "as shown in Figure~\ref{fig:example}", "illustrated in Figure~\ref{fig:example}", or "Table~\ref{tab:example} details...". References should flow as part of the sentence structure, not as afterthoughts tacked onto the end of paragraphs.
 
 ### 10. **Critical Writing Pattern - ALWAYS Follow This Structure**
 
