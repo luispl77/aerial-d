@@ -64,8 +64,22 @@ huggingface-cli download luisml77/aerial-d --repo-type dataset --local-dir datag
 The dataset generation has two main phases:
 
 **Phase 1: Rule-based Generation (Steps 1-6)**
+
+First, download the source datasets:
+```bash
+cd /cfs/home/u035679/aerialseg/datagen/pipeline
+
+# Download iSAID dataset (~20GB, train + val + test)
+./download_isaid.sh
+
+# Download LoveDA dataset (~2.5GB, train + val)
+./download_loveda.sh
+```
+
+Then generate rule-based expressions:
 ```bash
 cd /cfs/home/u035679/aerialseg/datagen
+
 # Generate rule-based expressions (skipping LLM enhancement)
 ./pipeline/run_pipeline.sh --skip_step7 --clean
 
@@ -199,4 +213,4 @@ If you use this dataset or code, please cite:
 Issues and pull requests are welcome. Please open an issue before submitting substantial changes.
 
 ## Contact
-For inquiries, email [maarnotto@gmail.com](mailto:maarnotto@gmail.com) or open a GitHub issue.
+For inquiries, email [luis.marnoto.gaspar.lopes@tecnico.ulisboa.pt](mailto:luis.marnoto.gaspar.lopes@tecnico.ulisboa.pt) or open a GitHub issue.
