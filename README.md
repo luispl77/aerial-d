@@ -143,7 +143,41 @@ python test.py --model_name rsrefseg_aeriald --dataset_type aeriald
 huggingface-cli download luisml77/rsrefseg --repo-type model --local-dir models/rsrefseg_combined
 python test.py --model_name rsrefseg_combined --dataset_type aeriald --sam_model facebook/sam-vit-large
 ```
-The training script fine-tunes SigLIP2-SO400M and SAM-ViT (Base or Large) on Aerial-D only. The optional `--custom_name` flag controls the run folder name under `rsrefseg/models/`, which you pass to `test.py` for evaluation. Visualization-only and Flask inference utilities remain available under `rsrefseg/utils/`.
+The training script fine-tunes SigLIP2-SO400M and SAM-ViT (Base or Large) on Aerial-D only. The optional `--custom_name` flag controls the run folder name under `rsrefseg/models/`, which you pass to `test.py` for evaluation.
+
+## Web Applications
+
+### Dataset Browser
+
+Browse the complete dataset with images, expressions, and segmentation masks through an interactive web interface:
+
+```bash
+cd /cfs/home/u035679/aerialseg/datagen
+python utils/rule_viewer.py --port 5004
+# Navigate to http://localhost:5004
+```
+
+<div align="center">
+<img src="docs/rule_viewer1.png" width="45%" alt="Dataset browser - image view">
+<img src="docs/rule_viewer2.png" width="45%" alt="Dataset browser - annotations view">
+</div>
+
+### Interactive Inference
+
+Test trained models with your own images and referring expressions:
+
+```bash
+cd /cfs/home/u035679/aerialseg/rsrefseg
+CUDA_VISIBLE_DEVICES=0 python utils/rsrefseg_inference_app.py \
+  --model_name aeriald_run \
+  --sam_model facebook/sam-vit-large \
+  --port 5002
+# Navigate to http://localhost:5002
+```
+
+<div align="center">
+<img src="docs/rsrefseg_app.png" width="80%" alt="RSRefSeg inference interface">
+</div>
 
 ## Historic Image Filters
 Training-time augmentations approximate monochrome, grainy, and sepia degradations through luminance conversion, gamma/contrast adjustments, and additive noise. Combined with Urban1960SatSeg, these filters preserve segmentation quality under archival conditions.
