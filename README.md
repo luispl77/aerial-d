@@ -59,14 +59,70 @@ You can reproduce Aerial-D locally or download the public release.
 huggingface-cli download luisml77/aerial-d --repo-type dataset --local-dir datagen/dataset
 ```
 
-**Optional: rebuild locally**
+**Reproduce Locally - Complete Pipeline**
+
+The dataset generation has two main phases:
+
+**Phase 1: Rule-based Generation (Steps 1-6)**
 ```bash
 cd /cfs/home/u035679/aerialseg/datagen
-./pipeline/run_pipeline.sh --clean
-# Package the result into aeriald.zip if needed
+# Generate rule-based expressions (skipping LLM enhancement)
+./pipeline/run_pipeline.sh --skip_step7 --clean
+
+# For small test (10 images per split)
+./pipeline/run_pipeline.sh --skip_step7 --num_images 10 --random_seed 42 --clean
+```
+
+**Phase 2: LLM Enhancement (Step 7)**
+
+Step 7 requires either (A) running OpenAI o3 enhancement + finetuning your own Gemma3 model, or (B) downloading the pre-distilled Gemma3 model:
+
+**Option A: Full LLM Pipeline (from scratch)**
+```bash
+cd /cfs/home/u035679/aerialseg/llm
+
+# 1a. Generate high-quality o3 samples (requires OpenAI API key, ~$500 for 500 samples)
+python o3_enhance.py --dataset_dir ../datagen/dataset
+
+# OR 1b. Download pre-generated o3 samples (skip expensive o3 API calls)
+huggingface-cli download luisml77/aeriald_o3_500 --repo-type dataset --local-dir enhanced_annotations_o3_dual
+
+# 2. Finetune Gemma3 on o3 samples using QLoRA
+python gemma3_lora_finetune.py \
+  --enhanced_data_dir enhanced_annotations_o3_dual \
+  --model_name gemma-aerial-12b \
+  --output_dir ./gemma-aerial-12b \
+  --lora_r 64 --lora_alpha 16
+
+# 3. Start vLLM server with finetuned model
+vllm serve ./gemma-aerial-12b --port 8000
+
+# 4. Run Step 7 (in another terminal)
+cd /cfs/home/u035679/aerialseg/datagen
+python pipeline/7_vllm_enhance.py
+```
+
+**Option B: Using Pre-trained Gemma3 Model (faster)**
+```bash
+# 1. Download pre-distilled Gemma3 model
+huggingface-cli download luisml77/gemma-aerial-12b --repo-type model --local-dir llm/gemma-aerial-12b
+
+# 2. Start vLLM server with downloaded model
+cd /cfs/home/u035679/aerialseg/llm
+vllm serve ./gemma-aerial-12b --port 8000
+
+# 3. Run Step 7 (in another terminal)
+cd /cfs/home/u035679/aerialseg/datagen
+python pipeline/7_vllm_enhance.py
+```
+
+**Package dataset (optional)**
+```bash
+cd /cfs/home/u035679/aerialseg/datagen
 python pipeline/zip_dataset.py --base_dir dataset --zip_path aeriald.zip
 ```
-The pipeline extracts iSAID/LoveDA patches, assigns rules (3×3 grid, relations, extremes, size cues), generates expressions, filters for uniqueness, and applies optional historic filters. Step 7 (`7_vllm_enhance.py`) expects the Gemma3 checkpoint produced in the **LLM Expression Enhancement** section; either complete those steps first or download [luisml77/gemma-aerial-12b](https://huggingface.co/luisml77/gemma-aerial-12b) and the distilled dataset [luisml77/aeriald_o3_500](https://huggingface.co/datasets/luisml77/aeriald_o3_500) from the collection before enabling Step 7. Utilities for viewing and metrics live under `datagen/utils/`.
+
+The pipeline extracts iSAID/LoveDA patches, assigns rules (3×3 grid, relations, extremes, size cues), generates expressions, filters for uniqueness, and applies optional historic filters. Utilities for viewing and metrics live under `datagen/utils/`.
 
 ### Model Training and Evaluation (Aerial-D)
 `model.py` defines the SigLIP2 + SAM architecture (RSRefSeg) with LoRA adapters. Training and testing use the dataset downloaded above.
@@ -89,26 +145,11 @@ python test.py --model_name rsrefseg_combined --dataset_type aeriald --sam_model
 ```
 The training script fine-tunes SigLIP2-SO400M and SAM-ViT (Base or Large) on Aerial-D only. The optional `--custom_name` flag controls the run folder name under `rsrefseg/models/`, which you pass to `test.py` for evaluation. Visualization-only and Flask inference utilities remain available under `rsrefseg/utils/`.
 
-### LLM Expression Enhancement
-```bash
-cd /cfs/home/u035679/aerialseg/llm
-python gemma3_enhance.py --input_dir ../datagen/dataset --output_dir enhanced_output
-python o3_enhance.py --dataset_dir ../datagen/dataset
-
-# QLoRA fine-tuning
-python gemma3_lora_finetune.py \
-  --enhanced_data_dir enhanced_annotations_o3_dual \
-  --model_name gemma-aerial-12b \
-  --output_dir ./gemma-aerial-12b \
-  --lora_r 64 --lora_alpha 16
-```
-Gemma3-12B is distilled from 500 high-quality OpenAI o3 samples using QLoRA (~238× cheaper than direct OpenAI o3 usage). The `llm/` directory also contains inference helpers, dataset cards, and scripts for managing Hugging Face artifacts.
-
 ## Historic Image Filters
 Training-time augmentations approximate monochrome, grainy, and sepia degradations through luminance conversion, gamma/contrast adjustments, and additive noise. Combined with Urban1960SatSeg, these filters preserve segmentation quality under archival conditions.
 
-## Cite Aerial-D
-Please cite the article when using this repository:
+## Citation
+If you use this dataset or code, please cite:
 
 ```bibtex
 @article{lopes2025aeriald,
@@ -117,17 +158,6 @@ Please cite the article when using this repository:
   journal={IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing (J-STARS)},
   year={2025},
   note={Submitted}
-}
-```
-
-**Dataset Citation:**
-```bibtex
-@dataset{aerial-d-2024,
-  title={AERIAL-D: Referring Expression Segmentation for Aerial Imagery},
-  author={Lopes, Luis Pedro Soares Marnoto Gaspar},
-  year={2024},
-  publisher={Hugging Face},
-  url={https://huggingface.co/datasets/luisml77/aerial-d}
 }
 ```
 

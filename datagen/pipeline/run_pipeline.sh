@@ -16,6 +16,7 @@ NUM_WORKERS=""
 RANDOM_SEED=""
 CLEAN=false
 ZIP=false
+SKIP_STEP7=false
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -48,12 +49,17 @@ while [[ $# -gt 0 ]]; do
             ZIP=true
             shift
             ;;
+        --skip_step7)
+            SKIP_STEP7=true
+            shift
+            ;;
         *)
             echo "Unknown option: $1"
-            echo "Usage: $0 [--num_images N] [--start_image_id X] [--end_image_id Y] [--num_workers W] [--random_seed S] [--clean] [--zip]"
+            echo "Usage: $0 [--num_images N] [--start_image_id X] [--end_image_id Y] [--num_workers W] [--random_seed S] [--clean] [--zip] [--skip_step7]"
             echo "Note: --num_images N will select N images from each split for iSAID and LoveDA datasets"
             echo "      --clean will delete the dataset directory before starting"
             echo "      --zip will create a zip archive of the final dataset"
+            echo "      --skip_step7 will skip LLM enhancement (useful for generating rule-based data for o3 training)"
             exit 1
             ;;
     esac
@@ -95,7 +101,13 @@ run_script "3_add_rules.py"
 run_script "4_generate_all_expressions.py"
 run_script "5_filter_unique.py"
 run_script "6_historic_filter.py"
-run_script "7_vllm_enhance.py"
+
+# Run step 7 only if not skipped
+if [ "$SKIP_STEP7" = false ]; then
+    run_script "7_vllm_enhance.py"
+else
+    echo -e "\nSkipping Step 7 (LLM enhancement) as requested"
+fi
 
 # Run zip script if requested
 if [ "$ZIP" = true ]; then
