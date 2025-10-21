@@ -202,7 +202,7 @@ If you use this dataset or code, please cite:
 ```bibtex
 @article{marnoto2025aeriald,
   title={The Aerial-D Dataset for Generalized Referring Expression Segmentation on Aerial Photos},
-  author={Marnoto, Luis Pedro Soares},
+  author={Marnoto, Luís Pedro Soares},
   journal={IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing (J-STARS)},
   year={2025},
   note={Submitted}
