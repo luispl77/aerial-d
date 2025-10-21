@@ -1,17 +1,24 @@
-# Generalized Referring Expression Segmentation on Aerial Photos
+# The Aerial-D Dataset for Generalized Referring Expression Segmentation on Aerial Photos
+
+<div align="center">
+
+### 🔗 Quick Links
+
+**[🌐 Project Page](https://luispl77.github.io/aerial-d)** | **[📊 Dataset (HuggingFace)](https://huggingface.co/datasets/luisml77/aerial-d)** | **[📄 Paper](https://luispl77.github.io/aerial-d)** | **[🤖 Models](https://huggingface.co/collections/luisml77/aerial-d-68a17e2431daebb96218edce)**
 
 [![Project Page](https://img.shields.io/badge/Project%20Page-visit-blue)](https://luispl77.github.io/aerial-d)
 [![Dataset](https://img.shields.io/badge/Dataset-HuggingFace-orange)](https://huggingface.co/datasets/luisml77/aerial-d)
 [![Paper](https://img.shields.io/badge/Paper-Preprint-lightgrey)](https://luispl77.github.io/aerial-d)
 
-![Aerial-D dataset example](docs/dataset.png)
+</div>
+
+![Aerial-D dataset examples](docs/6samples.png)
 
 ## Overview
-AerialSeg delivers end-to-end tooling for the article *Generalized Referring Expression Segmentation on Aerial Photos*. The project introduces:
+This repository provides end-to-end tooling for *The Aerial-D Dataset for Generalized Referring Expression Segmentation on Aerial Photos* (submitted to IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing, J-STARS). The project introduces:
 - **Aerial-D**, a 37,288-image dataset with 1.52M referring expressions covering instances, groups, and semantic regions across 21 categories.
 - **Automatic data generation**, combining rule-based templates with LLM rewriting to produce grounded language at scale while filtering ambiguous references.
 - **Unified RSRefSeg training**, pairing SigLIP2 and SAM with LoRA adapters to learn from Aerial-D alongside RefSegRS, RRSIS-D, NWPU-Refer, and Urban1960SatSeg.
-- **Historic robustness**, using stochastic grayscale, sepia, and grain filters plus real historic imagery to maintain accuracy on archival photographs.
 
 ### Hugging Face Collection
 All public artifacts live in the [Aerial-D collection on Hugging Face](https://huggingface.co/collections/luisml77/aerial-d-68a17e2431daebb96218edce):
@@ -23,19 +30,28 @@ All public artifacts live in the [Aerial-D collection on Hugging Face](https://h
 ## Repository Structure
 - `datagen/`: dataset extraction, rule-driven expression generation, historic filtering, and enhancement utilities.
 - `rsrefseg/`: SigLIP+SAM training/testing, visualizations, and style-transfer experiments.
-- `llm/`: Gemma3 enhancement pipeline, QLoRA fine-tuning, and O3 reference scripts.
-- `docs/`, `tex/`: documentation figures and manuscript sources.
+- `llm/`: Gemma3 enhancement pipeline, QLoRA fine-tuning, and OpenAI o3 reference scripts.
+- `docs/`: project webpage files.
+- `tex/`: LaTeX source for article and dissertation.
 
 ## Getting Started
 
 ### Environment Setup
+**Option 1: Using Conda (recommended, requires Python 3.12)**
 ```bash
-python -m venv .venv
+conda create -n aerial python=3.12
+conda activate aerial
+pip install -r requirements.txt
+```
+
+**Option 2: Using venv**
+```bash
+python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Dataset Generation
+### Dataset Download/Generation
 You can reproduce Aerial-D locally or download the public release.
 
 **Download from Hugging Face**
@@ -86,18 +102,29 @@ python gemma3_lora_finetune.py \
   --output_dir ./gemma-aerial-12b \
   --lora_r 64 --lora_alpha 16
 ```
-Gemma3-12B is distilled from 500 high-quality OpenAI o3 samples using QLoRA (~238× cheaper than direct o3 usage). The `llm/` directory also contains inference helpers, dataset cards, and scripts for managing Hugging Face artifacts.
+Gemma3-12B is distilled from 500 high-quality OpenAI o3 samples using QLoRA (~238× cheaper than direct OpenAI o3 usage). The `llm/` directory also contains inference helpers, dataset cards, and scripts for managing Hugging Face artifacts.
 
 ## Historic Image Filters
 Training-time augmentations approximate monochrome, grainy, and sepia degradations through luminance conversion, gamma/contrast adjustments, and additive noise. Combined with Urban1960SatSeg, these filters preserve segmentation quality under archival conditions.
 
 ## Cite Aerial-D
-Please cite the dataset when using this repository:
+Please cite the article when using this repository:
 
 ```bibtex
+@article{lopes2025aeriald,
+  title={The Aerial-D Dataset for Generalized Referring Expression Segmentation on Aerial Photos},
+  author={Lopes, Luis Pedro Soares Marnoto Gaspar},
+  journal={IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing (J-STARS)},
+  year={2025},
+  note={Submitted}
+}
+```
+
+**Dataset Citation:**
+```bibtex
 @dataset{aerial-d-2024,
-  title={Aerial-D: Referring Expression Segmentation for Aerial Imagery},
-  author={Luis M. Lopes and contributors},
+  title={AERIAL-D: Referring Expression Segmentation for Aerial Imagery},
+  author={Lopes, Luis Pedro Soares Marnoto Gaspar},
   year={2024},
   publisher={Hugging Face},
   url={https://huggingface.co/datasets/luisml77/aerial-d}
