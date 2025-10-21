@@ -81,7 +81,7 @@ Step 7 requires either (A) running OpenAI o3 enhancement + finetuning your own G
 ```bash
 cd /cfs/home/u035679/aerialseg/llm
 
-# 1a. Generate high-quality o3 samples (requires OpenAI API key, ~$500 for 500 samples)
+# 1a. Generate high-quality o3 samples (requires OpenAI API key, ~$10.36 for 500 samples)
 python o3_enhance.py --dataset_dir ../datagen/dataset
 
 # OR 1b. Download pre-generated o3 samples (skip expensive o3 API calls)

@@ -35,7 +35,7 @@ input_size = 384
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'webp'}
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='CLIP-SAM Interactive Inference Interface')
+    parser = argparse.ArgumentParser(description='RSRefSeg Interactive Inference Interface')
     parser.add_argument('--model_name', type=str, required=True, help='Model name for checkpoint loading')
     parser.add_argument('--gpu_id', type=int, default=0, help='GPU ID to use')
     parser.add_argument('--input_size', type=int, default=384, help='Input size for images')
