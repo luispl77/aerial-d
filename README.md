@@ -186,9 +186,9 @@ Training-time augmentations approximate monochrome, grainy, and sepia degradatio
 If you use this dataset or code, please cite:
 
 ```bibtex
-@article{lopes2025aeriald,
+@article{marnoto2025aeriald,
   title={The Aerial-D Dataset for Generalized Referring Expression Segmentation on Aerial Photos},
-  author={Lopes, Luis Pedro Soares Marnoto Gaspar},
+  author={Marnoto, Luis Pedro Soares},
   journal={IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing (J-STARS)},
   year={2025},
   note={Submitted}
