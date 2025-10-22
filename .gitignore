@@ -139,7 +139,6 @@ pythontex-files-*/
 *.sagetex.py
 *.sagetex.scmd
 *.tmp
-tex/ieee_article/*.pdf
 tex/ieee_article/*.synctex.gz
 tex/dissertation/*.pdf
 
