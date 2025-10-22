@@ -4,7 +4,7 @@
 
 ### 🔗 Quick Links
 
-**[🌐 Project Page](https://luispl77.github.io/aerial-d)** | **[📊 Dataset (HuggingFace)](https://huggingface.co/datasets/luisml77/aerial-d)** | **[📄 Paper](https://luispl77.github.io/aerial-d)** | **[🤖 Models](https://huggingface.co/collections/luisml77/aerial-d-68a17e2431daebb96218edce)**
+**[🌐 Project Page](https://luispl77.github.io/aerial-d)** | **[📊 Dataset (HuggingFace)](https://huggingface.co/datasets/luisml77/aerial-d)** | **[📄 Paper](https://github.com/luispl77/aerial-d/blob/main/tex/ieee_article/main.pdf)** | **[🤖 Models](https://huggingface.co/collections/luisml77/aerial-d-68a17e2431daebb96218edce)**
 
 [![Project Page](https://img.shields.io/badge/Project%20Page-visit-blue)](https://luispl77.github.io/aerial-d)
 [![Dataset](https://img.shields.io/badge/Dataset-HuggingFace-orange)](https://huggingface.co/datasets/luisml77/aerial-d)
