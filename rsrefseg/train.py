@@ -162,6 +162,8 @@ def parse_args():
     parser.add_argument('--use_all_datasets', action='store_true', help='Train on AerialD + 4 additional datasets (RRSISD, RefSegRS, NWPU, Urban1960). Expression filtering flags still apply to AerialD only.')
     parser.add_argument('--exclude_datasets', nargs='*', choices=['rrsisd', 'refsegrs', 'nwpu', 'urban1960'], default=None,
                         help='Datasets to exclude when --use_all_datasets is enabled')
+    parser.add_argument('--exclude_aeriald', action='store_true',
+                        help='Exclude the primary AerialD dataset when using --use_all_datasets')
     parser.add_argument('--rrsisd_root', type=str, default='../datagen/rrsisd', help='Root directory of the RRSISD dataset')
     parser.add_argument('--refsegrs_root', type=str, default='../datagen/refsegrs/RefSegRS', help='Root directory of the RefSegRS dataset')
     parser.add_argument('--nwpu_root', type=str, default='../datagen/NWPU-Refer', help='Root directory of the NWPU-Refer dataset')
@@ -1432,37 +1434,44 @@ class Urban1960Dataset:
 
 class CombinedDataset:
     """Combined dataset that merges AerialD with additional datasets."""
-    def __init__(self, dataset_root, split='train', input_size=512, use_historic=False, 
-                 unique_only=False, original_only=False, enhanced_only=False, 
-                 one_unique_per_obj=False, dataset_filter=None, 
-                 additional_datasets=None, historic_percentage=20.0):
+    def __init__(self, dataset_root, split='train', input_size=512, use_historic=False,
+                 unique_only=False, original_only=False, enhanced_only=False,
+                 one_unique_per_obj=False, dataset_filter=None,
+                 additional_datasets=None, historic_percentage=20.0,
+                 include_aeriald=True):
         
         self.datasets = []
         self.dataset_names = []
         self.cumulative_lengths = []
         
-        # Always add AerialD dataset first
-        print("="*60)
-        print("LOADING AERIALD DATASET")
-        print("="*60)
-        
-        aeriald_dataset = SimpleDataset(
-            dataset_root=dataset_root,
-            split=split,
-            input_size=input_size,
-            use_historic=use_historic,
-            unique_only=unique_only,
-            original_only=original_only,
-            enhanced_only=enhanced_only,
-            one_unique_per_obj=one_unique_per_obj,
-            dataset_filter=dataset_filter,
-            historic_percentage=historic_percentage
-        )
-        
-        self.datasets.append(aeriald_dataset)
-        self.dataset_names.append("AerialD")
-        current_length = len(aeriald_dataset)
-        self.cumulative_lengths.append(current_length)
+        current_length = 0
+
+        if include_aeriald:
+            print("="*60)
+            print("LOADING AERIALD DATASET")
+            print("="*60)
+            
+            aeriald_dataset = SimpleDataset(
+                dataset_root=dataset_root,
+                split=split,
+                input_size=input_size,
+                use_historic=use_historic,
+                unique_only=unique_only,
+                original_only=original_only,
+                enhanced_only=enhanced_only,
+                one_unique_per_obj=one_unique_per_obj,
+                dataset_filter=dataset_filter,
+                historic_percentage=historic_percentage
+            )
+            
+            self.datasets.append(aeriald_dataset)
+            self.dataset_names.append("AerialD")
+            current_length = len(aeriald_dataset)
+            self.cumulative_lengths.append(current_length)
+        else:
+            print("="*60)
+            print("SKIPPING AERIALD DATASET (excluded)")
+            print("="*60)
         
         # Add additional datasets if provided
         if additional_datasets:
@@ -1735,7 +1744,8 @@ def main():
             one_unique_per_obj=args.one_unique_per_obj,
             dataset_filter=args.dataset_filter,
             additional_datasets=additional_datasets,
-            historic_percentage=args.historic_percentage
+            historic_percentage=args.historic_percentage,
+            include_aeriald=not args.exclude_aeriald
         )
         
         val_dataset = CombinedDataset(
@@ -1747,7 +1757,8 @@ def main():
             one_unique_per_obj=False,
             dataset_filter=args.dataset_filter,
             additional_datasets=additional_datasets,
-            historic_percentage=0.0  # No historic effects for validation
+            historic_percentage=0.0,  # No historic effects for validation
+            include_aeriald=not args.exclude_aeriald
         )
     else:
         print("\nSingle dataset mode - using AerialD only")

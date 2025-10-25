@@ -37,13 +37,18 @@ datagen/HistAerialDataset/
 
 # Datagen assets
 datagen/isaid/
+datagen/isaid
 datagen/rrsisd/
+datagen/rrsisd
+datagen/refsegrs/
 datagen/refsegrs
+datagen/NWPU-Refer/
 datagen/NWPU-Refer
+datagen/Urban1960SatBench/
 datagen/Urban1960SatBench
 datagen/saved_visualizations/
-datagen/patches
-datagen/patches_modified
+datagen/patches/
+datagen/patches_modified/
 datagen/patches*/
 datagen/dataset*
 datagen/temp*
@@ -67,18 +72,23 @@ datagen/LoveDA*
 datagen/melbourne_1945_tiles/
 datagen/deepglobe/
 datagen/histaerial/
+datagen/histaerial
 datagen/utils/dataset*
 datagen/utils/debug*
 
 # RSRefSeg artifacts
 rsrefseg/utils/static/
+rsrefseg/utils/static
 rsrefseg/results/
+rsrefseg/results
 rsrefseg/visualizations/
+rsrefseg/visualizations
 rsrefseg/models/
-rsrefseg/aeriald.zip
+rsrefseg/models
 rsrefseg/aeriald/
+rsrefseg/aeriald
 rsrefseg/utils/style_transfer_results/
-rsrefseg/style_transfer_results/
+rsrefseg/style_transfer_results
 rsrefseg/utils/filter_examples/
 
 # LLM artifacts
@@ -88,8 +98,11 @@ llm/gemma_pytorch
 llm/gemma_model/
 llm/debug_output/
 llm/enhanced_annotations*/
+llm/enhanced_annotations*
 llm/enhanced_gemma_annotations*/
+llm/enhanced_gemma_annotations*
 llm/enhanced*/
+llm/enhanced*
 llm/gemma-product-simple
 llm/gemma-aerial-referring
 llm/gemma-aerial-referring-12b-lora
