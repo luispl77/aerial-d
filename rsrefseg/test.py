@@ -444,13 +444,23 @@ class SimpleDataset:
         if self.target_filter != 'all':
             before_filter = len(self.objects)
             if self.target_filter == 'instance':
-                self.objects = [obj for obj in self.objects if obj['type'] == 'individual']
+                self.objects = [
+                    obj for obj in self.objects
+                    if (
+                        obj['type'] == 'individual'
+                        or (
+                            obj['type'] == 'group'
+                            and obj.get('group_id') is not None
+                            and obj['group_id'] < 1000000
+                        )
+                    )
+                ]
             elif self.target_filter == 'semantic':
                 self.objects = [
                     obj for obj in self.objects
                     if obj['type'] == 'group'
                     and obj.get('group_id') is not None
-                    and 1000000 <= obj['group_id'] < 2000000
+                    and obj['group_id'] >= 1000000
                 ]
             after_filter = len(self.objects)
             print(f"\nApplied target filter '{self.target_filter}': {before_filter} -> {after_filter} samples")

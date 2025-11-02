@@ -55,6 +55,8 @@ def analyze_single_xml(xml_file_path):
             "total_groups": 0,
             "total_special_pairs": 0,
             "total_expressions": 0,
+            "instance_target_expressions": 0,
+            "semantic_target_expressions": 0,
             "category_stats": defaultdict(int),
             "group_category_stats": defaultdict(int),
             "expressions_per_instance": [],
@@ -97,6 +99,7 @@ def analyze_single_xml(xml_file_path):
             # Analyze expression types and collect texts
             for expr in expressions:
                 file_metrics["total_expressions"] += 1
+                file_metrics["instance_target_expressions"] += 1
                 expr_type = expr.get("type", "original")
                 file_metrics["expression_types"][expr_type] += 1
                 # Collect expression text for word cloud
@@ -145,6 +148,12 @@ def analyze_single_xml(xml_file_path):
                 file_metrics["expressions_per_group"].append(num_expressions)
                 patch_expressions += num_expressions
                 
+                # Split expressions into instance vs semantic targets
+                if group_id >= 1000000:
+                    file_metrics["semantic_target_expressions"] += num_expressions
+                else:
+                    file_metrics["instance_target_expressions"] += num_expressions
+
                 # Collect group expression texts for word cloud and count types
                 for expr in expressions:
                     # Count expression type
@@ -212,6 +221,8 @@ class DatasetMetrics:
             "total_groups": 0,     # Total number of groups
             "total_special_pairs": 0,  # Count of special combination groups (iSAID vehicle pairs + LoveDA land-use combinations)
             "total_expressions": 0,
+            "instance_target_expressions": 0,
+            "semantic_target_expressions": 0,
             "category_stats": defaultdict(int),  # Only categories with expressions
             "group_category_stats": defaultdict(int),  # Categories for groups
             "expressions_per_instance": [],
@@ -376,6 +387,8 @@ class DatasetMetrics:
             self.metrics[split_name]["total_groups"] += file_result["total_groups"]
             self.metrics[split_name]["total_special_pairs"] += file_result["total_special_pairs"]
             self.metrics[split_name]["total_expressions"] += file_result["total_expressions"]
+            self.metrics[split_name]["instance_target_expressions"] += file_result["instance_target_expressions"]
+            self.metrics[split_name]["semantic_target_expressions"] += file_result["semantic_target_expressions"]
             self.skipped_objects[split_name] += file_result["skipped_objects"]
             
             # Merge category stats
@@ -429,6 +442,8 @@ class DatasetMetrics:
             report.append(f"Total Groups: {self.metrics[split]['total_groups']}")
             report.append(f"Total Special Combination Groups (iSAID vehicle pairs + LoveDA land-use combinations): {self.metrics[split]['total_special_pairs']}")
             report.append(f"Total Expressions: {self.metrics[split]['total_expressions']}")
+            report.append(f"Instance-target expressions (instances + DBSCAN groups): {self.metrics[split]['instance_target_expressions']}")
+            report.append(f"Semantic-target expressions (class-level + special pairs): {self.metrics[split]['semantic_target_expressions']}")
             
             if "avg_expressions_per_instance" in self.metrics[split]:
                 report.append(f"Average Expressions per Instance: {self.metrics[split]['avg_expressions_per_instance']:.2f}")
