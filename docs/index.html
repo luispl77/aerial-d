@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Aerial-D Dataset for Generalized Referring Expression Segmentation on Aerial Photos</title>
+    <title>Generalized Referring Expression Segmentation on Aerial Photos</title>
     <style>
         * {
             margin: 0;
@@ -231,14 +231,19 @@
         <div class="header">
             <div class="logos">
                 <img src="inesc_logo.png" alt="INESC-ID Logo" class="logo">
+                <img src="isr_logo.png" alt="ISR Logo" class="logo">
                 <img src="ist_logo.png" alt="IST Logo" class="logo">
             </div>
 
-            <h1 class="title">The Aerial-D Dataset for Generalized Referring Expression Segmentation on Aerial Photos</h1>
-            <div class="subtitle">The Largest Referring Expression Segmentation Dataset for Aerial Imagery</div>
+            <h1 class="title">Generalized Referring Expression Segmentation on Aerial Photos</h1>
+            <div class="subtitle">A Large-Scale Referring Expression Segmentation Dataset for Aerial Imagery</div>
 
-            <div class="author">Luís Pedro Soares Marnoto</div>
-            <div class="affiliation">Instituto Superior Técnico, Universidade de Lisboa</div>
+            <div class="author">
+                Luís Marnoto<sup>1,2</sup>, Alexandre Bernardino<sup>2,3</sup>, Bruno Martins<sup>1,2</sup>
+            </div>
+            <div class="affiliation">
+                <sup>1</sup>INESC-ID &nbsp;&nbsp; <sup>2</sup>Instituto Superior Técnico, Universidade de Lisboa &nbsp;&nbsp; <sup>3</sup>Instituto de Sistemas e Robótica
+            </div>
 
             <div class="links">
                 <a href="https://github.com/luispl77/aerial-d/blob/main/tex/ieee_article/main.pdf" target="_blank" class="btn btn-paper">
@@ -278,10 +283,7 @@
         <div class="section">
             <h2 class="section-title">Abstract</h2>
             <p class="abstract">
-                Referring expression segmentation is a fundamental task in computer vision that integrates natural language understanding with precise visual localization of target regions. Considering aerial imagery (for example, modern drone surveys, historic aerial archives, and high-resolution satellite captures) introduces unique challenges because spatial resolution varies widely across datasets, color usage is inconsistent, targets often shrink to only a few pixels, and scenes contain extreme object densities with frequent occlusions. This work presents <span class="highlight">Aerial-D</span>, a new large-scale referring expression segmentation dataset for aerial imagery comprising <strong>37,288 image patches</strong> with <strong>1,522,523 referring expressions</strong> covering <strong>259,709 annotated targets</strong> across individual instances, coherent groups, and semantic categories spanning <strong>21 distinct classes</strong> that range from vehicles and infrastructure to land-cover types.
-            </p>
-            <p class="abstract">
-                The dataset is constructed through a <span class="highlight">fully automatic pipeline</span> that combines systematic rule-based expression generation with Large Language Model enhancement, enriching both linguistic variety and the visual detail captured within each description. As an additional capability, the pipeline produces dedicated historic counterparts for every scene, supporting archival analyses such as monitoring urban change across decades. We adopt the RSRefSeg architecture featuring a SigLIP2 vision-language encoder and a SAM segmentation decoder and train models on Aerial-D together with prior aerial datasets, yielding unified instance and semantic segmentation from text for both modern and historic imagery. Results show that this combined training achieves competitive performance on contemporary benchmarks while maintaining strong accuracy under the monochrome, sepia, and grainy degradations that characterize archival aerial photography.
+                Referring expression segmentation is a fundamental task in computer vision that integrates natural language understanding with precise visual localization of target regions. Considering aerial imagery (e.g., modern aerial photos collected through drones, historical photos from aerial archives, high-resolution satellite imagery, etc.) presents unique challenges because spatial resolution varies widely across datasets, the use of color is not consistent, targets often shrink to only a few pixels, and scenes contain very high object densities and objects with partial occlusions. This work presents <span class="highlight">Aerial-D</span>, a new large-scale referring expression segmentation dataset for aerial imagery, comprising <strong>37,288 images</strong> with <strong>1,522,523 referring expressions</strong> that cover <strong>259,709 annotated targets</strong>, spanning across individual object instances, groups of instances, and semantic regions covering <strong>21 distinct classes</strong> that range from vehicles and infrastructure to land coverage types. The dataset was constructed through a <span class="highlight">fully automatic pipeline</span> that combines systematic rule-based expression generation with a Large Language Model (LLM) enhancement procedure that enriched both the linguistic variety and the focus on visual details within the referring expressions. Filters were additionally used to simulate historic imaging conditions for each scene. We adopted the RSRefSeg architecture, featuring a SigLIP2 vision--language encoder and a SAM segmentation decoder, and trained models on Aerial-D together with prior aerial datasets, yielding unified instance and semantic segmentation from text for both modern and historical images. Results show that the combined training achieves competitive performance on contemporary benchmarks, while maintaining strong accuracy under monochrome, sepia, and grainy degradations that appear in archival aerial photography.
             </p>
         </div>
 
@@ -341,16 +343,21 @@
                 If you use this dataset or code, please cite:
             </p>
             <pre style="background: #f8f9fa; padding: 20px; border-radius: 8px; overflow-x: auto; font-size: 0.9em;"><code>@article{marnoto2025aeriald,
-  title={The Aerial-D Dataset for Generalized Referring Expression Segmentation on Aerial Photos},
-  author={Marnoto, Luís Pedro Soares},
-  journal={IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing (J-STARS)},
+  title={Generalized Referring Expression Segmentation on Aerial Photos},
+  author={Marnoto, Luís and Bernardino, Alexandre and Martins, Bruno},
+  journal={IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing},
   year={2025},
   note={Submitted}
 }</code></pre>
         </div>
 
         <div class="contact">
-            <p>Contact: <a href="mailto:luis.marnoto.gaspar.lopes@tecnico.ulisboa.pt">luis.marnoto.gaspar.lopes@tecnico.ulisboa.pt</a></p>
+            <p><strong>Contact:</strong></p>
+            <p>
+                Luís Marnoto: <a href="mailto:luis.marnoto.gaspar.lopes@tecnico.ulisboa.pt">luis.marnoto.gaspar.lopes@tecnico.ulisboa.pt</a><br>
+                Alexandre Bernardino: <a href="mailto:alexandre.bernardino@tecnico.ulisboa.pt">alexandre.bernardino@tecnico.ulisboa.pt</a><br>
+                Bruno Martins: <a href="mailto:bruno.g.martins@tecnico.ulisboa.pt">bruno.g.martins@tecnico.ulisboa.pt</a>
+            </p>
         </div>
     </div>
 </body>

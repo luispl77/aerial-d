@@ -1,4 +1,4 @@
-# The Aerial-D Dataset for Generalized Referring Expression Segmentation on Aerial Photos
+# Generalized Referring Expression Segmentation on Aerial Photos
 
 <div align="center">
 
@@ -15,7 +15,7 @@
 ![Aerial-D dataset examples](docs/6samples.png)
 
 ## Overview
-This repository provides end-to-end tooling for *The Aerial-D Dataset for Generalized Referring Expression Segmentation on Aerial Photos* (submitted to IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing, J-STARS). The project introduces:
+This repository provides end-to-end tooling for *Generalized Referring Expression Segmentation on Aerial Photos* (submitted to IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing, J-STARS). The project introduces:
 - **Aerial-D**, a 37,288-image dataset with 1.52M referring expressions covering instances, groups, and semantic regions across 21 categories.
 - **Automatic data generation**, combining rule-based templates with LLM rewriting to produce grounded language at scale while filtering ambiguous references.
 - **Unified RSRefSeg training**, pairing SigLIP2 and SAM with LoRA adapters to learn from Aerial-D alongside RefSegRS, RRSIS-D, NWPU-Refer, and Urban1960SatSeg.
@@ -201,9 +201,9 @@ If you use this dataset or code, please cite:
 
 ```bibtex
 @article{marnoto2025aeriald,
-  title={The Aerial-D Dataset for Generalized Referring Expression Segmentation on Aerial Photos},
-  author={Marnoto, Luís Pedro Soares},
-  journal={IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing (J-STARS)},
+  title={Generalized Referring Expression Segmentation on Aerial Photos},
+  author={Marnoto, Luís and Bernardino, Alexandre and Martins, Bruno},
+  journal={IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing},
   year={2025},
   note={Submitted}
 }
@@ -213,4 +213,8 @@ If you use this dataset or code, please cite:
 Issues and pull requests are welcome. Please open an issue before submitting substantial changes.
 
 ## Contact
-For inquiries, email [luis.marnoto.gaspar.lopes@tecnico.ulisboa.pt](mailto:luis.marnoto.gaspar.lopes@tecnico.ulisboa.pt) or open a GitHub issue.
+- Luís Marnoto: [luis.marnoto.gaspar.lopes@tecnico.ulisboa.pt](mailto:luis.marnoto.gaspar.lopes@tecnico.ulisboa.pt)
+- Alexandre Bernardino: [alexandre.bernardino@tecnico.ulisboa.pt](mailto:alexandre.bernardino@tecnico.ulisboa.pt)
+- Bruno Martins: [bruno.g.martins@tecnico.ulisboa.pt](mailto:bruno.g.martins@tecnico.ulisboa.pt)
+
+Or open a GitHub issue.
