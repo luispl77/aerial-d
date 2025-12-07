@@ -4,10 +4,10 @@
 
 ### 🔗 Quick Links
 
-**[🌐 Project Page](https://luispl77.github.io/aerial-d)** | **[📊 Dataset (HuggingFace)](https://huggingface.co/datasets/luisml77/aerial-d)** | **[📄 Paper](https://github.com/luispl77/aerial-d/blob/main/tex/ieee_article/main.pdf)** | **[🤖 Models](https://huggingface.co/collections/luisml77/aerial-d-68a17e2431daebb96218edce)**
+**[🌐 Project Page](https://luispl77.github.io/aerial-d)** | **[📊 Dataset (HuggingFace)](https://huggingface.co/collections/luisml77/aerial-d-68a17e2431daebb96218edce)** | **[📄 Paper](https://github.com/luispl77/aerial-d/blob/main/tex/ieee_article/main.pdf)** | **[🤖 Models](https://huggingface.co/collections/luisml77/aerial-d-68a17e2431daebb96218edce)**
 
 [![Project Page](https://img.shields.io/badge/Project%20Page-visit-blue)](https://luispl77.github.io/aerial-d)
-[![Dataset](https://img.shields.io/badge/Dataset-HuggingFace-orange)](https://huggingface.co/datasets/luisml77/aerial-d)
+[![Dataset](https://img.shields.io/badge/Dataset-HuggingFace-orange)](https://huggingface.co/collections/luisml77/aerial-d-68a17e2431daebb96218edce)
 [![Paper](https://img.shields.io/badge/Paper-Preprint-lightgrey)](https://luispl77.github.io/aerial-d)
 
 </div>
@@ -67,7 +67,7 @@ The dataset generation has two main phases:
 
 First, download the source datasets:
 ```bash
-cd /cfs/home/u035679/aerialseg/datagen/pipeline
+cd ~/aerial-d/datagen/pipeline
 
 # Download iSAID dataset (~20GB, train + val + test)
 ./download_isaid.sh
@@ -78,7 +78,7 @@ cd /cfs/home/u035679/aerialseg/datagen/pipeline
 
 Then generate rule-based expressions:
 ```bash
-cd /cfs/home/u035679/aerialseg/datagen
+cd ~/aerial-d/datagen
 
 # Generate rule-based expressions (skipping LLM enhancement)
 ./pipeline/run_pipeline.sh --skip_step7 --clean
@@ -93,7 +93,7 @@ Step 7 requires either (A) running OpenAI o3 enhancement + finetuning your own G
 
 **Option A: Full LLM Pipeline (from scratch)**
 ```bash
-cd /cfs/home/u035679/aerialseg/llm
+cd ~/aerial-d/llm
 
 # 1a. Generate high-quality o3 samples (requires OpenAI API key, ~$10.36 for 500 samples)
 python o3_enhance.py --dataset_dir ../datagen/dataset
@@ -112,7 +112,7 @@ python gemma3_lora_finetune.py \
 vllm serve ./gemma-aerial-12b --port 8000
 
 # 4. Run Step 7 (in another terminal)
-cd /cfs/home/u035679/aerialseg/datagen
+cd ~/aerial-d/datagen
 python pipeline/7_vllm_enhance.py
 ```
 
@@ -122,17 +122,17 @@ python pipeline/7_vllm_enhance.py
 huggingface-cli download luisml77/gemma-aerial-12b --repo-type model --local-dir llm/gemma-aerial-12b
 
 # 2. Start vLLM server with downloaded model
-cd /cfs/home/u035679/aerialseg/llm
+cd ~/aerial-d/llm
 vllm serve ./gemma-aerial-12b --port 8000
 
 # 3. Run Step 7 (in another terminal)
-cd /cfs/home/u035679/aerialseg/datagen
+cd ~/aerial-d/datagen
 python pipeline/7_vllm_enhance.py
 ```
 
 **Package dataset (optional)**
 ```bash
-cd /cfs/home/u035679/aerialseg/datagen
+cd ~/aerial-d/datagen
 python pipeline/zip_dataset.py --base_dir dataset --zip_path aeriald.zip
 ```
 
@@ -143,18 +143,19 @@ The pipeline extracts iSAID/LoveDA patches, assigns rules (3×3 grid, relations,
 
 ```bash
 # Train (writes checkpoint under rsrefseg/models/ by default)
-cd /cfs/home/u035679/aerialseg/rsrefseg
+cd ~/aerial-d/rsrefseg
 python train.py --dataset_root ../datagen/dataset --custom_name aeriald_run
 
 # Test the produced checkpoint
 python test.py --model_name aeriald_run --dataset_type aeriald
 
-# Skip training: download the published Aerial-D checkpoint
-huggingface-cli download luisml77/aerial-seg --repo-type model --local-dir models/rsrefseg_aeriald
-python test.py --model_name rsrefseg_aeriald --dataset_type aeriald
+# Or download published checkpoints from HuggingFace
+huggingface-cli download luisml77/rsrefseg --repo-type model --local-dir models/
 
-# Evaluate the combined multi-dataset checkpoint (requires SAM ViT-Large)
-huggingface-cli download luisml77/rsrefseg --repo-type model --local-dir models/rsrefseg_combined
+# Test with Aerial-D only checkpoint (rsrefseg_aerial-d.pt)
+python test.py --model_name rsrefseg_aerial-d --dataset_type aeriald
+
+# Test with combined multi-dataset checkpoint (rsrefseg_combined.pt, requires SAM ViT-Large)
 python test.py --model_name rsrefseg_combined --dataset_type aeriald --sam_model facebook/sam-vit-large
 ```
 The training script fine-tunes SigLIP2-SO400M and SAM-ViT (Base or Large) on Aerial-D only. The optional `--custom_name` flag controls the run folder name under `rsrefseg/models/`, which you pass to `test.py` for evaluation.
@@ -166,7 +167,7 @@ The training script fine-tunes SigLIP2-SO400M and SAM-ViT (Base or Large) on Aer
 Browse the complete dataset with images, expressions, and segmentation masks through an interactive web interface:
 
 ```bash
-cd /cfs/home/u035679/aerialseg/datagen
+cd ~/aerial-d/datagen
 python utils/rule_viewer.py --port 5004
 # Navigate to http://localhost:5004
 ```
@@ -181,7 +182,7 @@ python utils/rule_viewer.py --port 5004
 Test trained models with your own images and referring expressions:
 
 ```bash
-cd /cfs/home/u035679/aerialseg/rsrefseg
+cd ~/aerial-d/rsrefseg
 CUDA_VISIBLE_DEVICES=0 python utils/rsrefseg_inference_app.py \
   --model_name aeriald_run \
   --sam_model facebook/sam-vit-large \
