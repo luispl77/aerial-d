@@ -24,9 +24,9 @@ This repository provides end-to-end tooling for *Generalized Referring Expressio
 
 ### 🤗 Hugging Face Collection
 All public artifacts live in the [🤗 Aerial-D collection on Hugging Face](https://huggingface.co/collections/luisml77/aerial-d-68a17e2431daebb96218edce):
-1. [luisml77/gemma-aerial-12b](https://huggingface.co/luisml77/gemma-aerial-12b) — Gemma3 finetuned weights for Step 7
-2. [luisml77/aeriald_o3_500](https://huggingface.co/datasets/luisml77/aeriald_o3_500) — distilled 500-sample o3 dataset for Gemma3 distillation
-3. [luisml77/aerial-d](https://huggingface.co/datasets/luisml77/aerial-d) — full dataset release
+1. [luisml77/aerial-d](https://huggingface.co/datasets/luisml77/aerial-d) — full dataset release
+2. [luisml77/gemma-aerial-12b](https://huggingface.co/luisml77/gemma-aerial-12b) — Gemma3 finetuned weights for Step 7
+3. [luisml77/aeriald_o3_500](https://huggingface.co/datasets/luisml77/aeriald_o3_500) — distilled 500-sample o3 dataset for Gemma3 distillation
 4. [luisml77/rsrefseg](https://huggingface.co/luisml77/rsrefseg) — RSRefSeg checkpoints (`rsrefseg_aerial-d.pt`, `rsrefseg_combined.pt`)
 
 ## Repository Structure
