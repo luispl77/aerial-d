@@ -4,16 +4,15 @@
 
 ### 🔗 Quick Links
 
-**[🌐 Project Page](https://luispl77.github.io/aerial-d)** | **[📊 Dataset (HuggingFace)](https://huggingface.co/collections/luisml77/aerial-d-68a17e2431daebb96218edce)** | **[📄 Paper](https://www.arxiv.org/abs/2512.07338)** | **[🤖 Models](https://huggingface.co/collections/luisml77/aerial-d-68a17e2431daebb96218edce)**
+**[🌐 Project Page](https://luispl77.github.io/aerial-d)** | **[🤗📊 Dataset (HuggingFace)](https://huggingface.co/collections/luisml77/aerial-d-68a17e2431daebb96218edce)** | **[📄 Paper](https://www.arxiv.org/abs/2512.07338)**
 
-[![Project Page](https://img.shields.io/badge/Project%20Page-visit-blue)](https://luispl77.github.io/aerial-d)
+[![Project Page](https://img.shields.io/badge/Project%20Page-visit-blue?style=for-the-badge&logo=google-chrome&logoColor=white)](https://luispl77.github.io/aerial-d)
 [![Dataset](https://img.shields.io/badge/Dataset-Hugging%20Face-orange?style=for-the-badge&logo=huggingface&logoColor=white)](https://huggingface.co/datasets/luisml77/aerial-d)
 [![arXiv](https://img.shields.io/badge/arXiv-Paper-b31b1b?style=for-the-badge&logo=arxiv)](https://www.arxiv.org/abs/2512.07338)
-[![Code](https://img.shields.io/badge/Code-GitHub-181717?style=for-the-badge&logo=github)](https://github.com/luispl77/aerial-d)
 
 </div>
 
-![Aerial-D dataset examples](docs/6samples.png)
+<img src="docs/6samples.png" width="60%" alt="Aerial-D dataset examples">
 
 ## Overview
 This repository provides end-to-end tooling for *Generalized Referring Expression Segmentation on Aerial Photos* (submitted to IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing, J-STARS). The project introduces:
@@ -21,8 +20,8 @@ This repository provides end-to-end tooling for *Generalized Referring Expressio
 - **Automatic data generation**, combining rule-based templates with LLM rewriting to produce grounded language at scale while filtering ambiguous references.
 - **Unified RSRefSeg training**, pairing SigLIP2 and SAM with LoRA adapters to learn from Aerial-D alongside RefSegRS, RRSIS-D, NWPU-Refer, and Urban1960SatSeg.
 
-### Hugging Face Collection
-All public artifacts live in the [Aerial-D collection on Hugging Face](https://huggingface.co/collections/luisml77/aerial-d-68a17e2431daebb96218edce):
+### 🤗 Hugging Face Collection
+All public artifacts live in the [🤗 Aerial-D collection on Hugging Face](https://huggingface.co/collections/luisml77/aerial-d-68a17e2431daebb96218edce):
 1. [luisml77/gemma-aerial-12b](https://huggingface.co/luisml77/gemma-aerial-12b) — Gemma3 finetuned weights for Step 7
 2. [luisml77/aeriald_o3_500](https://huggingface.co/datasets/luisml77/aeriald_o3_500) — distilled 500-sample o3 dataset for Gemma3 distillation
 3. [luisml77/aerial-d](https://huggingface.co/datasets/luisml77/aerial-d) — full dataset release
