@@ -212,7 +212,7 @@ If you use this dataset or code, please cite:
 }
 ```
 
-This work was developed as part of the Master's thesis "Open-Vocabulary Semantic Segmentation of Aerial Photos" by **Luis Marnoto** at Instituto Superior Técnico (IST). The complete dissertation is available at: [https://fenix.tecnico.ulisboa.pt/cursos/meec21/dissertacao/283828618791208](https://fenix.tecnico.ulisboa.pt/cursos/meec21/dissertacao/283828618791208)
+This work was developed as part of the Master's thesis "Generalized Referring Expression Segmentation on Aerial Photos" by **Luis Marnoto** at Instituto Superior Técnico (IST). The complete dissertation is available at: [https://fenix.tecnico.ulisboa.pt/cursos/meec21/dissertacao/283828618791208](https://fenix.tecnico.ulisboa.pt/cursos/meec21/dissertacao/283828618791208)
 
 ## Contributing
 Issues and pull requests are welcome. Please open an issue before submitting substantial changes.
