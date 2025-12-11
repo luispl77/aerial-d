@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Aerial-D Dataset for Generalized Referring Expression Segmentation on Aerial Photos</title>
+    <title>Generalized Referring Expression Segmentation on Aerial Photos</title>
     <style>
         * {
             margin: 0;
@@ -94,16 +94,46 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
         .btn-paper {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: transparent;
+            padding: 0;
+            box-shadow: none;
+        }
+        .btn-paper:hover {
+            transform: none;
+            box-shadow: none;
+        }
+        .btn-paper img {
+            height: 32px;
+            width: auto;
+            vertical-align: middle;
         }
         .btn-huggingface {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
-            color: white;
+            background: transparent;
+            padding: 0;
+            box-shadow: none;
+        }
+        .btn-huggingface:hover {
+            transform: none;
+            box-shadow: none;
+        }
+        .btn-huggingface img {
+            height: 32px;
+            width: auto;
+            vertical-align: middle;
         }
         .btn-github {
-            background: linear-gradient(135deg, #2d3436 0%, #000000 100%);
-            color: white;
+            background: transparent;
+            padding: 0;
+            box-shadow: none;
+        }
+        .btn-github:hover {
+            transform: none;
+            box-shadow: none;
+        }
+        .btn-github img {
+            height: 32px;
+            width: auto;
+            vertical-align: middle;
         }
         .section {
             background: rgba(255, 255, 255, 0.7);
@@ -169,9 +199,102 @@
             box-shadow: 0 4px 16px rgba(0,0,0,0.12);
             margin: 30px 0;
             transition: transform 0.3s ease;
+            cursor: zoom-in;
         }
         .dataset-image:hover {
             transform: scale(1.02);
+        }
+        .image-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.3s ease;
+        }
+        .image-modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .modal-content {
+            position: relative;
+            max-width: 95%;
+            max-height: 95%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-image {
+            max-width: 100%;
+            max-height: 90vh;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            cursor: zoom-in;
+            transform-origin: center center;
+            will-change: transform;
+        }
+        .modal-image.zoomed {
+            cursor: all-scroll;
+            transition: none;
+        }
+        .modal-image:not(.zoomed) {
+            transition: transform 0.3s ease;
+        }
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 1001;
+            background: rgba(0, 0, 0, 0.5);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        .modal-close:hover {
+            background: rgba(0, 0, 0, 0.8);
+            transform: rotate(90deg);
+        }
+        .zoom-controls {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 1001;
+        }
+        .zoom-btn {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .zoom-btn:hover {
+            background: rgba(0, 0, 0, 0.9);
+            border-color: rgba(255, 255, 255, 0.6);
         }
         .features {
             display: grid;
@@ -231,30 +354,35 @@
         <div class="header">
             <div class="logos">
                 <img src="inesc_logo.png" alt="INESC-ID Logo" class="logo">
+                <img src="isr_logo.png" alt="ISR Logo" class="logo">
                 <img src="ist_logo.png" alt="IST Logo" class="logo">
             </div>
 
-            <h1 class="title">The Aerial-D Dataset for Generalized Referring Expression Segmentation on Aerial Photos</h1>
-            <div class="subtitle">The Largest Referring Expression Segmentation Dataset for Aerial Imagery</div>
+            <h1 class="title">Generalized Referring Expression Segmentation on Aerial Photos</h1>
+            <div class="subtitle">Presenting <strong>Aerial-D</strong> for generalized referring expression segmentation in remote sensing</div>
 
-            <div class="author">Luís Pedro Soares Marnoto</div>
-            <div class="affiliation">Instituto Superior Técnico, Universidade de Lisboa</div>
+            <div class="author">
+                Luís Marnoto<sup>1,2</sup>, Alexandre Bernardino<sup>2,3</sup>, Bruno Martins<sup>1,2</sup>
+            </div>
+            <div class="affiliation">
+                <sup>1</sup>INESC-ID &nbsp;&nbsp; <sup>2</sup>Instituto Superior Técnico, Universidade de Lisboa &nbsp;&nbsp; <sup>3</sup>Instituto de Sistemas e Robótica
+            </div>
 
             <div class="links">
-                <a href="https://github.com/luispl77/aerial-d/blob/main/tex/ieee_article/main.pdf" target="_blank" class="btn btn-paper">
-                    📄 Paper
+                <a href="https://www.arxiv.org/abs/2512.07338" target="_blank" class="btn btn-paper">
+                    <img src="https://img.shields.io/badge/arXiv-Paper-b31b1b?logo=arxiv&logoColor=white" alt="arXiv Paper">
                 </a>
                 <a href="https://huggingface.co/datasets/luisml77/aerial-d" target="_blank" class="btn btn-huggingface">
-                    🤗 Dataset (HuggingFace)
+                    <img src="https://img.shields.io/badge/Dataset-Hugging%20Face-orange?style=for-the-badge&logo=huggingface&logoColor=white&label=Aerial-D%20Dataset" alt="Hugging Face Dataset">
                 </a>
                 <a href="https://github.com/luispl77/aerial-d" target="_blank" class="btn btn-github">
-                    💻 Code (GitHub)
+                    <img src="https://img.shields.io/badge/Code-GitHub-181717?style=for-the-badge&logo=github" alt="GitHub Code">
                 </a>
             </div>
         </div>
 
         <div class="section">
-            <h2 class="section-title">Dataset Statistics</h2>
+            <h2 class="section-title">Aerial-D Dataset Statistics</h2>
             <div class="stats">
                 <div class="stat-item">
                     <span class="stat-number">1.5M+</span>
@@ -278,16 +406,26 @@
         <div class="section">
             <h2 class="section-title">Abstract</h2>
             <p class="abstract">
-                Referring expression segmentation is a fundamental task in computer vision that integrates natural language understanding with precise visual localization of target regions. Considering aerial imagery (for example, modern drone surveys, historic aerial archives, and high-resolution satellite captures) introduces unique challenges because spatial resolution varies widely across datasets, color usage is inconsistent, targets often shrink to only a few pixels, and scenes contain extreme object densities with frequent occlusions. This work presents <span class="highlight">Aerial-D</span>, a new large-scale referring expression segmentation dataset for aerial imagery comprising <strong>37,288 image patches</strong> with <strong>1,522,523 referring expressions</strong> covering <strong>259,709 annotated targets</strong> across individual instances, coherent groups, and semantic categories spanning <strong>21 distinct classes</strong> that range from vehicles and infrastructure to land-cover types.
-            </p>
-            <p class="abstract">
-                The dataset is constructed through a <span class="highlight">fully automatic pipeline</span> that combines systematic rule-based expression generation with Large Language Model enhancement, enriching both linguistic variety and the visual detail captured within each description. As an additional capability, the pipeline produces dedicated historic counterparts for every scene, supporting archival analyses such as monitoring urban change across decades. We adopt the RSRefSeg architecture featuring a SigLIP2 vision-language encoder and a SAM segmentation decoder and train models on Aerial-D together with prior aerial datasets, yielding unified instance and semantic segmentation from text for both modern and historic imagery. Results show that this combined training achieves competitive performance on contemporary benchmarks while maintaining strong accuracy under the monochrome, sepia, and grainy degradations that characterize archival aerial photography.
+                Referring expression segmentation is a fundamental task in computer vision that integrates natural language understanding with precise visual localization of target regions. Considering aerial imagery (e.g., modern aerial photos collected through drones, historical photos from aerial archives, high-resolution satellite imagery, etc.) presents unique challenges because spatial resolution varies widely across datasets, the use of color is not consistent, targets often shrink to only a few pixels, and scenes contain very high object densities and objects with partial occlusions. This work presents <span class="highlight">Aerial-D</span>, a new large-scale referring expression segmentation dataset for aerial imagery, comprising <strong>37,288 images</strong> with <strong>1,522,523 referring expressions</strong> that cover <strong>259,709 annotated targets</strong>, spanning across individual object instances, groups of instances, and semantic regions covering <strong>21 distinct classes</strong> that range from vehicles and infrastructure to land coverage types. The dataset was constructed through a <span class="highlight">fully automatic pipeline</span> that combines systematic rule-based expression generation with a Large Language Model (LLM) enhancement procedure that enriched both the linguistic variety and the focus on visual details within the referring expressions. Filters were additionally used to simulate historic imaging conditions for each scene. We adopted the RSRefSeg architecture, featuring a SigLIP2 vision--language encoder and a SAM segmentation decoder, and trained models on Aerial-D together with prior aerial datasets, yielding unified instance and semantic segmentation from text for both modern and historical images. Results show that the combined training achieves competitive performance on contemporary benchmarks, while maintaining strong accuracy under monochrome, sepia, and grainy degradations that appear in archival aerial photography.
             </p>
         </div>
 
         <div class="section">
-            <h2 class="section-title">Dataset Examples</h2>
-            <img src="dataset.png" alt="Aerial-D Dataset Examples" class="dataset-image">
+            <h2 class="section-title">Aerial-D Dataset Examples</h2>
+            <img src="dataset.png" alt="Aerial-D Dataset Examples" class="dataset-image" id="datasetImage" onclick="openImageModal(this.src)">
+        </div>
+
+        <!-- Image Modal -->
+        <div id="imageModal" class="image-modal" onclick="closeImageModal()">
+            <span class="modal-close" onclick="event.stopPropagation(); closeImageModal()">&times;</span>
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <img id="modalImage" class="modal-image" src="" alt="Aerial-D Dataset Examples">
+                <div class="zoom-controls">
+                    <button class="zoom-btn" onclick="event.stopPropagation(); zoomIn()">Zoom In</button>
+                    <button class="zoom-btn" onclick="event.stopPropagation(); zoomOut()">Zoom Out</button>
+                    <button class="zoom-btn" onclick="event.stopPropagation(); resetZoom()">Reset</button>
+                </div>
+            </div>
         </div>
 
         <div class="section">
@@ -341,17 +479,194 @@
                 If you use this dataset or code, please cite:
             </p>
             <pre style="background: #f8f9fa; padding: 20px; border-radius: 8px; overflow-x: auto; font-size: 0.9em;"><code>@article{marnoto2025aeriald,
-  title={The Aerial-D Dataset for Generalized Referring Expression Segmentation on Aerial Photos},
-  author={Marnoto, Luís Pedro Soares},
-  journal={IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing (J-STARS)},
+  title={Generalized Referring Expression Segmentation on Aerial Photos},
+  author={Marnoto, Luís and Bernardino, Alexandre and Martins, Bruno},
+  journal={IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing},
   year={2025},
   note={Submitted}
 }</code></pre>
         </div>
 
         <div class="contact">
-            <p>Contact: <a href="mailto:luis.marnoto.gaspar.lopes@tecnico.ulisboa.pt">luis.marnoto.gaspar.lopes@tecnico.ulisboa.pt</a></p>
+            <p><strong>Contact:</strong></p>
+            <p>
+                Luís Marnoto: <a href="mailto:luis.marnoto.gaspar.lopes@tecnico.ulisboa.pt">luis.marnoto.gaspar.lopes@tecnico.ulisboa.pt</a><br>
+                Alexandre Bernardino: <a href="mailto:alexandre.bernardino@tecnico.ulisboa.pt">alexandre.bernardino@tecnico.ulisboa.pt</a><br>
+                Bruno Martins: <a href="mailto:bruno.g.martins@tecnico.ulisboa.pt">bruno.g.martins@tecnico.ulisboa.pt</a>
+            </p>
         </div>
     </div>
+
+    <script>
+        let currentZoom = 1;
+        const maxZoom = 4;
+        const minZoom = 1;
+        const zoomStep = 0.5;
+
+        let panX = 0;
+        let panY = 0;
+
+        const modal = document.getElementById('imageModal');
+        const modalImage = document.getElementById('modalImage');
+
+        function updateTransform() {
+            // Disable transition during panning for smooth updates
+            modalImage.style.transition = 'none';
+            modalImage.style.transform = `translate(${panX}px, ${panY}px) scale(${currentZoom})`;
+        }
+
+        function openImageModal(imageSrc) {
+            modalImage.src = imageSrc;
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+
+            currentZoom = 1;
+            panX = 0;
+            panY = 0;
+            modalImage.classList.remove('zoomed');
+            updateTransform();
+        }
+
+        function closeImageModal() {
+            modal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+            currentZoom = 1;
+            panX = 0;
+            panY = 0;
+            updateTransform();
+            modalImage.classList.remove('zoomed');
+        }
+
+        // click to toggle zoom
+        function toggleZoom(e) {
+            if (currentZoom === 1) {
+                currentZoom = 2;
+                panX = 0;
+                panY = 0;
+                modalImage.classList.add('zoomed');
+                modalImage.style.transition = 'none';
+            } else {
+                currentZoom = 1;
+                panX = 0;
+                panY = 0;
+                modalImage.classList.remove('zoomed');
+                modalImage.style.transition = 'transform 0.3s ease';
+            }
+            updateTransform();
+        }
+
+        // mousemove driven pan around center
+        let rafId = null;
+        modal.addEventListener('mousemove', function (e) {
+            if (currentZoom <= 1) {
+                if (rafId) cancelAnimationFrame(rafId);
+                return;
+            }
+
+            // Use requestAnimationFrame to smooth updates
+            if (rafId) cancelAnimationFrame(rafId);
+            
+            rafId = requestAnimationFrame(function() {
+                const rect = modal.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+
+                // normalized (-1..1) position from center
+                const nx = Math.max(-1, Math.min(1, (e.clientX - centerX) / (rect.width / 2)));
+                const ny = Math.max(-1, Math.min(1, (e.clientY - centerY) / (rect.height / 2)));
+
+                // Get the natural image size
+                const img = modalImage;
+                const naturalWidth = img.naturalWidth || img.offsetWidth;
+                const naturalHeight = img.naturalHeight || img.offsetHeight;
+                const displayWidth = img.offsetWidth;
+                const displayHeight = img.offsetHeight;
+                
+                // Calculate max pan based on zoom level and image size
+                const scaleFactor = currentZoom;
+                const maxPanX = ((scaleFactor - 1) * displayWidth) / 2;
+                const maxPanY = ((scaleFactor - 1) * displayHeight) / 2;
+
+                panX = -nx * maxPanX;
+                panY = -ny * maxPanY;
+
+                updateTransform();
+            });
+        });
+
+        // hook click to image and buttons
+        modalImage.addEventListener('click', function (e) {
+            e.stopPropagation();
+            toggleZoom(e);
+        });
+
+        function zoomIn() {
+            if (currentZoom < maxZoom) {
+                currentZoom = Math.min(currentZoom + zoomStep, maxZoom);
+                if (currentZoom > 1) modalImage.classList.add('zoomed');
+                updateTransform();
+            }
+        }
+        function zoomOut() {
+            if (currentZoom > minZoom) {
+                currentZoom = Math.max(currentZoom - zoomStep, minZoom);
+                if (currentZoom === 1) {
+                    panX = 0;
+                    panY = 0;
+                    modalImage.classList.remove('zoomed');
+                }
+                updateTransform();
+            }
+        }
+        function resetZoom() {
+            currentZoom = 1;
+            panX = 0;
+            panY = 0;
+            modalImage.classList.remove('zoomed');
+            updateTransform();
+        }
+
+        // Touch support for mobile (drag to pan)
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchPanX = 0;
+        let touchPanY = 0;
+
+        modalImage.addEventListener('touchstart', function(e) {
+            if (currentZoom > 1 && e.touches.length === 1) {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                touchPanX = panX;
+                touchPanY = panY;
+                e.preventDefault();
+            }
+        });
+
+        modalImage.addEventListener('touchmove', function(e) {
+            if (currentZoom > 1 && e.touches.length === 1) {
+                const rect = modal.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                const nx = (e.touches[0].clientX - centerX) / (rect.width / 2);
+                const ny = (e.touches[0].clientY - centerY) / (rect.height / 2);
+                
+                const maxPanX = ((currentZoom - 1) * rect.width) / 2;
+                const maxPanY = ((currentZoom - 1) * rect.height) / 2;
+                
+                panX = -nx * maxPanX;
+                panY = -ny * maxPanY;
+                updateTransform();
+                e.preventDefault();
+            }
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeImageModal();
+            }
+        });
+    </script>
 </body>
 </html>

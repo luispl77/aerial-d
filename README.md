@@ -1,27 +1,29 @@
-# The Aerial-D Dataset for Generalized Referring Expression Segmentation on Aerial Photos
+# Generalized Referring Expression Segmentation on Aerial Photos
 
 <div align="center">
 
 ### 🔗 Quick Links
 
-**[🌐 Project Page](https://luispl77.github.io/aerial-d)** | **[📊 Dataset (HuggingFace)](https://huggingface.co/datasets/luisml77/aerial-d)** | **[📄 Paper](https://github.com/luispl77/aerial-d/blob/main/tex/ieee_article/main.pdf)** | **[🤖 Models](https://huggingface.co/collections/luisml77/aerial-d-68a17e2431daebb96218edce)**
+**[🌐 Project Page](https://luispl77.github.io/aerial-d)** | **[🤗 Aerial-D Dataset](https://huggingface.co/collections/luisml77/aerial-d-68a17e2431daebb96218edce)** | **[📄 Paper](https://www.arxiv.org/abs/2512.07338)**
 
-[![Project Page](https://img.shields.io/badge/Project%20Page-visit-blue)](https://luispl77.github.io/aerial-d)
-[![Dataset](https://img.shields.io/badge/Dataset-HuggingFace-orange)](https://huggingface.co/datasets/luisml77/aerial-d)
-[![Paper](https://img.shields.io/badge/Paper-Preprint-lightgrey)](https://luispl77.github.io/aerial-d)
+[![Project Page](https://img.shields.io/badge/Project%20Page-visit-blue?style=for-the-badge&logo=google-chrome&logoColor=white)](https://luispl77.github.io/aerial-d)
+[![Aerial-D Dataset](https://img.shields.io/badge/Dataset-Hugging%20Face-orange?style=for-the-badge&logo=huggingface&logoColor=white&label=Aerial-D%20Dataset)](https://huggingface.co/datasets/luisml77/aerial-d)
+[![arXiv](https://img.shields.io/badge/arXiv-Paper-b31b1b?style=for-the-badge&logo=arxiv)](https://www.arxiv.org/abs/2512.07338)
 
 </div>
 
-![Aerial-D dataset examples](docs/6samples.png)
+<div align="center">
+<img src="docs/6samples.png" width="60%" alt="Aerial-D dataset examples">
+</div>
 
 ## Overview
-This repository provides end-to-end tooling for *The Aerial-D Dataset for Generalized Referring Expression Segmentation on Aerial Photos* (submitted to IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing, J-STARS). The project introduces:
+This repository provides end-to-end tooling for *Generalized Referring Expression Segmentation on Aerial Photos* (submitted to IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing, J-STARS). The project introduces:
 - **Aerial-D**, a 37,288-image dataset with 1.52M referring expressions covering instances, groups, and semantic regions across 21 categories.
 - **Automatic data generation**, combining rule-based templates with LLM rewriting to produce grounded language at scale while filtering ambiguous references.
 - **Unified RSRefSeg training**, pairing SigLIP2 and SAM with LoRA adapters to learn from Aerial-D alongside RefSegRS, RRSIS-D, NWPU-Refer, and Urban1960SatSeg.
 
-### Hugging Face Collection
-All public artifacts live in the [Aerial-D collection on Hugging Face](https://huggingface.co/collections/luisml77/aerial-d-68a17e2431daebb96218edce):
+### 🤗 Hugging Face Collection
+All public artifacts live in the [🤗 Aerial-D collection on Hugging Face](https://huggingface.co/collections/luisml77/aerial-d-68a17e2431daebb96218edce):
 1. [luisml77/gemma-aerial-12b](https://huggingface.co/luisml77/gemma-aerial-12b) — Gemma3 finetuned weights for Step 7
 2. [luisml77/aeriald_o3_500](https://huggingface.co/datasets/luisml77/aeriald_o3_500) — distilled 500-sample o3 dataset for Gemma3 distillation
 3. [luisml77/aerial-d](https://huggingface.co/datasets/luisml77/aerial-d) — full dataset release
@@ -67,7 +69,7 @@ The dataset generation has two main phases:
 
 First, download the source datasets:
 ```bash
-cd /cfs/home/u035679/aerialseg/datagen/pipeline
+cd ~/aerial-d/datagen/pipeline
 
 # Download iSAID dataset (~20GB, train + val + test)
 ./download_isaid.sh
@@ -78,7 +80,7 @@ cd /cfs/home/u035679/aerialseg/datagen/pipeline
 
 Then generate rule-based expressions:
 ```bash
-cd /cfs/home/u035679/aerialseg/datagen
+cd ~/aerial-d/datagen
 
 # Generate rule-based expressions (skipping LLM enhancement)
 ./pipeline/run_pipeline.sh --skip_step7 --clean
@@ -93,7 +95,7 @@ Step 7 requires either (A) running OpenAI o3 enhancement + finetuning your own G
 
 **Option A: Full LLM Pipeline (from scratch)**
 ```bash
-cd /cfs/home/u035679/aerialseg/llm
+cd ~/aerial-d/llm
 
 # 1a. Generate high-quality o3 samples (requires OpenAI API key, ~$10.36 for 500 samples)
 python o3_enhance.py --dataset_dir ../datagen/dataset
@@ -112,7 +114,7 @@ python gemma3_lora_finetune.py \
 vllm serve ./gemma-aerial-12b --port 8000
 
 # 4. Run Step 7 (in another terminal)
-cd /cfs/home/u035679/aerialseg/datagen
+cd ~/aerial-d/datagen
 python pipeline/7_vllm_enhance.py
 ```
 
@@ -122,17 +124,17 @@ python pipeline/7_vllm_enhance.py
 huggingface-cli download luisml77/gemma-aerial-12b --repo-type model --local-dir llm/gemma-aerial-12b
 
 # 2. Start vLLM server with downloaded model
-cd /cfs/home/u035679/aerialseg/llm
+cd ~/aerial-d/llm
 vllm serve ./gemma-aerial-12b --port 8000
 
 # 3. Run Step 7 (in another terminal)
-cd /cfs/home/u035679/aerialseg/datagen
+cd ~/aerial-d/datagen
 python pipeline/7_vllm_enhance.py
 ```
 
 **Package dataset (optional)**
 ```bash
-cd /cfs/home/u035679/aerialseg/datagen
+cd ~/aerial-d/datagen
 python pipeline/zip_dataset.py --base_dir dataset --zip_path aeriald.zip
 ```
 
@@ -143,18 +145,19 @@ The pipeline extracts iSAID/LoveDA patches, assigns rules (3×3 grid, relations,
 
 ```bash
 # Train (writes checkpoint under rsrefseg/models/ by default)
-cd /cfs/home/u035679/aerialseg/rsrefseg
+cd ~/aerial-d/rsrefseg
 python train.py --dataset_root ../datagen/dataset --custom_name aeriald_run
 
 # Test the produced checkpoint
 python test.py --model_name aeriald_run --dataset_type aeriald
 
-# Skip training: download the published Aerial-D checkpoint
-huggingface-cli download luisml77/aerial-seg --repo-type model --local-dir models/rsrefseg_aeriald
-python test.py --model_name rsrefseg_aeriald --dataset_type aeriald
+# Or download published checkpoints from HuggingFace
+huggingface-cli download luisml77/rsrefseg --repo-type model --local-dir models/
 
-# Evaluate the combined multi-dataset checkpoint (requires SAM ViT-Large)
-huggingface-cli download luisml77/rsrefseg --repo-type model --local-dir models/rsrefseg_combined
+# Test with Aerial-D only checkpoint (rsrefseg_aerial-d.pt)
+python test.py --model_name rsrefseg_aerial-d --dataset_type aeriald
+
+# Test with combined multi-dataset checkpoint (rsrefseg_combined.pt, requires SAM ViT-Large)
 python test.py --model_name rsrefseg_combined --dataset_type aeriald --sam_model facebook/sam-vit-large
 ```
 The training script fine-tunes SigLIP2-SO400M and SAM-ViT (Base or Large) on Aerial-D only. The optional `--custom_name` flag controls the run folder name under `rsrefseg/models/`, which you pass to `test.py` for evaluation.
@@ -166,7 +169,7 @@ The training script fine-tunes SigLIP2-SO400M and SAM-ViT (Base or Large) on Aer
 Browse the complete dataset with images, expressions, and segmentation masks through an interactive web interface:
 
 ```bash
-cd /cfs/home/u035679/aerialseg/datagen
+cd ~/aerial-d/datagen
 python utils/rule_viewer.py --port 5004
 # Navigate to http://localhost:5004
 ```
@@ -181,7 +184,7 @@ python utils/rule_viewer.py --port 5004
 Test trained models with your own images and referring expressions:
 
 ```bash
-cd /cfs/home/u035679/aerialseg/rsrefseg
+cd ~/aerial-d/rsrefseg
 CUDA_VISIBLE_DEVICES=0 python utils/rsrefseg_inference_app.py \
   --model_name aeriald_run \
   --sam_model facebook/sam-vit-large \
@@ -201,9 +204,9 @@ If you use this dataset or code, please cite:
 
 ```bibtex
 @article{marnoto2025aeriald,
-  title={The Aerial-D Dataset for Generalized Referring Expression Segmentation on Aerial Photos},
-  author={Marnoto, Luís Pedro Soares},
-  journal={IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing (J-STARS)},
+  title={Generalized Referring Expression Segmentation on Aerial Photos},
+  author={Marnoto, Luís and Bernardino, Alexandre and Martins, Bruno},
+  journal={IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing},
   year={2025},
   note={Submitted}
 }
@@ -213,4 +216,8 @@ If you use this dataset or code, please cite:
 Issues and pull requests are welcome. Please open an issue before submitting substantial changes.
 
 ## Contact
-For inquiries, email [luis.marnoto.gaspar.lopes@tecnico.ulisboa.pt](mailto:luis.marnoto.gaspar.lopes@tecnico.ulisboa.pt) or open a GitHub issue.
+- Luís Marnoto: [luis.marnoto.gaspar.lopes@tecnico.ulisboa.pt](mailto:luis.marnoto.gaspar.lopes@tecnico.ulisboa.pt)
+- Alexandre Bernardino: [alexandre.bernardino@tecnico.ulisboa.pt](mailto:alexandre.bernardino@tecnico.ulisboa.pt)
+- Bruno Martins: [bruno.g.martins@tecnico.ulisboa.pt](mailto:bruno.g.martins@tecnico.ulisboa.pt)
+
+Or open a GitHub issue.
