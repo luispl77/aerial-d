@@ -22,6 +22,8 @@ This repository provides end-to-end tooling for *Generalized Referring Expressio
 - **Automatic data generation**, combining rule-based templates with LLM rewriting to produce grounded language at scale while filtering ambiguous references.
 - **Unified RSRefSeg training**, pairing SigLIP2 and SAM with LoRA adapters to learn from Aerial-D alongside RefSegRS, RRSIS-D, NWPU-Refer, and Urban1960SatSeg.
 
+This work was developed as part of the Master's thesis "Open-Vocabulary Semantic Segmentation of Aerial Photos" by **Luis Marnoto** at Instituto Superior Técnico (IST). The complete dissertation is available at: [https://fenix.tecnico.ulisboa.pt/cursos/meec21/dissertacao/283828618791208](https://fenix.tecnico.ulisboa.pt/cursos/meec21/dissertacao/283828618791208)
+
 ### 🤗 Hugging Face Collection
 All public artifacts live in the [🤗 Aerial-D collection on Hugging Face](https://huggingface.co/collections/luisml77/aerial-d-68a17e2431daebb96218edce):
 1. [luisml77/aerial-d](https://huggingface.co/datasets/luisml77/aerial-d) — full dataset release
